@@ -19,7 +19,19 @@ class SupplierBase(BaseModel):
     reliability_score: float = Field(default=0, ge=0, le=100)
     delivery_score: float = Field(default=0, ge=0, le=100)
 
-    @field_validator("name", "company_name", "contact_number", "address", "status")
+    # Component 4 procurement fields
+    unit_price: float = Field(default=0, ge=0)
+    delivery_cost: float = Field(default=0, ge=0)
+    available_quantity: float = Field(default=0, ge=0)
+    estimated_delivery_date: datetime | None = None
+
+    @field_validator(
+        "name",
+        "company_name",
+        "contact_number",
+        "address",
+        "status",
+    )
     @classmethod
     def strip_text(cls, value: str):
         return value.strip() if isinstance(value, str) else value
@@ -45,16 +57,21 @@ class SupplierUpdate(SupplierBase):
 class SupplierResponse(BaseModel):
     id: str
     name: str
-    company_name: str = "N/A"
+    company_name: str
     contact_number: str
-    email: str = "N/A"
-    address: str = ""
+    email: str
+    address: str
     status: str
 
     price_score: float = 0
     reliability_score: float = 0
     delivery_score: float = 0
     total_score: float = 0
+
+    unit_price: float = 0
+    delivery_cost: float = 0
+    available_quantity: float = 0
+    estimated_delivery_date: datetime | None = None
 
     created_at: datetime
     updated_at: datetime

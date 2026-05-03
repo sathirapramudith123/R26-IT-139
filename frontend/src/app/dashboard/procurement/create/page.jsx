@@ -1,29 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-
 import PageHeader from "@/components/common/PageHeader";
-import Button from "@/components/ui/Button";
-import ProcurementForm from "@/components/forms/ProcurementForm";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
+import ProcurementRecommendationForm from "@/components/forms/ProcurementRecommendationForm";
+import SupplierRecommendationTable from "@/components/procurement/SupplierRecommendationTable";
 import { procurementApi } from "@/services/api/procurement.api";
 
 export default function CreateProcurementPage() {
-  const router = useRouter();
-
+  const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   async function handleSubmit(values) {
     setLoading(true);
     setError(null);
+    setResults([]);
 
     try {
-      await procurementApi.create(values);
-      router.push("/dashboard/procurement");
+      const data = await procurementApi.recommend(values);
+      setResults(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.message || "Failed to create procurement decision");
+      setError(err.message || "Failed to fetch recommendations");
     } finally {
       setLoading(false);
     }
@@ -32,25 +30,19 @@ export default function CreateProcurementPage() {
   return (
     <div className="page-container">
       <PageHeader
-        title="Manual Procurement Decision"
-        description="Create a procurement decision manually if needed."
-        action={
-          <Link href="/dashboard/procurement">
-            <Button variant="secondary">← Back</Button>
-          </Link>
-        }
+        title="Smart Procurement"
+        description="Find best suppliers using cost & profit analysis"
       />
+
+      <ProcurementRecommendationForm onSubmit={handleSubmit} />
+
+      {loading && <LoadingSpinner label="Analyzing suppliers..." />}
 
       {error && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
+        <p className="text-red-500 mt-3">{error}</p>
       )}
 
-      <ProcurementForm
-        onSubmit={handleSubmit}
-        submitLabel={loading ? "Saving..." : "Save Decision"}
-      />
+      <SupplierRecommendationTable items={results} />
     </div>
   );
 }

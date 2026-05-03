@@ -11,10 +11,18 @@ def serialize_supplier(item: dict) -> dict | None:
     item.setdefault("company_name", "N/A")
     item.setdefault("email", "N/A")
     item.setdefault("address", "")
+    item.setdefault("status", "active")
+
     item.setdefault("price_score", 0)
     item.setdefault("reliability_score", 0)
     item.setdefault("delivery_score", 0)
     item.setdefault("total_score", 0)
+
+    # Component 4 procurement fields
+    item.setdefault("unit_price", 0)
+    item.setdefault("delivery_cost", 0)
+    item.setdefault("available_quantity", 0)
+    item.setdefault("estimated_delivery_date", None)
 
     return item
 
@@ -76,6 +84,11 @@ class SupplierRepository:
         )
 
         await self.collection.update_many(
+            {"status": {"$exists": False}},
+            {"$set": {"status": "active"}}
+        )
+
+        await self.collection.update_many(
             {"price_score": {"$exists": False}},
             {"$set": {"price_score": 0}}
         )
@@ -93,4 +106,24 @@ class SupplierRepository:
         await self.collection.update_many(
             {"total_score": {"$exists": False}},
             {"$set": {"total_score": 0}}
+        )
+
+        await self.collection.update_many(
+            {"unit_price": {"$exists": False}},
+            {"$set": {"unit_price": 0}}
+        )
+
+        await self.collection.update_many(
+            {"delivery_cost": {"$exists": False}},
+            {"$set": {"delivery_cost": 0}}
+        )
+
+        await self.collection.update_many(
+            {"available_quantity": {"$exists": False}},
+            {"$set": {"available_quantity": 0}}
+        )
+
+        await self.collection.update_many(
+            {"estimated_delivery_date": {"$exists": False}},
+            {"$set": {"estimated_delivery_date": None}}
         )
