@@ -1,25 +1,50 @@
 "use client";
-import { useState, useCallback } from "react";
+
+import { useCallback, useState } from "react";
 import { notificationApi } from "@/services/api/notification.api";
 
 export default function useNotifications() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
 
   const fetchAll = useCallback(async () => {
-    setLoading(true);
-    setError(null);
     try {
+      setLoading(true);
+      setError("");
+
       const data = await notificationApi.list();
       setItems(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Failed to load notifications");
       setItems([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  return { items, loading, error, fetchAll };
+  const markRead = useCallback(
+    async (id) => {
+      await notificationApi.markRead(id);
+      await fetchAll();
+    },
+    [fetchAll]
+  );
+
+  const deleteNotification = useCallback(
+    async (id) => {
+      await notificationApi.delete(id);
+      await fetchAll();
+    },
+    [fetchAll]
+  );
+
+  return {
+    items,
+    loading,
+    error,
+    fetchAll,
+    markRead,
+    deleteNotification,
+  };
 }

@@ -15,11 +15,6 @@ class InventoryItemBase(BaseModel):
 
     status: str = "active"
 
-    sync_status: str = "synced"
-    version: int = 1
-    device_id: str | None = None
-    last_synced_at: datetime | None = None
-
 
 class InventoryItemCreate(InventoryItemBase):
     pass
@@ -32,20 +27,15 @@ class InventoryItemUpdate(InventoryItemBase):
 class InventoryItemResponse(BaseModel):
     id: str
     name: str
-    supplier_id: str = ""
-    supplier_name: str = "Unknown Supplier"
+    supplier_id: str
+    supplier_name: str
 
     quantity: float
     reorder_level: float
 
-    unit: str = "unit"
+    unit: str
     unit_price: float
     status: str
-
-    sync_status: str = "synced"
-    version: int = 1
-    device_id: str | None = None
-    last_synced_at: datetime | None = None
 
     created_at: datetime
     updated_at: datetime

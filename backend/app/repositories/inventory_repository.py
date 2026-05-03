@@ -12,11 +12,7 @@ def serialize_inventory_item(item: dict) -> dict | None:
     item.setdefault("supplier_name", "Unknown Supplier")
     item.setdefault("unit", "unit")
     item.setdefault("reorder_level", 0)
-    item.setdefault("sync_status", "synced")
-    item.setdefault("version", 1)
-    item.setdefault("device_id", None)
-    item.setdefault("last_synced_at", None)
-
+    
     return item
 
 

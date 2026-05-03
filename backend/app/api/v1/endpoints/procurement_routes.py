@@ -1,42 +1,51 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, status
 
+from app.schemas.procurement_schema import (
+    ProcurementRecommendationRequest,
+    SupplierRecommendationResponse,
+    ProcurementDecisionCreate,
+    ProcurementDecisionUpdate,
+    ProcurementDecisionResponse,
+    ProcurementDeleteResponse,
+)
 from app.services.procurement_service import ProcurementService
-from app.schemas.procurement_schema import ProcurementCreate, ProcurementResponse
 
 router = APIRouter(prefix="/procurement", tags=["procurement"])
 
 
-@router.get("/recommendations")
-async def get_recommendations():
+@router.post("/recommend")
+async def recommend_suppliers(payload: ProcurementRecommendationRequest):
     service = ProcurementService()
-    return await service.generate_recommendations()
+    return await service.recommend_suppliers(payload.model_dump())
+
+async def recommend_suppliers(payload: ProcurementRecommendationRequest):
+    return await ProcurementService().recommend_suppliers(payload.model_dump())
 
 
-@router.get("", response_model=list[ProcurementResponse])
+@router.get("", response_model=list[ProcurementDecisionResponse])
 async def list_items():
-    service = ProcurementService()
-    return await service.list_all()
+    return await ProcurementService().list_all()
 
 
-@router.get("/{item_id}", response_model=ProcurementResponse)
+@router.get("/{item_id}", response_model=ProcurementDecisionResponse)
 async def get_item(item_id: str):
-    service = ProcurementService()
-    return await service.get_by_id(item_id)
+    return await ProcurementService().get_by_id(item_id)
 
 
-@router.post("", response_model=ProcurementResponse)
-async def create_item(payload: ProcurementCreate):
-    service = ProcurementService()
-    return await service.create(payload.model_dump())
+@router.post(
+    "",
+    response_model=ProcurementDecisionResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_item(payload: ProcurementDecisionCreate):
+    return await ProcurementService().create(payload.model_dump())
 
 
-@router.put("/{item_id}", response_model=ProcurementResponse)
-async def update_item(item_id: str, payload: ProcurementCreate):
-    service = ProcurementService()
-    return await service.update(item_id, payload.model_dump())
+@router.put("/{item_id}", response_model=ProcurementDecisionResponse)
+async def update_item(item_id: str, payload: ProcurementDecisionUpdate):
+    return await ProcurementService().update(item_id, payload.model_dump())
 
 
-@router.delete("/{item_id}")
+@router.delete("/{item_id}", response_model=ProcurementDeleteResponse)
 async def delete_item(item_id: str):
-    service = ProcurementService()
-    return await service.delete(item_id)
+    return await ProcurementService().delete(item_id)

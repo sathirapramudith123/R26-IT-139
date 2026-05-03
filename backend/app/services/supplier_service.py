@@ -9,9 +9,9 @@ class SupplierService:
         self.repository = SupplierRepository()
 
     def calculate_total_score(self, data: dict):
-        price_score = data.get("price_score", 0)
-        reliability_score = data.get("reliability_score", 0)
-        delivery_score = data.get("delivery_score", 0)
+        price_score = float(data.get("price_score", 0) or 0)
+        reliability_score = float(data.get("reliability_score", 0) or 0)
+        delivery_score = float(data.get("delivery_score", 0) or 0)
 
         return round(
             (price_score + reliability_score + delivery_score) / 3,
