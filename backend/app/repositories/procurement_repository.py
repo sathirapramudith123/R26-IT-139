@@ -8,26 +8,34 @@ def serialize_procurement(item: dict) -> dict | None:
 
     item.pop("_id", None)
 
-    item.setdefault("item_id", "")
-    item.setdefault("item_name", item.get("item_name", "Unknown Item"))
+    # New smart procurement fields
+    item.setdefault("item_name", "")
+    item.setdefault("quantity", None)
+    item.setdefault("delivery_location", None)
+    item.setdefault("required_delivery_date", None)
+    item.setdefault("expected_selling_price", None)
 
-    item.setdefault("current_quantity", item.get("quantity", 0))
-    item.setdefault("reorder_level", 10)
-    item.setdefault("recommended_quantity", item.get("quantity", 0))
+    item.setdefault("selected_supplier_id", None)
+    item.setdefault("selected_supplier_name", None)
 
-    item.setdefault("recommended_supplier_id", None)
-    item.setdefault(
-        "recommended_supplier_name",
-        item.get("supplier_name", "No supplier")
-    )
+    item.setdefault("unit_price", 0)
+    item.setdefault("delivery_cost", 0)
+    item.setdefault("total_cost", 0)
+    item.setdefault("estimated_profit", 0)
+    item.setdefault("final_score", 0)
 
-    item.setdefault("supplier_score", 0)
-    item.setdefault("decision_reason", "Legacy procurement record")
-    item.setdefault("decision_type", "manual")
-    item.setdefault("status", item.get("status", "pending"))
+    item.setdefault("decision_type", "rule_based")
+    item.setdefault("status", "pending")
 
-    item.setdefault("created_at", utc_now())
-    item.setdefault("updated_at", utc_now())
+    # Backward compatibility for old records
+    if not item.get("quantity") and item.get("recommended_quantity") is not None:
+        item["quantity"] = item.get("recommended_quantity")
+
+    if not item.get("selected_supplier_id") and item.get("recommended_supplier_id"):
+        item["selected_supplier_id"] = item.get("recommended_supplier_id")
+
+    if not item.get("selected_supplier_name") and item.get("recommended_supplier_name"):
+        item["selected_supplier_name"] = item.get("recommended_supplier_name")
 
     return item
 
@@ -56,7 +64,7 @@ class ProcurementRepository:
 
         await self.collection.update_one(
             {"id": item_id},
-            {"$set": payload}
+            {"$set": payload},
         )
 
         return await self.get_by_id(item_id)
@@ -64,3 +72,29 @@ class ProcurementRepository:
     async def delete(self, item_id: str):
         result = await self.collection.delete_one({"id": item_id})
         return result.deleted_count > 0
+
+    async def patch_missing_fields(self):
+        await self.collection.update_many(
+            {"quantity": {"$exists": False}},
+            {"$set": {"quantity": None}},
+        )
+        await self.collection.update_many(
+            {"delivery_location": {"$exists": False}},
+            {"$set": {"delivery_location": None}},
+        )
+        await self.collection.update_many(
+            {"required_delivery_date": {"$exists": False}},
+            {"$set": {"required_delivery_date": None}},
+        )
+        await self.collection.update_many(
+            {"expected_selling_price": {"$exists": False}},
+            {"$set": {"expected_selling_price": None}},
+        )
+        await self.collection.update_many(
+            {"selected_supplier_id": {"$exists": False}},
+            {"$set": {"selected_supplier_id": None}},
+        )
+        await self.collection.update_many(
+            {"selected_supplier_name": {"$exists": False}},
+            {"$set": {"selected_supplier_name": None}},
+        )

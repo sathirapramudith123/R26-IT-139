@@ -88,7 +88,7 @@ export default function InventoryPage() {
         </Link>
 
         <Link href={`/dashboard/inventory/${item.id}/edit`}>
-          <Button variant="secondary" size="sm">
+          <Button variant="primary" size="sm">
             Edit
           </Button>
         </Link>
