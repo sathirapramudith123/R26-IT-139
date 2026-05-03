@@ -1,4 +1,22 @@
 from app.core.database import MongoDB
+from app.utils.helpers import utc_now
+
+
+def serialize_transaction(item: dict) -> dict | None:
+    if not item:
+        return None
+
+    item.pop("_id", None)
+    item.setdefault("category", "sales")
+    item.setdefault("payment_method", "cash")
+    item.setdefault("description", item.get("transaction_type", "Transaction"))
+    item.setdefault("notes", "")
+    item.setdefault("date", item.get("created_at", utc_now()))
+    item.setdefault("created_at", utc_now())
+    item.setdefault("updated_at", utc_now())
+
+    return item
+
 
 class TransactionRepository:
     @property
@@ -7,17 +25,14 @@ class TransactionRepository:
 
     async def create(self, payload: dict):
         await self.collection.insert_one(payload)
-        return payload
+        return serialize_transaction(payload)
 
     async def list_all(self):
         items = []
-        async for item in self.collection.find():
-            item.pop("_id", None)
-            items.append(item)
+        async for item in self.collection.find().sort("created_at", -1):
+            items.append(serialize_transaction(item))
         return items
 
     async def get_by_id(self, item_id: str):
         item = await self.collection.find_one({"id": item_id})
-        if item:
-            item.pop("_id", None)
-        return item
+        return serialize_transaction(item)

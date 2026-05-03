@@ -5,13 +5,14 @@ pydantic>=2.12
 pydantic-settings>=2.5
 
 pymongo>=4.14
-motor>=3.6   # async MongoDB (VERY IMPORTANT)
+motor>=3.6
 
 python-dotenv>=1.0
 
 python-jose[cryptography]>=3.3
+
 bcrypt==4.3.0
-passlib[bcrypt]>=1.7.4   # better password handling
+passlib[bcrypt]>=1.7.4
 
 httpx>=0.27
 
@@ -19,5 +20,11 @@ email-validator>=2.2
 
 pytest>=8.0
 
-# Optional but recommended
-orjson>=3.10        # faster JSON responses
+# Performance
+orjson>=3.10
+
+# PDF Export (VERY IMPORTANT for Component 1)
+reportlab>=4.0
+
+# Optional (better CORS + middleware handling)
+starlette>=0.37

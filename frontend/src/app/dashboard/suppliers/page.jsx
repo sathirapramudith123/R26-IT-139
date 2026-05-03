@@ -83,7 +83,9 @@ export default function SuppliersPage() {
         </Link>
 
         <Link href={`/dashboard/suppliers/${item.id}/edit`}>
-          <Button variant="secondary" size="sm">Edit</Button>
+          <Button variant="primary" size="sm">
+            Edit
+          </Button>
         </Link>
 
         <Button
