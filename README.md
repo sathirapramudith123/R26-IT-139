@@ -1,4 +1,4 @@
-
+<div align="center">
 # 🌿 Lanka-Link Financial Ecosystem
 
 <p align="center">
@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/Backend-FastAPI-teal?style=for-the-badge&logo=fastapi"/>
   <img src="https://img.shields.io/badge/Database-MongoDB-green?style=for-the-badge&logo=mongodb"/>
 </p>
-
+</div>
 ---
 
 ## 📌 Project Overview
