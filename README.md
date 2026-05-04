@@ -1,3 +1,4 @@
+
 # 🌿 Lanka-Link Financial Ecosystem
 
 <p align="center">
@@ -37,21 +38,17 @@ It solves real-world problems like:
 ## 🧩 System Modules (4 Core Products)
 
 ### 🟩 1. Digital Financial Ledger
-💰 Track daily business transactions
-
-- Sales, expenses, deposits
-- Payment methods (cash, QR, bank)
-- Monthly reports & summaries
+- Track sales, expenses, deposits  
+- Payment methods (cash, QR, bank)  
+- Monthly reports  
 
 ---
 
 ### 🟦 2. Offline Inventory & Supplier Manager ⭐
-📦 Manage stock without internet
-
 - Inventory tracking  
 - Supplier management  
 - Low-stock alerts  
-- IndexedDB (offline storage)  
+- IndexedDB offline storage  
 - Sync when online  
 
 👉 **Main Research Contribution**
@@ -59,8 +56,6 @@ It solves real-world problems like:
 ---
 
 ### 🟨 3. Cash Flow Monitoring
-📊 Understand business performance
-
 - Profit tracking  
 - Expense analysis  
 - Financial insights  
@@ -68,14 +63,10 @@ It solves real-world problems like:
 ---
 
 ### 🟥 4. Smart Procurement Decision Engine ⭐
-🧠 Make better buying decisions
-
-- Compare suppliers  
-- Calculate cost & profit  
-- Rank best suppliers  
-- 💡 Explain WHY supplier is best  
-
-👉 Example:
+- Supplier comparison  
+- Cost & profit calculation  
+- Ranking system  
+- Explainable recommendations  
 
 ```text
 Recommended because:
@@ -83,3 +74,192 @@ Recommended because:
 - High profit margin
 - Can deliver on time
 - Reliable supplier
+````
+
+---
+
+## 🧠 Methodology
+
+Design Science Research (DSR):
+
+1. Problem Identification
+2. Artifact Design
+3. Development
+4. Evaluation
+
+---
+
+## ⚙️ Technology Stack & Why Used
+
+### 🖥️ Frontend
+
+* **Next.js** → Fast, scalable UI framework
+* **React** → Component-based development
+* **Tailwind CSS** → Clean UI styling
+* **IndexedDB** → Offline-first data storage
+
+---
+
+### ⚡ Backend
+
+* **FastAPI** → High-performance API framework
+* **MongoDB** → Flexible NoSQL database
+* **Motor** → Async MongoDB driver
+
+---
+
+### 🔐 Other
+
+* **JWT Authentication** → Secure login system
+* **REST APIs** → Communication between frontend & backend
+* **PWA Support** → Offline capability
+
+---
+
+## 🚀 Setup Guide
+
+### 📦 Prerequisites
+
+```bash
+node -v
+npm -v
+python --version
+pip --version
+```
+
+---
+
+### 🔧 Backend Setup
+
+```bash
+cd backend
+
+python -m venv .venv
+
+# Windows
+.venv\Scripts\activate
+
+pip install -r requirements.txt
+
+python run.py
+```
+
+👉 Backend runs on:
+`http://localhost:8000`
+
+---
+
+### 💻 Frontend Setup
+
+```bash
+cd frontend
+
+npm install
+
+npm run dev
+```
+
+👉 Frontend runs on:
+`http://localhost:3000`
+
+---
+
+### ⚠️ CORS Fix (if needed)
+
+```python
+origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+]
+```
+
+---
+
+## 🔌 API Endpoints (Sample)
+
+```bash
+POST /api/v1/auth/register
+POST /api/v1/auth/login
+POST /api/v1/procurement/recommend
+GET  /api/v1/inventory
+```
+
+---
+
+## 👥 User Roles
+
+### 🧑‍💼 Admin
+
+* Manage users
+* View reports
+
+### 🏪 Merchant
+
+* Full system usage
+* Decision making
+
+### 👨‍🔧 Staff
+
+* Transactions
+* Inventory updates
+
+👉 Suppliers are treated as **data (not users)**
+
+---
+
+## 🌍 Key Features
+
+* Offline-first architecture
+* Explainable decision support
+* Lightweight system
+* Rural-friendly design
+
+---
+
+## 📊 Evaluation Metrics
+
+* Stock-out reduction
+* Cost savings
+* Profit improvement
+* System usability
+* Response time
+
+---
+
+## 🚀 Future Enhancements
+
+* Supplier API integration
+* Machine learning models
+* Real-time market price data
+* Mobile app
+
+---
+
+## 👨‍💻 Development Team
+
+* 👤 Team Member 1 – https://github.com/MaheshaJayaruwani
+* 👤 Team Member 2 – https://github.com/ParameeAponsu
+* 👤 Team Member 3 – https://github.com/Leshvi
+* 👤 Team Member 4 – https://github.com/sathirapramudith123
+
+---
+
+## 🧑‍🎓 Author
+
+Undergraduate Research Project
+BSc in Information Technology
+
+---
+
+## 📜 License
+
+This project is for academic research purposes only.
+
+---
+
+<p align="center">
+  🌱 Built for real-world impact in rural Sri Lanka
+</p>
+```
+
+
