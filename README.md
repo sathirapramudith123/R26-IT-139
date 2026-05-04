@@ -14,9 +14,9 @@
   <img src="https://img.shields.io/badge/Backend-FastAPI-teal?style=for-the-badge&logo=fastapi"/>
   <img src="https://img.shields.io/badge/Database-MongoDB-green?style=for-the-badge&logo=mongodb"/>
 </p>
-</div>
----
 
+---
+</div>
 ## 📌 Project Overview
 
 **Lanka-Link** is a **modular offline-first financial ecosystem** designed for **rural micro-merchants in Sri Lanka**.
