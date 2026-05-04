@@ -1,10 +1,10 @@
 from datetime import datetime
 from pydantic import BaseModel, Field
-
 from app.utils.helpers import generate_id, utc_now
 
 
 class ProcurementDecision(BaseModel):
+    
     id: str = Field(default_factory=lambda: generate_id("pro"))
 
     item_name: str
