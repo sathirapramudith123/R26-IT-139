@@ -15,17 +15,18 @@ import { inventoryApi } from "@/services/api/inventory.api";
 
 const COLUMNS = [
   { key: "name", label: "Item Name" },
-  { key: "supplier_name", label: "Supplier Name" },
+  { key: "supplier_name", label: "Supplier" },
   { key: "quantity", label: "Quantity" },
   { key: "unit", label: "Unit" },
   { key: "unit_price", label: "Unit Price (LKR)" },
   { key: "status", label: "Status" },
-  { key: "actions", label: "" }
+  { key: "actions", label: "" },
 ];
 
 export default function InventoryPage() {
   const { items, loading, error, fetchAll } = useInventory();
   const [searchTerm, setSearchTerm] = useState("");
+  // FIXED: status values now match what the backend actually returns
   const [statusFilter, setStatusFilter] = useState("all");
   const [deletingId, setDeletingId] = useState(null);
 
@@ -34,8 +35,7 @@ export default function InventoryPage() {
   }, [fetchAll]);
 
   async function handleDelete(id) {
-    const confirmed = window.confirm("Are you sure you want to delete this item?");
-    if (!confirmed) return;
+    if (!window.confirm("Are you sure you want to delete this item?")) return;
 
     try {
       setDeletingId(id);
@@ -59,8 +59,8 @@ export default function InventoryPage() {
         item.status?.toLowerCase().includes(keyword) ||
         item.id?.toLowerCase().includes(keyword) ||
         item.unit?.toLowerCase().includes(keyword) ||
-        String(item.quantity ?? "").toLowerCase().includes(keyword) ||
-        String(item.unit_price ?? "").toLowerCase().includes(keyword);
+        String(item.quantity ?? "").includes(keyword) ||
+        String(item.unit_price ?? "").includes(keyword);
 
       const matchesStatus =
         statusFilter === "all" ||
@@ -69,6 +69,8 @@ export default function InventoryPage() {
       return matchesSearch && matchesStatus;
     });
   }, [items, searchTerm, statusFilter]);
+
+  const lowStockCount = items.filter((i) => i.status === "low_stock").length;
 
   const rows = filteredItems.map((item) => ({
     ...item,
@@ -82,17 +84,11 @@ export default function InventoryPage() {
     actions: (
       <div className="flex gap-2">
         <Link href={`/dashboard/inventory/${item.id}`}>
-          <Button variant="ghost" size="sm">
-            View
-          </Button>
+          <Button variant="ghost" size="sm">View</Button>
         </Link>
-
         <Link href={`/dashboard/inventory/${item.id}/edit`}>
-          <Button variant="primary" size="sm">
-            Edit
-          </Button>
+          <Button variant="primary" size="sm">Edit</Button>
         </Link>
-
         <Button
           variant="danger"
           size="sm"
@@ -102,7 +98,7 @@ export default function InventoryPage() {
           {deletingId === item.id ? "Deleting..." : "Delete"}
         </Button>
       </div>
-    )
+    ),
   }));
 
   return (
@@ -117,12 +113,28 @@ export default function InventoryPage() {
         }
       />
 
+      {/* Low stock banner */}
+      {lowStockCount > 0 && (
+        <div className="mb-4 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <span>
+            ⚠ {lowStockCount} item{lowStockCount > 1 ? "s are" : " is"} low on
+            stock.
+          </span>
+          <Link href="/dashboard/inventory/alerts">
+            <Button variant="secondary" size="sm">
+              View Alerts
+            </Button>
+          </Link>
+        </div>
+      )}
+
+      {/* Search + Filter */}
       <Card className="mb-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="w-full lg:max-w-md">
             <input
               type="text"
-              placeholder="Search by item name, supplier, status, quantity, price, unit, or ID..."
+              placeholder="Search by name, supplier, unit, quantity, price, or ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-slate-400"
@@ -130,15 +142,15 @@ export default function InventoryPage() {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            {/* FIXED: options now match backend-generated status values */}
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-slate-400"
             >
               <option value="all">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="pending">Pending</option>
-              <option value="inactive">Inactive</option>
+              <option value="available">Available</option>
+              <option value="low_stock">Low Stock</option>
             </select>
 
             {(searchTerm || statusFilter !== "all") && (

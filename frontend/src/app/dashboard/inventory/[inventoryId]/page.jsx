@@ -62,7 +62,7 @@ export default function InventoryDetailPage() {
     <div className="page-container">
       <PageHeader
         title="Inventory Details"
-        description="View stock, supplier, reorder, and sync details."
+        description="View stock, supplier, and reorder details."
         action={
           <Link href="/dashboard/inventory">
             <Button variant="secondary">← Back</Button>
@@ -128,10 +128,6 @@ export default function InventoryDetailPage() {
             <Info label="Stock Status" value={item.status || "—"} />
 
             <Info label="Sync Status" value={item.sync_status || "synced"} />
-            <Info label="Version" value={item.version ?? 1} />
-            <Info label="Device ID" value={item.device_id || "—"} />
-            <Info label="Last Synced" value={formatDate(item.last_synced_at)} />
-
             <Info label="Created" value={formatDate(item.created_at)} />
             <Info label="Updated" value={formatDate(item.updated_at)} />
           </div>
