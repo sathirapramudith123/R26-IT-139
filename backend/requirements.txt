@@ -28,3 +28,5 @@ reportlab>=4.0
 
 # Optional (better CORS + middleware handling)
 starlette>=0.37
+
+reportlab>=4.0
