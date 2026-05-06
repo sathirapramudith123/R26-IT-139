@@ -13,3 +13,7 @@ python run.py
 
 ## API Base
 `/api/v1`
+
+```
+python -m pip install reportlab>=4.0
+```
