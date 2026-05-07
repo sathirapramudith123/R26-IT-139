@@ -5,18 +5,13 @@ from app.utils.helpers import utc_now
 def serialize_notification(item: dict) -> dict | None:
     if not item:
         return None
-
     item.pop("_id", None)
-
     item.setdefault("type", "system")
     item.setdefault("priority", "medium")
     item.setdefault("source_module", "system")
     item.setdefault("source_id", None)
     item.setdefault("is_read", False)
     item.setdefault("status", "active")
-    item.setdefault("created_at", utc_now())
-    item.setdefault("updated_at", utc_now())
-
     return item
 
 
@@ -36,17 +31,11 @@ class NotificationRepository:
         return items
 
     async def get_by_id(self, item_id: str):
-        item = await self.collection.find_one({"id": item_id})
-        return serialize_notification(item)
+        return serialize_notification(await self.collection.find_one({"id": item_id}))
 
     async def update(self, item_id: str, payload: dict):
         payload["updated_at"] = utc_now()
-
-        await self.collection.update_one(
-            {"id": item_id},
-            {"$set": payload},
-        )
-
+        await self.collection.update_one({"id": item_id}, {"$set": payload})
         return await self.get_by_id(item_id)
 
     async def delete(self, item_id: str):
