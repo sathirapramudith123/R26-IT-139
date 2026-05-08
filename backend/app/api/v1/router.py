@@ -3,9 +3,10 @@ from fastapi import APIRouter
 from app.api.v1.endpoints.auth_routes import router as auth_router
 from app.api.v1.endpoints.inventory_routes import router as inventory_router
 from app.api.v1.endpoints.supplier_routes import router as supplier_router
+
 from app.api.v1.endpoints.dashboard_routes import router as dashboard_router
 from app.api.v1.endpoints.notification_routes import router as notification_router
-
+       
 
 api_router = APIRouter()
 
