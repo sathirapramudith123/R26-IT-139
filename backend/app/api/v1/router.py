@@ -9,6 +9,8 @@ from app.api.v1.endpoints.transaction_routes import router as transaction_router
 from app.api.v1.endpoints.agency_banking_routes import router as agency_banking_router
 from app.api.v1.endpoints.dashboard_routes import router as dashboard_router
 from app.api.v1.endpoints.notification_routes import router as notification_router
+from app.api.v1.endpoints.journal_routes import router as journal_router
+from app.api.v1.endpoints.sync_routes import router as sync_router         
 
 api_router = APIRouter()
 
@@ -21,3 +23,5 @@ api_router.include_router(transaction_router)
 api_router.include_router(agency_banking_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(notification_router)
+api_router.include_router(journal_router)
+api_router.include_router(sync_router)                                       

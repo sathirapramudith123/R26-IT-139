@@ -1,37 +1,44 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
-
-from app.api.v1.api import api_router
 from app.core.config import settings
-from app.core.database import MongoDB
-from app.core.middleware import register_middleware
+from app.core.database import connect_db, close_db
+from app.api.v1.router import api_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await MongoDB.connect()
+    await connect_db()
     yield
-    await MongoDB.close()
+    await close_db()
 
 
-app = FastAPI(title=settings.app_name, lifespan=lifespan)
+app = FastAPI(
+    title=settings.app_name,
+    version="1.0.0",
+    lifespan=lifespan,
+)
 
-register_middleware(app)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(api_router, prefix=settings.api_v1_prefix)
 
 
 @app.get("/")
 async def root():
-    return {"service": settings.app_name, "status": "ok"}
+    return {"message": f"{settings.app_name} is running"}
 
 
-@app.get("/health/db")
-async def db_health():
-    try:
-        await MongoDB.client.admin.command("ping")
-        return {"database": "connected"}
-    except Exception as exc:
-        return {"database": "failed", "error": str(exc)}
-
-
-app.include_router(api_router, prefix=settings.api_v1_prefix)
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
