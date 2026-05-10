@@ -1,9 +1,8 @@
 "use client";
-
+import useAuthGuard from "@/hooks/useAuthGuard";
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-
 import PageHeader from "@/components/common/PageHeader";
 import Button from "@/components/ui/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
@@ -11,66 +10,28 @@ import ProcurementForm from "@/components/forms/ProcurementForm";
 import { procurementApi } from "@/services/api/procurement.api";
 
 export default function EditProcurementPage() {
-  const params = useParams();
-  const router = useRouter();
-  const procurementId = params?.procurementId;
-
-  const [item, setItem] = useState(null);
+  useAuthGuard();
+  const { procurementId } = useParams();
+  const [item,    setItem]    = useState(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
+  const [error,   setError]   = useState(null);
 
   useEffect(() => {
     if (!procurementId) return;
-
-    procurementApi
-      .getById(procurementId)
+    procurementApi.getById(procurementId)
       .then(setItem)
-      .catch(() => setError("Failed to load procurement decision"))
+      .catch(e => setError(e.message || "Failed to load"))
       .finally(() => setLoading(false));
   }, [procurementId]);
 
-  async function handleSubmit(values) {
-    setSaving(true);
-    setError(null);
-
-    try {
-      await procurementApi.update(procurementId, values);
-      router.push(`/dashboard/procurement/${procurementId}`);
-    } catch (err) {
-      setError(err.message || "Failed to update procurement decision");
-    } finally {
-      setSaving(false);
-    }
-  }
-
   return (
     <div className="page-container">
-      <PageHeader
-        title="Update Procurement Decision"
-        description="Edit smart procurement decision details."
-        action={
-          <Link href={`/dashboard/procurement/${procurementId}`}>
-            <Button variant="secondary">← Back</Button>
-          </Link>
-        }
-      />
-
-      {error && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
-
-      {loading ? (
-        <LoadingSpinner />
-      ) : (
-        <ProcurementForm
-          initialData={item || {}}
-          onSubmit={handleSubmit}
-          submitLabel={saving ? "Updating..." : "Update Decision"}
-        />
-      )}
+      <PageHeader title="Update Procurement Decision" description="Edit procurement decision details."
+        action={<Link href={`/dashboard/procurement/${procurementId}`}><Button variant="secondary">← Back</Button></Link>} />
+      {loading ? <LoadingSpinner /> :
+       error   ? <p className="text-sm text-red-600">{error}</p> :
+       !item   ? <p className="text-sm text-slate-500">Record not found.</p> :
+       <ProcurementForm initialData={item} procurementId={procurementId} />}
     </div>
   );
 }
