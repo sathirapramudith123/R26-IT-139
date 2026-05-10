@@ -1,7 +1,6 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from app.core.config import settings
 
-
 class MongoDB:
     client: AsyncIOMotorClient | None = None
 
@@ -33,7 +32,6 @@ async def connect_db():
 
 async def close_db():
     await MongoDB.close()
-
 
 def get_database():
     return MongoDB.get_database()

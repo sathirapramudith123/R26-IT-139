@@ -6,7 +6,6 @@ from app.core.config import settings
 from app.core.database import connect_db, close_db
 from app.api.v1.router import api_router
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await connect_db()
@@ -32,7 +31,6 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix=settings.api_v1_prefix)
-
 
 @app.get("/")
 async def root():

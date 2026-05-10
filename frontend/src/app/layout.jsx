@@ -4,7 +4,7 @@ import Footer from "@/components/common/Footer";
 
 export const metadata = {
   title: "Lanka-Link | Micro-Merchant ERP",
-  description: "Decentralized micro-merchant ERP and banking gateway for rural Sri Lanka"
+  description: "Digital agency banking and smart procurement for rural Sri Lanka"
 };
 
 export default function RootLayout({ children }) {
