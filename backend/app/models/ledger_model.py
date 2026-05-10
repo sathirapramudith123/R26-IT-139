@@ -1,6 +1,5 @@
 from datetime import datetime
 from pydantic import BaseModel, Field
-
 from app.utils.helpers import generate_id, utc_now
 
 
@@ -12,6 +11,6 @@ class LedgerEntry(BaseModel):
     category: str
     payment_method: str
     source_transaction_id: str | None = None
-    status: str
+    status: str = "completed"
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
