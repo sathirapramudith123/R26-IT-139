@@ -1,102 +1,71 @@
 from datetime import datetime
-from pydantic import BaseModel, Field, field_validator
+from typing import Optional
+from pydantic import BaseModel, Field
+from app.models.transaction_model import TransactionType, PaymentMethod, TransactionStatus, ExpenseCategory
 
+class TransactionCreate(BaseModel):
+    transaction_type: TransactionType
+    payment_method:   PaymentMethod
+    amount:           float = Field(gt=0)
+    description:      Optional[str] = Field(None, max_length=300)
+    category:         Optional[ExpenseCategory] = None
+    date:             Optional[datetime] = None
+    item_name:        Optional[str] = None
+    quantity:         Optional[float] = None
+    model_config = {"use_enum_values": True}
 
-VALID_TRANSACTION_TYPES = {
-    "sale",
-    "purchase",
-    "expense",
-    "transfer",
-    "deposit",
-}
+class TransactionUpdate(BaseModel):
+    payment_method: Optional[PaymentMethod] = None
+    amount:         Optional[float] = Field(None, gt=0)
+    description:    Optional[str]   = Field(None, max_length=300)
+    category:       Optional[ExpenseCategory] = None
+    status:         Optional[TransactionStatus] = None
+    date:           Optional[datetime] = None
+    item_name:      Optional[str] = None
+    quantity:       Optional[float] = None
+    model_config = {"use_enum_values": True}
 
-VALID_CATEGORIES = {
-    "sales",
-    "supplier_payment",
-    "expense",
-    "agency_banking",
-    "cash_deposit",
-}
-
-VALID_PAYMENT_METHODS = {
-    "cash",
-    "qr_payment",
-    "bank_transfer",
-    "mobile_payment",
-}
-
-VALID_STATUSES = {
-    "completed",
-    "pending",
-    "failed",
-}
-
-
-class TransactionBase(BaseModel):
-    transaction_type: str
-    category: str = "sales"
-    amount: float = Field(..., gt=0)
-    payment_method: str = "cash"
-    description: str = Field(default="Transaction", min_length=1)
-    date: datetime | None = None
-    status: str = "completed"
-    notes: str = ""
-
-    @field_validator(
-        "transaction_type",
-        "category",
-        "payment_method",
-        "status",
-        mode="before",
-    )
-    @classmethod
-    def normalize_text(cls, value):
-        if isinstance(value, str):
-            return value.strip().lower()
-        return value
-
-    @field_validator("transaction_type")
-    @classmethod
-    def validate_transaction_type(cls, value):
-        if value not in VALID_TRANSACTION_TYPES:
-            raise ValueError("Invalid transaction type")
-        return value
-
-    @field_validator("category")
-    @classmethod
-    def validate_category(cls, value):
-        if value not in VALID_CATEGORIES:
-            raise ValueError("Invalid transaction category")
-        return value
-
-    @field_validator("payment_method")
-    @classmethod
-    def validate_payment_method(cls, value):
-        if value not in VALID_PAYMENT_METHODS:
-            raise ValueError("Invalid payment method")
-        return value
-
-    @field_validator("status")
-    @classmethod
-    def validate_status(cls, value):
-        if value not in VALID_STATUSES:
-            raise ValueError("Invalid transaction status")
-        return value
-
-
-class TransactionCreate(TransactionBase):
-    pass
-
-
-class TransactionUpdate(TransactionBase):
-    pass
-
-
-class TransactionResponse(TransactionBase):
+class TransactionResponse(BaseModel):
     id: str
+    user_id: str
+    transaction_type: str
+    payment_method: str
+    amount: float
+    description: Optional[str] = None
+    category: Optional[str] = None
+    reference_number: Optional[str] = None
+    status: str
+    date: datetime
     created_at: datetime
     updated_at: datetime
 
+class LedgerSummaryResponse(BaseModel):
+    total_income: float
+    total_expenses: float
+    net_profit: float
+    cash_balance: float
+    bank_balance: float
+    last_updated: datetime
 
-class TransactionDeleteResponse(BaseModel):
-    message: str
+class MonthlyReportItem(BaseModel):
+    month: str
+    year: int
+    total_income: float
+    total_expenses: float
+    net_profit: float
+    transaction_count: int
+
+class CategoryReportItem(BaseModel):
+    category: str
+    total_amount: float
+    transaction_count: int
+
+class PaymentMethodReportItem(BaseModel):
+    payment_method: str
+    total_amount: float
+    transaction_count: int
+
+class ReportsResponse(BaseModel):
+    monthly: list[MonthlyReportItem]
+    by_category: list[CategoryReportItem]
+    by_payment_method: list[PaymentMethodReportItem]
