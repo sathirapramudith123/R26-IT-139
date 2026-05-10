@@ -8,7 +8,6 @@ from app.api.deps import get_current_user
 
 router = APIRouter(prefix="/ledger", tags=["ledger"])
 
-
 # ── Static routes MUST come before /{item_id} ────────────────────────────────
 
 @router.get("")
@@ -237,7 +236,6 @@ async def export_pdf(current_user: dict = Depends(get_current_user)):
             "Content-Type": "application/pdf",
         }
     )
-
 
 # ── Dynamic routes AFTER all static routes ───────────────────────────────────
 

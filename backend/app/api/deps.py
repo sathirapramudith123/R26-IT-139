@@ -117,3 +117,4 @@ async def get_procurement_service():
     from app.repositories.procurement_repository import ProcurementRepository
     from app.services.procurement_service import ProcurementService
     return ProcurementService(ProcurementRepository(), SupplierRepository())
+
