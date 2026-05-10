@@ -28,10 +28,8 @@ class MongoDB:
             cls.client.close()
             cls.client = None
 
-
 async def connect_db():
     await MongoDB.connect()
-
 
 async def close_db():
     await MongoDB.close()
@@ -39,7 +37,6 @@ async def close_db():
 
 def get_database():
     return MongoDB.get_database()
-
 
 def get_db():
     return MongoDB.get_database()

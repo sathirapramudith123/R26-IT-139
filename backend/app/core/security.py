@@ -3,7 +3,6 @@ from jose import jwt
 import bcrypt
 from app.core.config import settings
 
-
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(
         password.encode("utf-8"),

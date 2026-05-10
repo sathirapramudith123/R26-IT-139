@@ -22,3 +22,4 @@ async def account_balances():
 @router.get("/transaction/{transaction_id}")
 async def get_by_transaction(transaction_id: str):
     return await get_service().get_by_transaction(transaction_id)
+
