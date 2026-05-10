@@ -2,6 +2,8 @@ import Link from "next/link";
 import StatusBadge from "@/components/common/StatusBadge";
 import { formatCurrency } from "@/lib/formatters";
 
+
+// Define table columns
 const COLS = ["Item", "Supplier", "Qty", "Reorder", "Unit Price", "Status", ""];
 
 export default function InventoryTable({ items = [], onDelete, deleting }) {

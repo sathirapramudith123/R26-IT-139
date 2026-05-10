@@ -104,6 +104,7 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
       </div>
     );
 
+// Main form JSX
   return (
     <form onSubmit={handleSubmit} noValidate className="card-elevated max-w-4xl space-y-6">
       {serverError && (
@@ -162,3 +163,4 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
     </form>
   );
 }
+

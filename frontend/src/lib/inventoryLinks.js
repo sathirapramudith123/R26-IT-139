@@ -1,3 +1,6 @@
+// Inventory management links for dashboard navigation
+
+
 export const INVENTORY_LINKS = [
   { title: "Add Item",        description: "Add a new stock item.",           href: "/dashboard/inventory/create", icon: "➕" },
   { title: "All Inventory",   description: "View and search all items.",      href: "/dashboard/inventory",        icon: "📦" },
