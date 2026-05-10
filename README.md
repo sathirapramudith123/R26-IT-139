@@ -80,16 +80,6 @@ Recommended because:
 
 ---
 
-## 🧠 Methodology
-
-Design Science Research (DSR):
-
-1. Problem Identification
-2. Artifact Design
-3. Development
-4. Evaluation
-
----
 
 ## ⚙️ Technology Stack & Why Used
 
