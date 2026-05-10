@@ -7,15 +7,9 @@ export default function Footer() {
             <span className="text-base">🌿</span>
             <span className="font-outfit text-sm font-semibold text-slate-700">Lanka-Link</span>
           </div>
-          <p className="text-xs text-slate-400">
-            © 2026 Lanka-Link. Empowering rural micro-merchants across Sri Lanka.
-          </p>
+          <p className="text-xs text-slate-400">© 2026 Lanka-Link. Empowering rural micro-merchants across Sri Lanka.</p>
           <div className="flex gap-4 text-xs text-slate-400">
-            <span>Offline-First</span>
-            <span>·</span>
-            <span>AI-Powered</span>
-            <span>·</span>
-            <span>Secure</span>
+            <span>Offline-First</span><span>·</span><span>CBSL Compliant</span><span>·</span><span>Rule-Based DSS</span>
           </div>
         </div>
       </div>
