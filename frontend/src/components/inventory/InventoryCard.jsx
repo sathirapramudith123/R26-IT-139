@@ -44,6 +44,8 @@ export default function InventoryCard({ item, onSold }) {
     }
   }
 
+
+  // JSX for the card
   return (
     <div className={`card flex flex-col gap-3 ${isLow ? "border-amber-200" : ""} ${isOut ? "border-red-200 opacity-75" : ""}`}>
 
