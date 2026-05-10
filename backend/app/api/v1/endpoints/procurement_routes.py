@@ -2,7 +2,6 @@ from fastapi import APIRouter, status
 
 from app.schemas.procurement_schema import (
     ProcurementRecommendationRequest,
-    SupplierRecommendationResponse,
     ProcurementDecisionCreate,
     ProcurementDecisionUpdate,
     ProcurementDecisionResponse,
@@ -17,9 +16,7 @@ router = APIRouter(prefix="/procurement", tags=["procurement"])
 async def recommend_suppliers(payload: ProcurementRecommendationRequest):
     service = ProcurementService()
     return await service.recommend_suppliers(payload.model_dump())
-
-async def recommend_suppliers(payload: ProcurementRecommendationRequest):
-    return await ProcurementService().recommend_suppliers(payload.model_dump())
+    # NOTE: duplicate bare function that previously shadowed this route has been removed.
 
 
 @router.get("", response_model=list[ProcurementDecisionResponse])
