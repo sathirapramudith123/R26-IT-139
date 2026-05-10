@@ -1,18 +1,15 @@
 from app.core.database import MongoDB
-from app.utils.helpers import utc_now
+from app.utils.helpers import utc_now, generate_id
 
 
 def serialize_ledger(item: dict) -> dict | None:
     if not item:
         return None
-
     item.pop("_id", None)
     item.setdefault("category", "sales")
     item.setdefault("payment_method", "cash")
     item.setdefault("source_transaction_id", None)
-    item.setdefault("created_at", utc_now())
-    item.setdefault("updated_at", utc_now())
-
+    item.setdefault("status", "completed")
     return item
 
 
@@ -22,6 +19,9 @@ class LedgerEntryRepository:
         return MongoDB.get_database()["ledger_entries"]
 
     async def create(self, payload: dict):
+        payload["id"] = generate_id("led")
+        payload["created_at"] = utc_now()
+        payload["updated_at"] = utc_now()
         await self.collection.insert_one(payload)
         return serialize_ledger(payload)
 
@@ -32,17 +32,12 @@ class LedgerEntryRepository:
         return items
 
     async def get_by_id(self, item_id: str):
-        item = await self.collection.find_one({"id": item_id})
-        return serialize_ledger(item)
+        return serialize_ledger(await self.collection.find_one({"id": item_id}))
 
     async def update(self, item_id: str, payload: dict):
+        payload = {k: v for k, v in payload.items() if v is not None}
         payload["updated_at"] = utc_now()
-
-        await self.collection.update_one(
-            {"id": item_id},
-            {"$set": payload}
-        )
-
+        await self.collection.update_one({"id": item_id}, {"$set": payload})
         return await self.get_by_id(item_id)
 
     async def delete(self, item_id: str):

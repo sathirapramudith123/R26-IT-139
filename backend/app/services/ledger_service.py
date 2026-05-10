@@ -1,180 +1,146 @@
-import csv
-import io
+"""
+LedgerService — manages ledger entries and derives financial summaries.
 
-from fastapi import HTTPException, status
+LedgerService now derives summaries purely from ledger_entries collection
+(which is the correct source for the /ledger endpoints).
 
-from app.models.ledger_model import LedgerEntry
+Transactions have their own summary via TransactionService.get_summary()
+which is properly db-injected through deps.py.
+"""
+
+from collections import defaultdict
+from datetime import datetime
+from fastapi import HTTPException
+
 from app.repositories.ledger_repository import LedgerEntryRepository
 
 
-class LedgerEntryService:
+INCOME_CATEGORIES  = {"income", "sales", "agency_banking"}
+EXPENSE_CATEGORIES = {"expense", "supplier_payment", "utilities", "rent", "general"}
+
+
+class LedgerService:
     def __init__(self):
-        self.repository = LedgerEntryRepository()
+        self.ledger_repo = LedgerEntryRepository()
 
-    async def create(self, data: dict):
-        payload = LedgerEntry(**data).model_dump()
-        return await self.repository.create(payload)
+    # ── CRUD ──────────────────────────────────────────────────────────────
 
-    async def list_all(self):
-        return await self.repository.list_all()
+    async def list_entries(self):
+        return await self.ledger_repo.list_all()
 
     async def get_by_id(self, item_id: str):
-        item = await self.repository.get_by_id(item_id)
-
+        item = await self.ledger_repo.get_by_id(item_id)
         if not item:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Ledger entry not found",
-            )
-
+            raise HTTPException(status_code=404, detail="Ledger entry not found")
         return item
 
+    async def create(self, data: dict):
+        return await self.ledger_repo.create(data)
+
     async def update(self, item_id: str, data: dict):
-        existing = await self.repository.get_by_id(item_id)
-
+        existing = await self.ledger_repo.get_by_id(item_id)
         if not existing:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Ledger entry not found",
-            )
-
-        updated_payload = {**existing, **data}
-        return await self.repository.update(item_id, updated_payload)
+            raise HTTPException(status_code=404, detail="Ledger entry not found")
+        return await self.ledger_repo.update(item_id, data)
 
     async def delete(self, item_id: str):
-        existing = await self.repository.get_by_id(item_id)
-
-        if not existing:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Ledger entry not found",
-            )
-
-        deleted = await self.repository.delete(item_id)
-
+        deleted = await self.ledger_repo.delete(item_id)
         if not deleted:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to delete ledger entry",
-            )
-
+            raise HTTPException(status_code=500, detail="Delete failed")
         return {"message": "Ledger entry deleted successfully"}
 
-    async def get_summary(self):
-        items = await self.repository.list_all()
+    # ── Summaries (derived from ledger entries) ───────────────────────────
 
-        total_income = sum(
-            item.get("amount", 0)
-            for item in items
-            if item.get("entry_type") == "income"
-        )
+    async def summary(self):
+        """
+        Derive income / expense / profit / cash balance
+        """
+        entries       = await self.ledger_repo.list_all()
+        total_income  = 0.0
+        total_expense = 0.0
+        cash_balance  = 0.0
 
-        total_expense = sum(
-            item.get("amount", 0)
-            for item in items
-            if item.get("entry_type") == "expense"
-        )
+        for entry in entries:
+            amount     = float(entry.get("amount", 0) or 0)
+            entry_type = entry.get("entry_type", "")
 
-        cash_income = sum(
-            item.get("amount", 0)
-            for item in items
-            if item.get("entry_type") == "income"
-            and item.get("payment_method") == "cash"
-        )
-
-        cash_expense = sum(
-            item.get("amount", 0)
-            for item in items
-            if item.get("entry_type") == "expense"
-            and item.get("payment_method") == "cash"
-        )
+            if entry_type == "income":
+                total_income += amount
+                if entry.get("payment_method") == "cash":
+                    cash_balance += amount
+            elif entry_type == "expense":
+                total_expense += amount
+                if entry.get("payment_method") == "cash":
+                    cash_balance -= amount
 
         return {
-            "total_income": total_income,
-            "total_expense": total_expense,
-            "net_profit": total_income - total_expense,
-            "cash_balance": cash_income - cash_expense,
+            "total_income":      round(total_income, 2),
+            "total_expense":     round(total_expense, 2),
+            "net_profit":        round(total_income - total_expense, 2),
+            "cash_balance":      round(cash_balance, 2),
+            "transaction_count": len(entries),
         }
 
-    async def get_monthly_report(self):
-        items = await self.repository.list_all()
-        report = {}
-
-        for item in items:
-            created_at = item.get("created_at")
-
-            if not created_at:
-                continue
-
-            month = created_at.strftime("%Y-%m")
-
-            if month not in report:
-                report[month] = {
-                    "monthly_income": 0,
-                    "monthly_expense": 0,
-                    "monthly_profit": 0,
-                    "transaction_count": 0,
-                }
-
-            if item.get("entry_type") == "income":
-                report[month]["monthly_income"] += item.get("amount", 0)
-
-            if item.get("entry_type") == "expense":
-                report[month]["monthly_expense"] += item.get("amount", 0)
-
-            report[month]["monthly_profit"] = (
-                report[month]["monthly_income"]
-                - report[month]["monthly_expense"]
+    async def payment_split(self):
+        """Break down total amounts by payment method."""
+        entries = await self.ledger_repo.list_all()
+        result: dict[str, float] = {}
+        for entry in entries:
+            method         = entry.get("payment_method", "cash")
+            result[method] = round(
+                result.get(method, 0) + float(entry.get("amount", 0) or 0), 2
             )
+        return result
 
-            report[month]["transaction_count"] += 1
+    async def reports(self):
+        """Monthly, category, type, and payment breakdowns from ledger entries."""
+        entries     = await self.ledger_repo.list_all()
+        monthly     = defaultdict(lambda: {"income": 0.0, "expense": 0.0})
+        by_category = defaultdict(float)
+        by_type     = defaultdict(float)
+        by_payment  = defaultdict(float)
 
-        return report
+        for entry in entries:
+            amount     = float(entry.get("amount", 0) or 0)
+            entry_type = entry.get("entry_type", "other")
+            category   = entry.get("category", "other")
+            method     = entry.get("payment_method", "cash")
 
-    async def get_payment_split(self):
-        items = await self.repository.list_all()
+            raw_date  = entry.get("created_at")
+            month_key = "unknown"
+            if raw_date:
+                try:
+                    dt = (
+                        raw_date
+                        if not isinstance(raw_date, str)
+                        else datetime.fromisoformat(
+                            raw_date.replace("Z", "+00:00")
+                        )
+                    )
+                    month_key = dt.strftime("%Y-%m")
+                except Exception:
+                    pass
 
-        split = {
-            "cash": 0,
-            "qr_payment": 0,
-            "bank_transfer": 0,
-            "mobile_payment": 0,
+            if entry_type == "income":
+                monthly[month_key]["income"] += amount
+            elif entry_type == "expense":
+                monthly[month_key]["expense"] += amount
+
+            by_category[category] += amount
+            by_type[entry_type]   += amount
+            by_payment[method]    += amount
+
+        return {
+            "monthly": [
+                {"month": k, **v}
+                for k, v in sorted(monthly.items())
+            ],
+            "by_category":        dict(by_category),
+            "by_type":            dict(by_type),
+            "by_payment":         dict(by_payment),
+            "total_transactions": len(entries),
         }
 
-        for item in items:
-            method = item.get("payment_method", "cash")
-            if method in split:
-                split[method] += item.get("amount", 0)
 
-        return split
-
-    async def export_csv(self):
-        items = await self.repository.list_all()
-
-        output = io.StringIO()
-        writer = csv.writer(output)
-
-        writer.writerow([
-            "ID",
-            "Title",
-            "Amount",
-            "Entry Type",
-            "Category",
-            "Payment Method",
-            "Status",
-            "Created At",
-        ])
-
-        for item in items:
-            writer.writerow([
-                item.get("id"),
-                item.get("title"),
-                item.get("amount"),
-                item.get("entry_type"),
-                item.get("category"),
-                item.get("payment_method"),
-                item.get("status"),
-                item.get("created_at"),
-            ])
-
-        return output.getvalue()
+# Backward-compatibility alias
+LedgerEntryService = LedgerService
