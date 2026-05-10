@@ -1,28 +1,7 @@
-const inventoryLinks = [
-  {
-    label: "Inventory",
-    href: "/dashboard/inventory",
-  },
-  {
-    label: "Add Item",
-    href: "/dashboard/inventory/create",
-  },
-  {
-    label: "Low Stock Alerts",
-    href: "/dashboard/inventory/alerts",
-  },
-  {
-    label: "Suppliers",
-    href: "/dashboard/suppliers",
-  },
-  {
-    label: "Add Supplier",
-    href: "/dashboard/suppliers/create",
-  },
-  {
-    label: "Compare Suppliers",
-    href: "/dashboard/suppliers/compare",
-  },
+export const INVENTORY_LINKS = [
+  { title: "Add Item",        description: "Add a new stock item.",           href: "/dashboard/inventory/create", icon: "➕" },
+  { title: "All Inventory",   description: "View and search all items.",      href: "/dashboard/inventory",        icon: "📦" },
+  { title: "Low Stock Alerts",description: "Items that need restocking.",     href: "/dashboard/inventory/alerts", icon: "⚠️" },
+  { title: "Suppliers",       description: "Manage your supplier list.",      href: "/dashboard/suppliers",        icon: "🤝" },
+  { title: "Compare Suppliers",description: "Score and rank suppliers.",      href: "/dashboard/suppliers/compare",icon: "📊" },
 ];
-
-export default inventoryLinks;
