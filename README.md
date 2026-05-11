@@ -11,6 +11,7 @@
 [![Backend](https://img.shields.io/badge/Backend-FastAPI%200.115-009688?style=for-the-badge&logo=fastapi)](.)
 [![Database](https://img.shields.io/badge/Database-MongoDB%20Atlas-47A248?style=for-the-badge&logo=mongodb)](.)
 [![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python)](.)
+[![ML](https://img.shields.io/badge/ML-scikit--learn-F7931E?style=for-the-badge&logo=scikitlearn)](.)
 
 </div>
 
@@ -25,9 +26,9 @@ It addresses five real-world problems:
 | Problem | Module that solves it |
 |---|---|
 | No financial records or accounting knowledge | Digital Financial Ledger |
-| Stock-outs and no supplier visibility | Inventory & Supplier Management |
+| Stock-outs and no supplier visibility | Inventory & Supplier Management + ML Demand Forecasting |
 | No access to banking services in rural areas | Simulated Agency Banking |
-| Difficulty choosing the right supplier | Smart Procurement DSS |
+| Difficulty choosing the right supplier at the right price | Smart Procurement DSS + ML Price Analytics |
 | Unreliable internet connectivity | Offline-first sync (IndexedDB) |
 
 ---
@@ -42,21 +43,37 @@ Records all shop financial activity and automatically converts it into structure
 - Double-entry journal auto-generated on every transaction (debit + credit)
 - Trial balance verification — total debits always equal total credits
 - Payment split breakdown by method (cash, QR, bank)
+- Bill creation with quantity × unit price auto-calculation
+- Auto inventory stock deduction on sale transactions
 - PDF report export via ReportLab
 
 ---
 
-### Module 2 — Offline Inventory & Supplier Management 📦
+### Module 2 — Offline Inventory & Supplier Management with ML Demand Forecasting 📦
 
-Offline-first stock tracking. Works without internet by storing operations in IndexedDB and syncing when connectivity is restored.
+Offline-first stock tracking with machine learning demand forecasting. Works without internet by storing operations in IndexedDB and syncing when connectivity is restored.
 
 - Add, edit, and track all inventory items with reorder levels
 - Auto low-stock notification when quantity falls below threshold
-- Supplier register with contact details, pricing, and delivery information
-- Supplier performance scores calculated **automatically** — merchant enters facts only (unit price, delivery date, available quantity)
+- Supplier register — merchant enters only what they know (name, item, unit price, delivery cost)
+- **Supplier performance scores calculated automatically** — never manually entered:
+  - Reliability score = completed orders ÷ total orders (builds from history)
+  - Delivery score = on-time delivery rate from saved procurement decisions
+  - New suppliers default to 50/100 neutral — fair from day one
 - Offline sync queue — operations stored in IndexedDB and posted to `/sync/submit` on reconnect
 
-> **Main Research Contribution** — offline-first architecture for low-connectivity rural environments
+#### ML Models in Module 2
+
+| Model | Algorithm | Output |
+|---|---|---|
+| Demand Forecasting | Linear Regression (scikit-learn) | Average daily demand per item |
+| Stock Runout Prediction | Linear Regression on daily sales | Days until stock runs out + predicted runout date |
+| Reorder Recommendation | Demand × cover days formula | Exact quantity to order to cover next 14 days |
+
+> **ML endpoint:** `GET /api/v1/inventory/ml/demand`
+> **Data source:** Sale transactions with item_name and quantity fields from the ledger
+
+> **Main Research Contribution** — offline-first architecture for low-connectivity rural environments + ML-driven proactive stock management
 
 ---
 
@@ -65,6 +82,8 @@ Offline-first stock tracking. Works without internet by storing operations in In
 Authorised merchants act as rural banking touchpoints, processing basic financial services on behalf of a bank. All transactions validated against CBSL regulatory limits.
 
 - 4 transaction types: cash deposit, cash withdrawal, fund transfer, balance inquiry
+- Customer bank account number and bank name captured for each transaction
+- Customer NIC field for KYC verification
 - CBSL daily limits enforced: Deposit LKR 50,000 · Withdrawal LKR 25,000 · Transfer LKR 100,000
 - Agent commission auto-calculated and posted to the ledger on every transaction
 - Unique reference number and status tracking (pending / completed / failed)
@@ -72,28 +91,71 @@ Authorised merchants act as rural banking touchpoints, processing basic financia
 
 > Bank agent accounts are created by an admin after the real bank verifies the merchant offline.
 
+**Regulatory reference:** Central Bank of Sri Lanka, Direction No. 01 of 2021 on Mobile Payment Systems, Payment and Settlement Systems Department. Available at: https://www.cbsl.gov.lk
+
 ---
 
-### Module 4 — Smart Procurement Decision Engine 🛒
+### Module 4 — Smart Procurement Decision Engine with ML Price Analytics 🛒
 
-Rule-based decision support system. Merchant enters what they need — the system scores all suppliers automatically and returns a ranked list with a clear explanation of why each supplier is recommended.
+Two-layer decision support system combining a rule-based supplier scoring engine with machine learning price analytics from the Hector Kobbekaduwa Agrarian Research and Training Institute (HARTI).
 
-**No machine learning** — pure weighted arithmetic. scikit-learn, numpy, and pandas are intentionally excluded.
+#### Layer 1 — Rule-Based Supplier Scoring
+
+Merchant enters what they need — the system scores all matching suppliers and returns a ranked list with a clear explanation.
 
 | Criterion | Weight | How calculated |
 |---|---|---|
-| Cost (price score) | 40% | Relative to all active suppliers — lowest price = 100 |
-| Profit margin | 30% | (selling price × qty) − total cost, normalised |
-| Reliability | 20% | Past completed orders +10, cancelled −15, new suppliers default 70 |
-| Delivery speed | 10% | Estimated delivery date vs required date, relative |
+| Cost score | 40% | Normalised against all active suppliers — lowest price = 100 |
+| Profit score | 30% | (selling price × qty) − total cost, normalised |
+| Reliability score | 20% | Built automatically from completed/total orders per supplier |
+| Delivery score | 10% | On-time delivery rate from saved procurement decisions |
 
-Each result includes a `score_breakdown` field that explains exactly why a supplier is ranked where it is — supporting the research claim of explainable, auditable procurement decisions.
+- Suppliers filtered by `item_name` — only suppliers who carry the requested item are scored
+- New suppliers start at 50/100 neutral — scores improve automatically with every order
+- Only 2 database calls regardless of supplier count — O(n) score computation in memory
+
+#### Layer 2 — ML Price Analytics (HARTI Data)
+
+Powered by 128 days of daily wholesale price bulletins (Jan 01 – May 08, 2026) from the Hector Kobbekaduwa Agrarian Research and Training Institute. Admin uploads PDFs — system auto-parses and stores structured price records.
+
+| Model | Algorithm | Output |
+|---|---|---|
+| Price Prediction | Linear Regression (scikit-learn) | Next 4 weeks price forecast per commodity · R² score shown |
+| Market Trend Analysis | 7-day and 14-day Moving Average | Rising / stable / falling trend per commodity |
+| Demand Forecasting | Price Velocity Index | High / moderate / low demand signal · buy now or wait advice |
+| Delivery Optimisation | K-Means Clustering (k=3, scikit-learn) | 3 market clusters by price level and volatility |
+| Seasonal Price Patterns | Monthly Decomposition | Cheapest and most expensive month per commodity |
+| Market Comparison | Cross-market Mean Price Analysis | Cheapest market per item · saving percentage |
+
+> **Data:** 128 PDFs · 10 wholesale markets · 40+ commodities · 5,120+ price records
+> **ML endpoint:** `GET /api/v1/ml/analytics`
+
+All 6 models include a **"How this works"** transparency panel showing the algorithm, formula, data used, and confidence level — supporting the research claim of explainable, auditable decision support.
+
+**HARTI data source:** Hector Kobbekaduwa Agrarian Research and Training Institute, Daily Wholesale Price Bulletin. Available at: https://www.harti.gov.lk
+
+---
+
+## 🤖 Machine Learning Summary
+
+| Component | Model | Library | Data source |
+|---|---|---|---|
+| Module 2 | Linear Regression — demand forecasting | scikit-learn | Sale transactions |
+| Module 2 | Stock runout prediction | scikit-learn | Sale transactions |
+| Module 2 | Reorder quantity recommendation | Formula | Predicted demand |
+| Module 4 | Linear Regression — price prediction | scikit-learn | HARTI daily PDFs |
+| Module 4 | Moving Average — market trend | pandas | HARTI daily PDFs |
+| Module 4 | K-Means — delivery optimisation | scikit-learn | HARTI daily PDFs |
+| Module 4 | Price Velocity — demand signal | numpy | HARTI daily PDFs |
+| Module 4 | Monthly decomposition — seasonal | pandas | HARTI daily PDFs |
+| Module 4 | Cross-market comparison | pandas | HARTI daily PDFs |
 
 ---
 
 ## ⚙️ Technology Stack
 
 ### Backend
+
 | Package | Version | Purpose |
 |---|---|---|
 | FastAPI | 0.115.0 | REST API framework |
@@ -106,17 +168,22 @@ Each result includes a `score_breakdown` field that explains exactly why a suppl
 | bcrypt | 4.2.0 | Password hashing |
 | passlib | 1.7.4 | Password utilities |
 | ReportLab | 4.2.2 | PDF report generation |
+| pdfplumber | latest | HARTI PDF parsing |
+| scikit-learn | 1.3.2 | ML models — Linear Regression, K-Means |
+| pandas | 2.1.3 | Data processing and moving averages |
+| numpy | 1.26.0 | Numerical computation |
 | certifi | latest | Windows TLS fix for Atlas |
 | python-dotenv | 1.0.1 | .env file loading |
 
 ### Frontend
+
 | Technology | Purpose |
 |---|---|
 | Next.js 14 | React framework with server-side routing |
 | React 18 | Component-based UI |
 | Tailwind CSS | Utility-first styling |
 | IndexedDB | Offline-first local storage |
-| JWT (localStorage + cookie) | Authentication token storage |
+| JWT (localStorage) | Authentication token storage |
 
 ---
 
@@ -124,9 +191,9 @@ Each result includes a `score_breakdown` field that explains exactly why a suppl
 
 | Role | How created | Access |
 |---|---|---|
-| **Merchant** | Default on register | Inventory, Ledger, Transactions, Suppliers, Procurement, Notifications |
+| **Merchant** | Default on register | Inventory, Ledger, Transactions, Suppliers, Procurement, Market Prices, Notifications |
 | **Bank Agent** | Promoted by admin after bank verification | All merchant modules + Agency Banking |
-| **Admin** | Register with `"role": "admin"` in body | Full access + User Management + System Dashboard |
+| **Admin** | Register with `"role": "admin"` in body | Full access + User Management + Price Data Upload + System Dashboard |
 
 > Suppliers are **data**, not user accounts. They are managed by merchants through the supplier module.
 
@@ -152,9 +219,6 @@ cd E:\project\backend\backend
 
 # Install dependencies
 pip install -r requirements.txt
-
-# Configure environment
-# Edit .env with your MongoDB Atlas connection string (see below)
 
 # Start server
 python run.py
@@ -183,15 +247,23 @@ APP_ENV=development
 APP_HOST=127.0.0.1
 APP_PORT=8000
 
-MONGODB_URL= monogo db atlas URL
+MONGODB_URL=your-mongodb-atlas-connection-string
 MONGODB_DB=lankalink
 
 JWT_SECRET=your-secret-key-here
 JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES= 
+ACCESS_TOKEN_EXPIRE_MINUTES=60
 ```
 
 > **Note:** The `lankalink` database is created automatically in MongoDB Atlas on first user registration. No manual setup needed.
+
+### Uploading HARTI Price Data (required for ML analytics)
+
+1. Log in as **admin**
+2. Go to `/dashboard/admin/price-data`
+3. Click **Drop all PDFs here** and select all daily price bulletin PDFs
+4. System auto-detects format (daily or weekly) and parses all records
+5. ML analytics activate automatically once data is uploaded
 
 ---
 
@@ -208,27 +280,28 @@ GET    /api/v1/auth/users             List all users (admin only)
 PUT    /api/v1/auth/users/{id}/role   Promote/demote user (admin only)
 ```
 
-### Ledger
+### Ledger & Transactions
 
 ```
 GET    /api/v1/ledger                 List entries
 POST   /api/v1/ledger                 Create entry
-PUT    /api/v1/ledger/{id}            Update entry
-DELETE /api/v1/ledger/{id}            Delete entry
 GET    /api/v1/ledger/summary         Income, expense, profit, cash balance
 GET    /api/v1/ledger/payment-split   Breakdown by payment method
 GET    /api/v1/ledger/export/pdf      PDF report
 GET    /api/v1/journal                Journal entries
 GET    /api/v1/journal/trial-balance  Trial balance
+POST   /api/v1/transactions           Create transaction (auto-deducts inventory)
+GET    /api/v1/transactions           List transactions
 ```
 
 ### Inventory & Suppliers
 
 ```
 GET    /api/v1/inventory              List items
-POST   /api/v1/inventory              Add item (triggers low-stock check)
+POST   /api/v1/inventory              Add item
 PUT    /api/v1/inventory/{id}         Update item
 DELETE /api/v1/inventory/{id}         Delete item
+GET    /api/v1/inventory/ml/demand    ML demand forecast + reorder recommendations
 GET    /api/v1/suppliers              List suppliers
 POST   /api/v1/suppliers              Add supplier
 PUT    /api/v1/suppliers/{id}         Update supplier
@@ -250,11 +323,23 @@ GET    /api/v1/agency-banking/summary Daily volume and commission totals
 ### Procurement DSS
 
 ```
-GET    /api/v1/procurement            List procurement decisions
-POST   /api/v1/procurement            Save decision (audit trail)
+POST   /api/v1/procurement/recommend  Run supplier scoring — returns ranked list
+GET    /api/v1/procurement            List saved decisions
+POST   /api/v1/procurement            Save a decision
 PUT    /api/v1/procurement/{id}       Update decision
 DELETE /api/v1/procurement/{id}       Delete decision
-POST   /api/v1/procurement/recommend  Run DSS — returns ranked supplier list
+```
+
+### ML Price Analytics
+
+```
+GET    /api/v1/ml/analytics           Full analytics — all 6 ML models
+GET    /api/v1/ml/predict/{item}      Price prediction for a single item
+GET    /api/v1/ml/summary             Data summary — date range, item count
+GET    /api/v1/ml/export/csv          Download all price data as CSV (admin)
+POST   /api/v1/price-data/upload      Upload HARTI PDF — auto-parsed
+GET    /api/v1/price-data/latest      Latest price data per item
+GET    /api/v1/price-data/export/csv  Export price data as CSV
 ```
 
 ---
@@ -262,10 +347,10 @@ POST   /api/v1/procurement/recommend  Run DSS — returns ranked supplier list
 ## 🔐 Security
 
 - **Server-side guard** — `middleware.js` intercepts all `/dashboard/*` routes before rendering
-- **Client-side guard** — `useAuthGuard()` hook on all 34 dashboard pages
+- **Client-side guard** — `useAuthGuard()` hook on all dashboard pages
 - **API guard** — `require_bank_agent` on agency banking, `require_admin` on user management
 - **JWT** — tokens carry both `role` (session) and `actual_role` (database) to support role switching
-- **CBSL enforcement** — daily transaction limits validated on every agency banking request
+- **CBSL enforcement** — transaction limits validated on every agency banking request
 
 ---
 
@@ -273,12 +358,14 @@ POST   /api/v1/procurement/recommend  Run DSS — returns ranked supplier list
 
 | Claim | How it is met |
 |---|---|
-| Offline-first for low connectivity | IndexedDB storage + syncManager.js + POST /sync/submit |
-| No accounting knowledge needed | Double-entry posted automatically — merchant sees only income/expense |
-| Rule-based DSS — no ML | No scikit-learn, numpy, or pandas in requirements |
-| Explainable recommendations | `score_breakdown` field returned with every recommendation |
-| CBSL-aligned agency banking | Per-transaction and daily limits enforced front and back |
-| Reliability grows over time | Reliability score built from past completed order history |
+| Offline-first for low connectivity | IndexedDB + syncManager.js + POST /sync/submit |
+| No accounting knowledge needed | Double-entry posted automatically — merchant sees income/expense only |
+| ML-powered demand forecasting | Linear Regression on sale transactions predicts stock runout per item |
+| ML-powered price analytics | 6 models on 128 days of HARTI government wholesale price data |
+| Explainable ML recommendations | Every model shows algorithm, formula, R² score, and confidence level |
+| CBSL-aligned agency banking | Per-transaction limits enforced front and back |
+| Supplier reliability grows over time | Auto-built from completed/total orders — never manually entered |
+| Transparent supplier scoring | score_breakdown returned with every recommendation |
 
 ---
 
@@ -298,7 +385,9 @@ origins = [
 
 - Real bank API integration (beyond simulated agency banking)
 - Mobile app (React Native)
-- Real-time market price data feed
+- Fraud / anomaly detection for agency banking (requires labelled transaction data)
+- Cash flow forecasting for the ledger (requires 6+ months of transaction history)
+- ARIMA time-series forecasting (requires 30+ weeks of HARTI data)
 - Multi-language support (Sinhala, Tamil)
 
 ---
