@@ -29,11 +29,6 @@ class InventoryItemService:
         return supplier
 
     async def _maybe_notify_low_stock(self, item: dict):
-        """
-        Create a low-stock notification when an item's quantity is at or
-        below its reorder level.  Silently suppressed if notification
-        creation fails so it never blocks the inventory operation.
-        """
         if item.get("status") == "low_stock":
             try:
                 await self.notification_service.create({
@@ -61,11 +56,9 @@ class InventoryItemService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Inventory item already exists",
             )
-
         supplier = await self.validate_supplier(data["supplier_id"])
         data["supplier_name"] = supplier["name"]
         data["status"] = self.get_stock_status(data["quantity"], data["reorder_level"])
-
         payload = InventoryItem(**data).model_dump()
         created = await self.repository.create(payload)
         await self._maybe_notify_low_stock(created)
@@ -91,11 +84,9 @@ class InventoryItemService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Inventory item not found",
             )
-
         supplier = await self.validate_supplier(data["supplier_id"])
         data["supplier_name"] = supplier["name"]
         data["status"] = self.get_stock_status(data["quantity"], data["reorder_level"])
-
         updated_item = {**existing_item, **data}
         item = await self.repository.update(item_id, updated_item)
         if not item:
@@ -103,7 +94,6 @@ class InventoryItemService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Inventory item not found",
             )
-
         await self._maybe_notify_low_stock(item)
         return item
 
@@ -121,3 +111,99 @@ class InventoryItemService:
                 detail="Failed to delete inventory item",
             )
         return {"message": "Inventory item deleted successfully"}
+
+    # ── Auto-deduct (called by TransactionService on sale) ────────────────────
+
+    async def deduct_by_name(self, item_name: str, qty_sold: float) -> dict | None:
+        """
+        Find an inventory item by name (case-insensitive) and deduct qty_sold.
+
+        Called automatically by TransactionService when a sale transaction
+        is recorded — the merchant does NOT need to update inventory manually.
+
+        Returns:
+            The updated item dict, or None if no matching item found
+            (silently skipped so it never blocks transaction saving).
+        """
+        if not item_name or not qty_sold:
+            return None
+
+        try:
+            # Search case-insensitive by name
+            all_items = await self.repository.list_all()
+            item = next(
+                (i for i in all_items
+                 if i.get("name", "").lower().strip() == item_name.lower().strip()),
+                None
+            )
+
+            if not item:
+                print(f"[Inventory] Auto-deduct: item '{item_name}' not found — skipping")
+                return None
+
+            current_qty = float(item.get("quantity", 0))
+            new_qty     = max(0.0, current_qty - float(qty_sold))  # never go negative
+
+            reorder_level = float(item.get("reorder_level", 0))
+            new_status    = self.get_stock_status(new_qty, reorder_level)
+
+            updated = await self.repository.update(item["id"], {
+                **item,
+                "quantity": new_qty,
+                "status":   new_status,
+            })
+
+            if updated:
+                await self._maybe_notify_low_stock(updated)
+                print(
+                    f"[Inventory] Auto-deducted {qty_sold} from '{item_name}' "
+                    f"→ {current_qty} → {new_qty} | status: {new_status}"
+                )
+
+            return updated
+
+        except Exception as exc:
+            # Never block the transaction — log and continue
+            print(f"[Inventory] Warning: auto-deduct failed for '{item_name}': {exc}")
+            return None
+
+    async def restock_by_name(self, item_name: str, qty_added: float) -> dict | None:
+        """
+        Add stock when a procurement order is completed.
+        Called automatically when a procurement status changes to 'completed'.
+        """
+        if not item_name or not qty_added:
+            return None
+
+        try:
+            all_items = await self.repository.list_all()
+            item = next(
+                (i for i in all_items
+                 if i.get("name", "").lower().strip() == item_name.lower().strip()),
+                None
+            )
+
+            if not item:
+                print(f"[Inventory] Restock: item '{item_name}' not found — skipping")
+                return None
+
+            current_qty   = float(item.get("quantity", 0))
+            new_qty       = current_qty + float(qty_added)
+            reorder_level = float(item.get("reorder_level", 0))
+            new_status    = self.get_stock_status(new_qty, reorder_level)
+
+            updated = await self.repository.update(item["id"], {
+                **item,
+                "quantity": new_qty,
+                "status":   new_status,
+            })
+
+            print(
+                f"[Inventory] Restocked '{item_name}': "
+                f"{current_qty} + {qty_added} = {new_qty} | status: {new_status}"
+            )
+            return updated
+
+        except Exception as exc:
+            print(f"[Inventory] Warning: restock failed for '{item_name}': {exc}")
+            return None

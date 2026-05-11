@@ -9,6 +9,8 @@ const STATUS_OPTIONS = [
   { label: "Inactive", value: "inactive" },
 ];
 
+
+// Validation function (can be moved to a separate validators file if needed)
 function validate(v) {
   const e = {};
   if (!v.name?.trim())         e.name         = "Supplier name is required.";
