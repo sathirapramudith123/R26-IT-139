@@ -99,9 +99,9 @@ export default function MLAnalyticsWidget() {
   if (!data?.available) return (
     <div className="card">
       <div className="flex items-center gap-3 mb-3">
-        <span className="text-2xl">🤖</span>
+        <span className="text-2xl">📊</span>
         <div>
-          <h3 className="font-outfit font-semibold text-slate-900">ML Price Analytics</h3>
+          <h3 className="font-outfit font-semibold text-slate-900">Price Analytics</h3>
           <p className="text-xs text-slate-400">6 models · Linear Regression · K-Means · Demand Index</p>
         </div>
       </div>
