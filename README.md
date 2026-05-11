@@ -267,6 +267,370 @@ ACCESS_TOKEN_EXPIRE_MINUTES=60
 
 ---
 
+# File Tree: frontend
+
+```
+├── public
+│   ├── icons
+│   │   └── .gitkeep
+│   ├── images
+│   │   ├── .gitkeep
+│   │   └── lankalinklogo.png
+│   ├── logos
+│   │   ├── .gitkeep
+│   │   └── lankalinklogo.png
+│   └── manifest.json
+├── src
+│   ├── app
+│   │   ├── auth
+│   │   │   ├── forgot-password
+│   │   │   │   ├── .gitkeep
+│   │   │   │   └── page.jsx
+│   │   │   ├── login
+│   │   │   │   ├── .gitkeep
+│   │   │   │   └── page.jsx
+│   │   │   ├── register
+│   │   │   │   ├── .gitkeep
+│   │   │   │   └── page.jsx
+│   │   │   └── .gitkeep
+│   │   ├── dashboard
+│   │   │   ├── agency-banking
+│   │   │   │   ├── [agencyId]
+│   │   │   │   │   ├── edit
+│   │   │   │   │   │   └── page.jsx
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── create
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── summary
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── .gitkeep
+│   │   │   │   └── page.jsx
+│   │   │   ├── inventory
+│   │   │   │   ├── [inventoryId]
+│   │   │   │   │   ├── edit
+│   │   │   │   │   │   ├── .gitkeep
+│   │   │   │   │   │   └── page.jsx
+│   │   │   │   │   ├── .gitkeep
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── alerts
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── create
+│   │   │   │   │   ├── .gitkeep
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── .gitkeep
+│   │   │   │   └── page.jsx
+│   │   │   ├── ledger
+│   │   │   │   ├── [ledgerId]
+│   │   │   │   │   ├── edit
+│   │   │   │   │   │   ├── .gitkeep
+│   │   │   │   │   │   └── page.jsx
+│   │   │   │   │   ├── .gitkeep
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── create
+│   │   │   │   │   ├── .gitkeep
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── journal
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── reports
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── .gitkeep
+│   │   │   │   └── page.jsx
+│   │   │   ├── notifications
+│   │   │   │   ├── .gitkeep
+│   │   │   │   └── page.jsx
+│   │   │   ├── procurement
+│   │   │   │   ├── [procurementId]
+│   │   │   │   │   ├── edit
+│   │   │   │   │   │   ├── .gitkeep
+│   │   │   │   │   │   └── page.jsx
+│   │   │   │   │   ├── .gitkeep
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── create
+│   │   │   │   │   ├── .gitkeep
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── .gitkeep
+│   │   │   │   ├── AdminProcurementPage.jsx
+│   │   │   │   ├── MerchantProcurementPage.jsx
+│   │   │   │   └── page.jsx
+│   │   │   ├── profile
+│   │   │   │   └── page.jsx
+│   │   │   ├── suppliers
+│   │   │   │   ├── [supplierId]
+│   │   │   │   │   ├── edit
+│   │   │   │   │   │   ├── .gitkeep
+│   │   │   │   │   │   └── page.jsx
+│   │   │   │   │   ├── .gitkeep
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── compare
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── create
+│   │   │   │   │   ├── .gitkeep
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── .gitkeep
+│   │   │   │   └── page.jsx
+│   │   │   ├── transactions
+│   │   │   │   ├── [transactionId]
+│   │   │   │   │   ├── edit
+│   │   │   │   │   │   └── page.jsx
+│   │   │   │   │   ├── .gitkeep
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── create
+│   │   │   │   │   ├── .gitkeep
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── history
+│   │   │   │   │   ├── .gitkeep
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── .gitkeep
+│   │   │   │   └── page.jsx
+│   │   │   ├── .gitkeep
+│   │   │   ├── layout.jsx
+│   │   │   └── page.jsx
+│   │   ├── .gitkeep
+│   │   ├── favicon.ico
+│   │   ├── globals.css
+│   │   ├── layout.jsx
+│   │   └── page.jsx
+│   ├── components
+│   │   ├── common
+│   │   │   ├── EmptyState.jsx
+│   │   │   ├── Footer.jsx
+│   │   │   ├── LoadingSpinner.jsx
+│   │   │   ├── ModuleNavigation.jsx
+│   │   │   ├── Navbar.jsx
+│   │   │   ├── PageHeader.jsx
+│   │   │   ├── Sidebar.jsx
+│   │   │   └── StatusBadge.jsx
+│   │   ├── dashboard
+│   │   │   ├── AdminDashboard.jsx
+│   │   │   ├── AdminPriceUploadWidget.jsx
+│   │   │   ├── BankAgentDashboard.jsx
+│   │   │   ├── MLAnalyticsWidget.jsx
+│   │   │   ├── MarketPriceWidget.jsx
+│   │   │   └── MerchantDashboard.jsx
+│   │   ├── forms
+│   │   │   ├── .gitkeep
+│   │   │   ├── AgencyBankingForm.jsx
+│   │   │   ├── AuthForm.jsx
+│   │   │   ├── FormField.jsx
+│   │   │   ├── InventoryForm.jsx
+│   │   │   ├── LedgerForm.jsx
+│   │   │   ├── ProcurementForm.jsx
+│   │   │   ├── SupplierForm.jsx
+│   │   │   └── TransactionForm.jsx
+│   │   ├── inventory
+│   │   │   ├── .gitkeep
+│   │   │   ├── InventoryCard.jsx
+│   │   │   └── InventoryTable.jsx
+│   │   ├── ledger
+│   │   │   ├── .gitkeep
+│   │   │   ├── JournalTable.jsx
+│   │   │   ├── LedgerCard.jsx
+│   │   │   └── LedgerTable.jsx
+│   │   ├── notifications
+│   │   │   ├── .gitkeep
+│   │   │   ├── NotificationCard.jsx
+│   │   │   └── NotificationList.jsx
+│   │   ├── procurement
+│   │   │   ├── .gitkeep
+│   │   │   ├── ProcurementCard.jsx
+│   │   │   ├── ProcurementTable.jsx
+│   │   │   ├── RecommendationPanel.jsx
+│   │   │   └── SupplierRecommendationTable.jsx
+│   │   ├── suppliers
+│   │   │   ├── .gitkeep
+│   │   │   ├── SupplierCard.jsx
+│   │   │   └── SupplierTable.jsx
+│   │   ├── transactions
+│   │   │   ├── .gitkeep
+│   │   │   ├── TransactionCard.jsx
+│   │   │   └── TransactionTable.jsx
+│   │   └── ui
+│   │       ├── Button.jsx
+│   │       ├── Card.jsx
+│   │       ├── Input.jsx
+│   │       ├── Select.jsx
+│   │       └── Table.jsx
+│   ├── hooks
+│   │   ├── .gitkeep
+│   │   ├── useAgencyBanking.js
+│   │   ├── useAuth.js
+│   │   ├── useAuthGuard.js
+│   │   ├── useDashboard.js
+│   │   ├── useInventory.js
+│   │   ├── useJournal.js
+│   │   ├── useLedger.js
+│   │   ├── useNotifications.js
+│   │   ├── useProcurement.js
+│   │   ├── useSuppliers.js
+│   │   └── useTransactions.js
+│   ├── lib
+│   │   ├── auth
+│   │   │   └── authHelpers.js
+│   │   ├── constants
+│   │   │   └── index.js
+│   │   ├── formatters
+│   │   │   └── index.js
+│   │   ├── helpers
+│   │   │   └── index.js
+│   │   ├── validators
+│   │   │   └── index.js
+│   │   ├── agencyBankingLinks.js
+│   │   ├── constants.js
+│   │   ├── inventoryLinks.js
+│   │   ├── ledgerLinks.js
+│   │   └── procurementLinks.js
+│   ├── services
+│   │   ├── api
+│   │   │   ├── .gitkeep
+│   │   │   ├── agencyBanking.api.js
+│   │   │   ├── auth.api.js
+│   │   │   ├── client.js
+│   │   │   ├── dashboard.api.js
+│   │   │   ├── inventory.api.js
+│   │   │   ├── journal.api.js
+│   │   │   ├── ledger.api.js
+│   │   │   ├── notification.api.js
+│   │   │   ├── priceData.api.js
+│   │   │   ├── procurement.api.js
+│   │   │   ├── supplier.api.js
+│   │   │   └── transaction.api.js
+│   │   ├── auth
+│   │   │   └── tokenService.js
+│   │   ├── storage
+│   │   │   └── indexedDb.js
+│   │   └── sync
+│   │       └── syncManager.js
+│   ├── store
+│   │   ├── .gitkeep
+│   │   ├── authStore.js
+│   │   ├── inventoryStore.js
+│   │   ├── ledgerStore.js
+│   │   ├── notificationStore.js
+│   │   ├── procurementStore.js
+│   │   ├── supplierStore.js
+│   │   └── transactionStore.js
+│   ├── styles
+│   │   └── index.css
+│   └── middleware.js
+├── .eslintrc.json
+├── .gitignore
+├── .gitkeep
+├── README.md
+├── jsconfig.json
+├── next.config.mjs
+├── package-lock.json
+├── package.json
+├── postcss.config.mjs
+└── tailwind.config.js
+```
+
+# File Tree: backend
+
+
+```
+├── app
+│   ├── api
+│   │   ├── v1
+│   │   │   ├── endpoints
+│   │   │   │   ├── .gitkeep
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── agency_banking_routes.py
+│   │   │   │   ├── auth_routes.py
+│   │   │   │   ├── dashboard_routes.py
+│   │   │   │   ├── inventory_routes.py
+│   │   │   │   ├── journal_routes.py
+│   │   │   │   ├── ledger_routes.py
+│   │   │   │   ├── ml_routes.py
+│   │   │   │   ├── notification_routes.py
+│   │   │   │   ├── price_data_routes.py
+│   │   │   │   ├── procurement_routes.py
+│   │   │   │   ├── supplier_routes.py
+│   │   │   │   ├── sync_routes.py
+│   │   │   │   └── transaction_routes.py
+│   │   │   ├── .gitkeep
+│   │   │   ├── __init__.py
+│   │   │   └── router.py
+│   │   ├── .gitkeep
+│   │   ├── __init__.py
+│   │   └── deps.py
+│   ├── core
+│   │   ├── .gitkeep
+│   │   ├── __init__.py
+│   │   ├── config.py
+│   │   ├── database.py
+│   │   └── security.py
+│   ├── models
+│   │   ├── .gitkeep
+│   │   ├── __init__.py
+│   │   ├── agency_banking_model.py
+│   │   ├── inventory_model.py
+│   │   ├── journal_model.py
+│   │   ├── ledger_model.py
+│   │   ├── notification_model.py
+│   │   ├── procurement_model.py
+│   │   ├── supplier_model.py
+│   │   ├── sync_model.py
+│   │   ├── transaction_model.py
+│   │   └── user_model.py
+│   ├── repositories
+│   │   ├── .gitkeep
+│   │   ├── __init__.py
+│   │   ├── agency_banking_repository.py
+│   │   ├── inventory_repository.py
+│   │   ├── journal_repository.py
+│   │   ├── ledger_repository.py
+│   │   ├── notification_repository.py
+│   │   ├── price_data_repository.py
+│   │   ├── procurement_repository.py
+│   │   ├── supplier_repository.py
+│   │   ├── sync_repository.py
+│   │   ├── transaction_repository.py
+│   │   └── user_repository.py
+│   ├── schemas
+│   │   ├── .gitkeep
+│   │   ├── __init__.py
+│   │   ├── agency_banking_schema.py
+│   │   ├── auth_schema.py
+│   │   ├── inventory_schema.py
+│   │   ├── journal_schema.py
+│   │   ├── ledger_schema.py
+│   │   ├── notification_schema.py
+│   │   ├── procurement_schema.py
+│   │   ├── supplier_schema.py
+│   │   └── transaction_schema.py
+│   ├── services
+│   │   ├── .gitkeep
+│   │   ├── __init__.py
+│   │   ├── agency_banking_service.py
+│   │   ├── auth_service.py
+│   │   ├── dashboard_service.py
+│   │   ├── inventory_ml_service.py
+│   │   ├── inventory_service.py
+│   │   ├── journal_service.py
+│   │   ├── ledger_service.py
+│   │   ├── ml_service.py
+│   │   ├── notification_service.py
+│   │   ├── price_data_service.py
+│   │   ├── procurement_service.py
+│   │   ├── supplier_service.py
+│   │   ├── sync_service.py
+│   │   └── transaction_service.py
+│   ├── utils
+│   │   ├── .gitkeep
+│   │   ├── __init__.py
+│   │   └── helpers.py
+│   ├── .gitkeep
+│   ├── __init__.py
+│   └── main.py
+├── .gitignore
+├── .gitkeep
+├── README.md
+├── requirements.txt
+└── run.py
+```
+
+---
+
 ## 🔌 API Reference
 
 ### Authentication
