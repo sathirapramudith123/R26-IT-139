@@ -127,14 +127,14 @@ export default function MLAnalyticsWidget() {
         <div className="flex items-center gap-3">
           <span className="text-2xl">🤖</span>
           <div>
-            <h3 className="font-outfit font-semibold text-slate-900">ML Price Analytics</h3>
+            <h3 className="font-outfit font-semibold text-slate-900">Price Analytics</h3>
             <p className="text-xs text-slate-400">
               {summary.date_count} days · {summary.item_count} items · {summary.date_range}
             </p>
           </div>
         </div>
         <span className="rounded-full bg-purple-50 border border-purple-200 px-2 py-0.5 text-[10px] font-medium text-purple-700">
-          scikit-learn
+          
         </span>
       </div>
 

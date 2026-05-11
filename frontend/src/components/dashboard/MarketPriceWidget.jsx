@@ -162,7 +162,7 @@ export default function MarketPriceWidget() {
       )}
 
       <p className="text-[10px] text-slate-400 text-center">
-        Source: Hector Kobbekaduwa Agrarian Research and Training Institute
+        
       </p>
     </div>
   );
