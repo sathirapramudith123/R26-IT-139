@@ -204,122 +204,13 @@ export default function SupplierDetailPage() {
         </Card>
       </div>
 
-      {/* Performance scores */}
-      <Card>
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h3 className="font-outfit font-semibold text-slate-900">
-              Performance scores
-            </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Calculated automatically — never entered manually.
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-2xl font-bold font-outfit" style={{ color: overallColor }}>
-              {totalScore.toFixed(1)}
-              <span className="text-xs font-normal text-slate-400">/100</span>
-            </p>
-            <p className="text-[10px] text-slate-400">Overall score</p>
-          </div>
-        </div>
 
-        {/* Score rings */}
-        <div className="flex justify-around py-4 border border-slate-100 rounded-xl mb-4">
-          <ScoreRing score={priceScore}       label="Cost (40%)"        color="#1D9E75" />
-          <ScoreRing score={profitScore}      label="Profit (30%)"      color="#7F77DD" />
-          <ScoreRing score={reliabilityScore} label="Reliability (20%)" color="#BA7517" />
-          <ScoreRing score={deliveryScore}    label="Delivery (10%)"    color="#378ADD" />
-        </div>
-
-        {/* Order history summary */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="rounded-xl bg-slate-50 px-4 py-3 text-center">
-            <p className="text-xl font-bold text-slate-800">{totalOrders}</p>
-            <p className="text-xs text-slate-400">Total orders</p>
-          </div>
-          <div className="rounded-xl bg-emerald-50 px-4 py-3 text-center">
-            <p className="text-xl font-bold text-emerald-700">{completedOrders}</p>
-            <p className="text-xs text-emerald-600">Completed orders</p>
-          </div>
-        </div>
-
-        {/* New supplier notice */}
-        {isNewSupplier && (
-          <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 mb-4">
-            <p className="text-xs font-semibold text-blue-800 mb-1">
-              ℹ New supplier — scores start at 50 (neutral)
-            </p>
-            <p className="text-xs text-blue-700 leading-relaxed">
-              Reliability and delivery scores are 50 because there is no order history yet.
-              They update automatically each time you complete a procurement decision
-              with this supplier.
-            </p>
-          </div>
-        )}
-
-        {/* Score explanations */}
-        <div className="space-y-2">
-          {[
-            {
-              label: "Cost score (40%)",
-              score: priceScore,
-              color: "bg-emerald-50 border-emerald-200 text-emerald-800",
-              dot:   "bg-emerald-500",
-              text:  "Compared against HARTI government wholesale price average. Lower supplier price than market average = higher score. Most important factor.",
-            },
-            {
-              label: "Profit score (30%)",
-              score: profitScore,
-              color: "bg-purple-50 border-purple-200 text-purple-800",
-              dot:   "bg-purple-400",
-              text:  "Your selling price minus (unit price × quantity + delivery cost). Calculated automatically each time you request a recommendation.",
-            },
-            {
-              label: "Reliability score (20%)",
-              score: reliabilityScore,
-              color: "bg-amber-50 border-amber-200 text-amber-800",
-              dot:   "bg-amber-400",
-              text:  isNewSupplier
-                ? `No order history yet — score is 50 (neutral). Will improve automatically as you complete orders with ${item.name}.`
-                : `${completedOrders} of ${totalOrders} orders completed = ${reliabilityScore.toFixed(0)}% reliability. Updates automatically with every new order.`,
-            },
-            {
-              label: "Delivery score (10%)",
-              score: deliveryScore,
-              color: "bg-blue-50 border-blue-200 text-blue-800",
-              dot:   "bg-blue-400",
-              text:  isNewSupplier
-                ? "No delivery history yet — score is 50 (neutral). Will update once orders are completed and delivery dates are recorded."
-                : `On-time delivery rate from past orders. Score is ${deliveryScore.toFixed(0)}/100.`,
-            },
-          ].map(s => (
-            <div key={s.label}
-              className={`flex items-start gap-3 rounded-xl border px-3 py-2.5 ${s.color}`}>
-              <div className={`w-2 h-2 rounded-full mt-1 shrink-0 ${s.dot}`} />
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-0.5">
-                  <p className="text-xs font-semibold">{s.label}</p>
-                  <span className="text-xs font-bold">{Number(s.score).toFixed(0)}/100</span>
-                </div>
-                <p className="text-[11px] leading-relaxed opacity-80">{s.text}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
 
       {/* Recommendation status */}
       {isNewSupplier ? (
         <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
-          <p className="text-sm font-semibold text-blue-800 mb-0.5">
-            ℹ New supplier — will appear in recommendations
-          </p>
-          <p className="text-xs text-blue-700">
-            Since there is no order history, reliability and delivery scores are neutral (50).
-            This supplier will appear in procurement recommendations based on their price
-            and your expected profit. Scores will improve as you build order history.
-          </p>
+          
+
         </div>
       ) : totalScore >= 75 ? (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">

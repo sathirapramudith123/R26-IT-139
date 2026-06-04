@@ -154,41 +154,7 @@ export default function SupplierForm({ onSubmit, submitLabel = "Save", initialDa
       </div>
 
       {/* How scores are built automatically */}
-      <div className="rounded-xl border border-teal-100 bg-teal-50 px-4 py-4 space-y-2">
-        <p className="text-sm font-semibold text-teal-800">
-          How procurement scores are built automatically
-        </p>
-        <p className="text-xs text-teal-700 leading-relaxed">
-          You only need to enter what you know. The system builds the rest
-          automatically from your order history with this supplier.
-        </p>
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 mt-2">
-          {[
-            ["Price score (40%)",       "Compared against HARTI government wholesale price average",   "teal"  ],
-            ["Profit score (30%)",      "Your selling price minus total cost — calculated per order",  "teal"  ],
-            ["Reliability score (20%)", "Completed orders ÷ total orders — built from your history",  "purple"],
-            ["Delivery score (10%)",    "On-time delivery rate from saved decisions — builds over time", "purple"],
-          ].map(([label, desc, color]) => (
-            <div key={label}
-              className={`rounded-lg px-3 py-2 text-xs
-                ${color === "teal"
-                  ? "bg-teal-100 border border-teal-200"
-                  : "bg-purple-50 border border-purple-200"}`}>
-              <p className={`font-semibold mb-0.5 ${color === "teal" ? "text-teal-800" : "text-purple-800"}`}>
-                {label}
-                <span className={`ml-1.5 text-[10px] font-normal ${color === "teal" ? "text-teal-600" : "text-purple-600"}`}>
-                  {color === "teal" ? "from data" : "builds over time"}
-                </span>
-              </p>
-              <p className={color === "teal" ? "text-teal-700" : "text-purple-700"}>{desc}</p>
-            </div>
-          ))}
-        </div>
-        <p className="text-[11px] text-teal-600 pt-1">
-          When you first add a supplier, reliability and delivery scores start at 50 (neutral).
-          They improve automatically as you complete more procurement decisions with them.
-        </p>
-      </div>
+      
 
       <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
         <Button type="submit" disabled={saving}>
