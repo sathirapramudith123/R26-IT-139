@@ -1,0 +1,13 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "```bash\r py -3.11 -m venv .venv\r .venv\\Scripts\\activate \r python -m pip install --upgrade pip\r pip install -r requirements.txt\r python run.py\r ```",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
