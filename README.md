@@ -1,6 +1,7 @@
 <div align="center">
 
-# 🌿 Lanka-Link
+# SMART MERCHANT SUPPORT PLATFORM FOR AGENCY BANKING AND PROCUREMENT 
+
 
 **Offline-First Digital Agency Banking & Smart Procurement Support System for Rural Micro-Merchants**
 
