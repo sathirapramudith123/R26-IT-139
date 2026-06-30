@@ -8,10 +8,7 @@ export default function Navbar() {
   const router = useRouter();
   const isDashboard = pathname?.startsWith("/dashboard");
 
-  function handleLogout() {
-    tokenService.clearToken();
-    router.push("/auth/login");
-  }
+  function handleLogout() { tokenService.clearToken(); router.push("/auth/login"); }
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">

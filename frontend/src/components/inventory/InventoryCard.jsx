@@ -4,8 +4,8 @@ import Link from "next/link";
 import StatusBadge from "@/components/common/StatusBadge";
 import Button from "@/components/ui/Button";
 import { formatCurrency } from "@/lib/formatters/index";
-import { transactionApi } from "@/services/api/transaction.api";
-import { inventoryApi } from "@/services/api/inventory.api";
+import { transactionApi } from "@/services/api/transaction";
+import { inventoryApi } from "@/services/api/inventory";
 
 export default function InventoryCard({ item, onSold }) {
   const [selling,  setSelling]  = useState(false);
