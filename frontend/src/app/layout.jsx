@@ -3,8 +3,8 @@ import Navbar from "@/components/common/Navbar";
 import Footer from "@/components/common/Footer";
 
 export const metadata = {
-  title: "Lanka-Link | Micro-Merchant ERP",
-  description: "Decentralized micro-merchant ERP and banking gateway for rural Sri Lanka"
+  title: "Lanka-Link | Smart Merchant Platform",
+  description: "Agency banking, procurement, and ML insights for rural Sri Lankan merchants",
 };
 
 export default function RootLayout({ children }) {
