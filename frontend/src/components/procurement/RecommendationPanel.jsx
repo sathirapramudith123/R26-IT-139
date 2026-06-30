@@ -4,7 +4,7 @@ import Button from "@/components/ui/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import FormField from "@/components/forms/FormField";
 import SupplierRecommendationTable from "./SupplierRecommendationTable";
-import { procurementApi } from "@/services/api/procurement.api";
+import { procurementApi } from "@/services/api/procurement";
 
 export default function RecommendationPanel({ onSave }) {
   const [loading,     setLoading]     = useState(false);
