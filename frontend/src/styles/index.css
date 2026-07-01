@@ -1,2 +1,0 @@
-/* Re-export globals — import this in layout.jsx if you prefer a single entry point */
-@import "../app/globals.css";

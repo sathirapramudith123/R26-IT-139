@@ -1,165 +1,94 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import FormField from "./FormField";
 import Button from "@/components/ui/Button";
-import { isValidEmail, isRequired, isNonNegativeNumber, isPositiveNumber } from "@/lib/validators/index";
+import { supplierApi } from "@/services/api/supplier";
+import { SUPPLIER_STATUSES } from "@/lib/constants";
+import { isValidEmail } from "@/lib/validators";
 
-const STATUS_OPTIONS = [
-  { label: "Active",   value: "active"   },
-  { label: "Pending",  value: "pending"  },
-  { label: "Inactive", value: "inactive" },
-];
-
-function validate(v) {
-  const e = {};
-  if (!isRequired(v.name))           e.name           = "Supplier name is required.";
-  if (!isRequired(v.company_name))   e.company_name   = "Company name is required.";
-  if (!isRequired(v.contact_number)) e.contact_number = "Contact number is required.";
-  if (!isRequired(v.email))          e.email          = "Email is required.";
-  else if (!isValidEmail(v.email))   e.email          = "Enter a valid email address.";
-  if (!isRequired(v.item_name))      e.item_name      = "Item name is required.";
-  if (!isPositiveNumber(v.unit_price))
-    e.unit_price = "Enter a unit price greater than 0.";
-  if (v.delivery_cost !== "" && !isNonNegativeNumber(v.delivery_cost))
-    e.delivery_cost = "Enter a valid delivery cost (0 or more).";
-  return e;
-}
-
-export default function SupplierForm({ onSubmit, submitLabel = "Save", initialData = {} }) {
-  const [saving,      setSaving]      = useState(false);
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [values, setValues] = useState({
-    name:           initialData.name           ?? "",
-    company_name:   initialData.company_name   ?? "",
-    contact_number: initialData.contact_number ?? "",
-    email:          initialData.email          ?? "",
-    address:        initialData.address        ?? "",
-    status:         initialData.status         ?? "active",
-    item_name:      initialData.item_name      ?? "",
-    unit_price:     initialData.unit_price     ?? "",
-    delivery_cost:  initialData.delivery_cost  ?? "",
+export default function SupplierForm({ initialData = {}, supplierId = null }) {
+  const router = useRouter();
+  const isEdit = !!supplierId;
+  const [saving, setSaving] = useState(false);
+  const [serverError, setServerError] = useState(null);
+  const [errors, setErrors] = useState({});
+  const [v, setV] = useState({
+    name:               initialData.name               ?? "",
+    company_name:       initialData.company_name       ?? "",
+    contact_number:     initialData.contact_number     ?? "",
+    email:              initialData.email              ?? "",
+    address:            initialData.address            ?? "",
+    unit_price:         initialData.unit_price         ?? "",
+    delivery_cost:      initialData.delivery_cost      ?? "",
+    available_quantity: initialData.available_quantity ?? "",
+    status:             initialData.status             ?? "active",
   });
-
-  function set(k, v) {
-    setValues(p => ({ ...p, [k]: v }));
-    setFieldErrors(p => ({ ...p, [k]: undefined }));
-  }
+  function set(k, val) { setV(p => ({ ...p, [k]: val })); setErrors(p => ({ ...p, [k]: undefined })); }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    const errors = validate(values);
-    if (Object.keys(errors).length) { setFieldErrors(errors); return; }
-    setSaving(true);
+    const er = {};
+    if (!v.name.trim()) er.name = "Supplier name is required.";
+    if (!v.contact_number.trim()) er.contact_number = "Contact number is required.";
+    if (v.email && !isValidEmail(v.email)) er.email = "Enter a valid email.";
+    if (Object.keys(er).length) { setErrors(er); return; }
+    setSaving(true); setServerError(null);
     const payload = {
-      ...values,
-      unit_price:    Number(values.unit_price   || 0),
-      delivery_cost: Number(values.delivery_cost || 0),
+      ...v,
+      unit_price: v.unit_price === "" ? 0 : Number(v.unit_price),
+      delivery_cost: v.delivery_cost === "" ? 0 : Number(v.delivery_cost),
+      available_quantity: v.available_quantity === "" ? 0 : Number(v.available_quantity),
     };
-    try { await onSubmit(payload); }
+    try {
+      if (isEdit) await supplierApi.update(supplierId, payload);
+      else await supplierApi.create(payload);
+      router.push("/dashboard/suppliers");
+    } catch (err) { setServerError(err.message || "Save failed."); }
     finally { setSaving(false); }
   }
-
-  const cls = k =>
-    `input-field ${fieldErrors[k]
-      ? "border-red-400 ring-2 ring-red-100 focus:border-red-400 focus:ring-red-100"
-      : ""}`;
+  const cls = k => `input-field ${errors[k] ? "border-red-400 ring-2 ring-red-100" : ""}`;
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="card-elevated max-w-3xl space-y-6">
-
-      {/* Basic information */}
-      <div>
-        <p className="text-sm font-semibold text-slate-700 mb-3">Supplier information</p>
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <FormField label="Supplier name" error={fieldErrors.name} required>
-            <input className={cls("name")} value={values.name}
-              onChange={e => set("name", e.target.value)}
-              placeholder="e.g. Nimal Perera" />
-          </FormField>
-
-          <FormField label="Company name" error={fieldErrors.company_name} required>
-            <input className={cls("company_name")} value={values.company_name}
-              onChange={e => set("company_name", e.target.value)}
-              placeholder="e.g. Colombo Wholesale Traders" />
-          </FormField>
-
-          <FormField label="Contact number" error={fieldErrors.contact_number} required>
-            <input className={cls("contact_number")} value={values.contact_number}
-              onChange={e => set("contact_number", e.target.value)}
-              placeholder="0771234567" />
-          </FormField>
-
-          <FormField label="Email" error={fieldErrors.email} required>
-            <input className={cls("email")} type="email" value={values.email}
-              onChange={e => set("email", e.target.value)}
-              placeholder="supplier@example.com" />
-          </FormField>
-
-          <FormField label="Status">
-            <select className="select-field" value={values.status}
-              onChange={e => set("status", e.target.value)}>
-              {STATUS_OPTIONS.map(o => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </FormField>
-
-          <div className="md:col-span-2">
-            <FormField label="Address" hint="Optional">
-              <textarea className="input-field resize-none" rows={2}
-                value={values.address}
-                onChange={e => set("address", e.target.value)}
-                placeholder="e.g. No. 45, Pettah, Colombo 11" />
-            </FormField>
-          </div>
-        </div>
-      </div>
-
-      {/* What they sell and their price */}
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 space-y-4">
-        <div>
-          <p className="text-sm font-semibold text-slate-800 mb-1">
-            What does this supplier sell?
-          </p>
-          <p className="text-xs text-slate-500">
-            Enter the item they supply and their price.
-            The system uses this to match them to your procurement requests.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <FormField label="Item name" error={fieldErrors.item_name} required
-            hint="The main item this supplier provides">
-            <input className={cls("item_name")} value={values.item_name}
-              onChange={e => set("item_name", e.target.value)}
-              placeholder="e.g. Tomato, Rice, Red Onion" />
-          </FormField>
-
-          <FormField label="Unit price (LKR)" error={fieldErrors.unit_price} required
-            hint="Their current price per unit">
-            <input className={cls("unit_price")} type="number" min="0.01" step="0.01"
-              value={values.unit_price}
-              onChange={e => set("unit_price", e.target.value)}
-              placeholder="0.00" />
-          </FormField>
-
-          <FormField label="Delivery cost (LKR)" error={fieldErrors.delivery_cost}
-            hint="Total cost to deliver one order. Enter 0 if they deliver free.">
-            <input className={cls("delivery_cost")} type="number" min="0" step="0.01"
-              value={values.delivery_cost}
-              onChange={e => set("delivery_cost", e.target.value)}
-              placeholder="0.00" />
+    <form onSubmit={handleSubmit} noValidate className="card-elevated max-w-3xl space-y-5">
+      {serverError && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{serverError}</div>}
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <FormField label="Supplier Name" error={errors.name} required>
+          <input className={cls("name")} value={v.name} onChange={e => set("name", e.target.value)} placeholder="e.g. ABC Traders" />
+        </FormField>
+        <FormField label="Company Name">
+          <input className="input-field" value={v.company_name} onChange={e => set("company_name", e.target.value)} />
+        </FormField>
+        <FormField label="Contact Number" error={errors.contact_number} required>
+          <input className={cls("contact_number")} value={v.contact_number} onChange={e => set("contact_number", e.target.value)} placeholder="0771234567" />
+        </FormField>
+        <FormField label="Email" error={errors.email}>
+          <input className={cls("email")} type="email" value={v.email} onChange={e => set("email", e.target.value)} />
+        </FormField>
+        <FormField label="Unit Price (LKR)">
+          <input className="input-field" type="number" min="0" step="0.01" value={v.unit_price} onChange={e => set("unit_price", e.target.value)} />
+        </FormField>
+        <FormField label="Delivery Cost (LKR)">
+          <input className="input-field" type="number" min="0" step="0.01" value={v.delivery_cost} onChange={e => set("delivery_cost", e.target.value)} />
+        </FormField>
+        <FormField label="Available Quantity">
+          <input className="input-field" type="number" min="0" step="0.01" value={v.available_quantity} onChange={e => set("available_quantity", e.target.value)} />
+        </FormField>
+        <FormField label="Status">
+          <select className="select-field" value={v.status} onChange={e => set("status", e.target.value)}>
+            {SUPPLIER_STATUSES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </FormField>
+        <div className="md:col-span-2">
+          <FormField label="Address" hint="Optional">
+            <textarea className="input-field resize-none" rows={2} value={v.address} onChange={e => set("address", e.target.value)} />
           </FormField>
         </div>
       </div>
-
-      {/* How scores are built automatically */}
-      
-
       <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
-        <Button type="submit" disabled={saving}>
-          {saving ? "Saving..." : submitLabel}
-        </Button>
+        <Link href="/dashboard/suppliers"><Button variant="secondary" type="button">Cancel</Button></Link>
+        <Button type="submit" disabled={saving}>{saving ? "Saving..." : (isEdit ? "Update Supplier" : "Add Supplier")}</Button>
       </div>
     </form>
   );

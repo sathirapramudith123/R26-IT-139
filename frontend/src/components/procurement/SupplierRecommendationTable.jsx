@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/formatters/index";
-import { procurementApi } from "@/services/api/procurement.api";
+import { procurementApi } from "@/services/api/procurement";
 
 function scoreBarColor(pct) {
   if (pct >= 70) return "bg-emerald-400";

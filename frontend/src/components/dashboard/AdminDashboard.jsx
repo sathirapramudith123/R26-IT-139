@@ -9,7 +9,7 @@ import MarketPriceWidget from "@/components/dashboard/MarketPriceWidget";
 import useDashboard from "@/hooks/useDashboard";
 import useAgencyBanking from "@/hooks/useAgencyBanking";
 import useInventory from "@/hooks/useInventory";
-import useNotifications from "@/hooks/useNotifications";
+import useNotifications from "@/hooks/usePrediction";
 import { apiClient } from "@/services/api/client";
 import { formatCurrency, formatDate } from "@/lib/formatters/index";
 
