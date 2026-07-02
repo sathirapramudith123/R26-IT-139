@@ -27,6 +27,43 @@ env/
 # *.pkl
 # *.csv
 
+# ---------- Flutter / Dart (mobile app) ----------
+# Build output
+mobile_app/build/
+mobile_app/.dart_tool/
+mobile_app/.flutter-plugins
+mobile_app/.flutter-plugins-dependencies
+mobile_app/.packages
+mobile_app/.pub-cache/
+mobile_app/.pub/
+
+# IDE / tooling
+mobile_app/.idea/
+mobile_app/*.iml
+mobile_app/*.ipr
+mobile_app/*.iws
+
+# Android
+mobile_app/android/.gradle/
+mobile_app/android/app/debug/
+mobile_app/android/app/profile/
+mobile_app/android/app/release/
+mobile_app/android/local.properties
+mobile_app/android/key.properties
+mobile_app/android/**/*.keystore
+mobile_app/android/**/*.jks
+
+# iOS / macOS
+mobile_app/ios/Pods/
+mobile_app/ios/.symlinks/
+mobile_app/ios/Flutter/Flutter.framework
+mobile_app/ios/Flutter/Flutter.podspec
+mobile_app/ios/Flutter/flutter_export_environment.sh
+mobile_app/ios/Flutter/Generated.xcconfig
+mobile_app/macos/Pods/
+mobile_app/**/*.mode1v3
+mobile_app/**/*.pbxuser
+
 # ---------- IDE / OS ----------
 .vscode/
 .idea/
