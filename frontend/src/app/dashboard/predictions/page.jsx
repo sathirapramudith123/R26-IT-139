@@ -5,10 +5,10 @@ import PageHeader from "@/components/common/PageHeader";
 import Card from "@/components/ui/Card";
 
 const MODELS = [
-  { href: "/dashboard/predictions/credit",      icon: "💳", title: "Credit Readiness", desc: "Score loan readiness (Component 1)." },
-  { href: "/dashboard/predictions/demand",      icon: "📈", title: "Demand Forecast",  desc: "Predict item demand (Component 2)." },
-  { href: "/dashboard/predictions/procurement", icon: "🛒", title: "Buy Now or Wait",  desc: "Procurement timing (Component 3)." },
-  { href: "/dashboard/predictions/anomaly",     icon: "🛡", title: "Banking Anomaly",  desc: "Flag suspicious transactions (Component 4)." },
+  { href: "/dashboard/predictions/credit",      icon: "💳", title: "Credit Readiness", desc: "Score loan readiness." },
+  { href: "/dashboard/predictions/demand",      icon: "📈", title: "Demand Forecast",  desc: "Predict item demand." },
+  { href: "/dashboard/predictions/procurement", icon: "🛒", title: "Buy Now or Wait",  desc: "Procurement timing." },
+  { href: "/dashboard/predictions/anomaly",     icon: "🛡", title: "Banking Anomaly",  desc: "Flag suspicious transactions." },
 ];
 
 export default function PredictionsHub() {

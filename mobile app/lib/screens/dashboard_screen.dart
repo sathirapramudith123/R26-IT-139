@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/modules.dart';
+import '../core/theme.dart';                    
 import '../services/auth_service.dart';
 import 'auth/login_screen.dart';
 import 'crud/list_screen.dart';
@@ -14,6 +15,15 @@ class DashboardScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text("Dashboard"),
         actions: [
+          // theme toggle — rebuilds its icon when the mode changes
+          ValueListenableBuilder<ThemeMode>(
+            valueListenable: ThemeController.mode,
+            builder: (context, mode, _) => IconButton(
+              icon: Icon(mode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode),
+              tooltip: "Toggle theme",
+              onPressed: () => ThemeController.toggle(),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {

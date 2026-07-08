@@ -25,7 +25,7 @@ export default function CreditPredictionPage() {
   const { loading, result, error, run } = usePrediction();
   return (
     <div className="page-container">
-      <PageHeader title="Credit Readiness" description="Component 1 — predict loan readiness from business health."
+      <PageHeader title="Credit Readiness" description="predict loan readiness from business health."
         action={<Link href="/dashboard/predictions"><Button variant="secondary">← All Models</Button></Link>} />
       <PredictionForm fields={FIELDS} loading={loading} onSubmit={f => run("credit", f).catch(() => {})} />
       {error && <div className="max-w-3xl rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
