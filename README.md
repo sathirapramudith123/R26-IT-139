@@ -1,776 +1,779 @@
 <div align="center">
 
-# SMART MERCHANT SUPPORT PLATFORM FOR AGENCY BANKING AND PROCUREMENT 
+# 🌿 SMART MERCHANT SUPPORT PLATFORM FOR AGENCY BANKING AND PROCUREMENT
 
+**A Digital Platform with Explainable Machine Learning for Rural Sri Lankan Micro-Merchants**
 
-**Offline-First Digital Agency Banking & Smart Procurement Support System for Rural Micro-Merchants**
+*IT4010 Research Project · BSc (Hons) in Information Technology*
 
-*IT4010 Research Proposal · BSc in Information Technology*
-
-[![Status](https://img.shields.io/badge/Status-Research%20Prototype-green?style=for-the-badge)](.)
-[![Frontend](https://img.shields.io/badge/Frontend-Next.js%2014-black?style=for-the-badge&logo=next.js)](.)
-[![Backend](https://img.shields.io/badge/Backend-FastAPI%200.115-009688?style=for-the-badge&logo=fastapi)](.)
-[![Database](https://img.shields.io/badge/Database-MongoDB%20Atlas-47A248?style=for-the-badge&logo=mongodb)](.)
-[![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python)](.)
-[![ML](https://img.shields.io/badge/ML-scikit--learn-F7931E?style=for-the-badge&logo=scikitlearn)](.)
+![Web](https://img.shields.io/badge/Web-Next.js%2014-black?style=for-the-badge&logo=next.js)
+![Mobile](https://img.shields.io/badge/Mobile-Flutter-02569B?style=for-the-badge&logo=flutter)
+![Backend](https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-339933?style=for-the-badge&logo=node.js)
+![Database](https://img.shields.io/badge/DB-Supabase-3ECF8E?style=for-the-badge&logo=supabase)
+![ML](https://img.shields.io/badge/ML-FastAPI%20%2B%20SHAP-009688?style=for-the-badge&logo=fastapi)
 
 </div>
 
 ---
 
-## 📌 Project Overview
+## 📌 Overview
 
-**Lanka-Link** is a modular, offline-first digital platform designed for rural micro-merchants in Sri Lanka who currently manage their businesses using paper records and have no access to formal banking infrastructure or digital tools.
+A modular digital platform for rural micro-merchants ("kade" owners) in Sri Lanka who manage their businesses on paper and have limited access to formal banking or digital tools. The platform combines everyday business management (sales, inventory, suppliers, procurement, agency banking) with **four explainable machine-learning components**, each paired with SHAP-based explanations so every prediction shows *why* — not just *what*.
 
-It addresses five real-world problems:
+The unifying research contribution is **Explainable AI (XAI)** applied across all four decision points, making machine-learning guidance transparent and trustworthy for a non-technical merchant.
 
-| Problem | Module that solves it |
+| Problem faced by merchants | How the platform helps |
 |---|---|
-| No financial records or accounting knowledge | Digital Financial Ledger |
-| Stock-outs and no supplier visibility | Inventory & Supplier Management + ML Demand Forecasting |
-| No access to banking services in rural areas | Simulated Agency Banking |
-| Difficulty choosing the right supplier at the right price | Smart Procurement DSS + ML Price Analytics |
-| Unreliable internet connectivity | Offline-first sync (IndexedDB) |
+| No records, no way to assess loan readiness | Sales tracking + **ML credit-readiness score (C1)** |
+| Stock-outs and reactive buying | Inventory + **ML demand forecasting (C2)** |
+| Hard to know when to buy stock | Procurement + **ML buy-now-vs-wait decision (C3)** |
+| No rural banking access, fraud risk | Agency banking + **ML anomaly detection (C4)** |
 
 ---
 
-## 🧩 Four Research Modules
+## 🏗️ System Architecture
 
-### Module 1 — Digital Financial Ledger 📒
+Four independent parts communicating over HTTP. The frontends never call the ML service directly — every request passes through the backend, which authenticates with JWT and then calls the Python service.
 
-Records all shop financial activity and automatically converts it into structured double-entry accounting entries — without requiring any accounting knowledge from the merchant.
+```
+┌──────────────┐        ┌──────────────┐        ┌──────────────┐
+│  WEB (Next)  │        │              │        │  ML SERVICE  │
+│   :3000      │ ─────► │   BACKEND    │ ─────► │  Python API  │
+├──────────────┤  HTTP  │ Node+Express │  HTTP  │  loads .pkl  │
+│MOBILE(Flutter)│       │  + Supabase  │        │  + SHAP      │
+│              │ ◄───── │    :5000     │ ◄───── │    :8000     │
+└──────────────┘  JSON  └──────┬───────┘        └──────────────┘
+                    + JWT      │
+                          Supabase (PostgreSQL)
+```
 
-- Income, expense, cash balance, and net profit updated in real time
-- Double-entry journal auto-generated on every transaction (debit + credit)
-- Trial balance verification — total debits always equal total credits
-- Payment split breakdown by method (cash, QR, bank)
-- Bill creation with quantity × unit price auto-calculation
-- Auto inventory stock deduction on sale transactions
-- PDF report export via ReportLab
+**Why a separate ML service?** The trained models are Python `.pkl` files that a Node backend cannot load. Running them behind a small Python FastAPI service keeps a clean separation: Node handles business logic and data, Python handles inference and explanations.
 
 ---
 
-### Module 2 — Offline Inventory & Supplier Management with ML Demand Forecasting 📦
+## 🤖 Machine Learning — Four Explainable Components
 
-Offline-first stock tracking with machine learning demand forecasting. Works without internet by storing operations in IndexedDB and syncing when connectivity is restored.
+Each component was built with the same rigorous pipeline: five-algorithm comparison (Logistic Regression, Decision Tree, Random Forest, Gradient Boosting, XGBoost), cross-validation, best-model selection, held-out test evaluation, learning curves, and **SHAP explainability**. Models are trained on real public data and real-price-anchored generated data for the Sri Lankan context, with data limitations documented as part of the contribution.
 
-- Add, edit, and track all inventory items with reorder levels
-- Auto low-stock notification when quantity falls below threshold
-- Supplier register — merchant enters only what they know (name, item, unit price, delivery cost)
-- **Supplier performance scores calculated automatically** — never manually entered:
-  - Reliability score = completed orders ÷ total orders (builds from history)
-  - Delivery score = on-time delivery rate from saved procurement decisions
-  - New suppliers default to 50/100 neutral — fair from day one
-- Offline sync queue — operations stored in IndexedDB and posted to `/sync/submit` on reconnect
+| # | Component | Task | Best Model | Key Metrics |
+|---|---|---|---|---|
+| **C1** | Credit Readiness | Classification | Logistic Regression | Test Acc **0.83**, ROC-AUC **0.91**, F1 **0.82** |
+| **C2** | Demand Forecast | Regression | Random Forest | R² **0.93**, MAE **~22** |
+| **C3** | Procurement Decision | Classification | XGBoost | Acc **0.74**, ROC-AUC **0.82** |
+| **C4** | Banking Anomaly | Imbalanced classification | XGBoost | ROC-AUC **0.91**, PR-AUC **0.52** |
 
-#### ML Models in Module 2
+**Integration flow:** sales (C1) → demand (C2) → procurement (C3); money flows through banking (C4) back into credit assessment (C1).
 
-| Model | Algorithm | Output |
+> **Explainability (the novelty):** every component uses SHAP to surface the features that drove each prediction. For credit readiness, the top drivers are *months active*, *digital payment ratio*, and *profit margin*.
+
+### ML API
+
+```
+GET   /health                  Service status + loaded models
+GET   /features/{component}     Exact feature columns a model expects
+POST  /predict                  { component, features } → prediction (+ score)
+```
+
+`component` ∈ `credit` · `demand` · `procurement` · `anomaly`
+
+---
+
+## 🧩 Platform Modules
+
+| Module | Capability | Feeds |
 |---|---|---|
-| Demand Forecasting | Linear Regression (scikit-learn) | Average daily demand per item |
-| Stock Runout Prediction | Linear Regression on daily sales | Days until stock runs out + predicted runout date |
-| Reorder Recommendation | Demand × cover days formula | Exact quantity to order to cover next 14 days |
+| **Auth** | Register, login (JWT), forgot / reset password | — |
+| **Transactions** | Sales, purchases, expenses, deposits, transfers | C1 |
+| **Inventory** | Stock items, reorder levels, low-stock alerts | C2 |
+| **Suppliers** | Supplier register with pricing and delivery | C3 |
+| **Procurement** | Procurement decisions and supplier selection | C3 |
+| **Agency Banking** | Deposit / withdrawal / transfer / inquiry, CBSL limits | C4 |
+| **Predictions** | Bridges to the ML service for all four components | — |
 
-> **ML endpoint:** `GET /api/v1/inventory/ml/demand`
-> **Data source:** Sale transactions with item_name and quantity fields from the ledger
+Every module has full CRUD with Joi validation, UUID-format checks on `:id` routes, ownership checks, and a consistent error format.
 
-> **Main Research Contribution** — offline-first architecture for low-connectivity rural environments + ML-driven proactive stock management
-
----
-
-### Module 3 — Simulated Agency Banking 🏦
-
-Authorised merchants act as rural banking touchpoints, processing basic financial services on behalf of a bank. All transactions validated against CBSL regulatory limits.
-
-- 4 transaction types: cash deposit, cash withdrawal, fund transfer, balance inquiry
-- Customer bank account number and bank name captured for each transaction
-- Customer NIC field for KYC verification
-- CBSL daily limits enforced: Deposit LKR 50,000 · Withdrawal LKR 25,000 · Transfer LKR 100,000
-- Agent commission auto-calculated and posted to the ledger on every transaction
-- Unique reference number and status tracking (pending / completed / failed)
-- Role-restricted: only `bank_agent` and `admin` can access this module
-
-> Bank agent accounts are created by an admin after the real bank verifies the merchant offline.
-
-**Regulatory reference:** Central Bank of Sri Lanka, Direction No. 01 of 2021 on Mobile Payment Systems, Payment and Settlement Systems Department. Available at: https://www.cbsl.gov.lk
+**Regulatory reference:** Central Bank of Sri Lanka, Direction No. 01 of 2021 on Mobile Payment Systems — https://www.cbsl.gov.lk
 
 ---
 
-### Module 4 — Smart Procurement Decision Engine with ML Price Analytics 🛒
+## 🎨 Design
 
-Two-layer decision support system combining a rule-based supplier scoring engine with machine learning price analytics from the Hector Kobbekaduwa Agrarian Research and Training Institute (HARTI).
-
-#### Layer 1 — Rule-Based Supplier Scoring
-
-Merchant enters what they need — the system scores all matching suppliers and returns a ranked list with a clear explanation.
-
-| Criterion | Weight | How calculated |
-|---|---|---|
-| Cost score | 40% | Normalised against all active suppliers — lowest price = 100 |
-| Profit score | 30% | (selling price × qty) − total cost, normalised |
-| Reliability score | 20% | Built automatically from completed/total orders per supplier |
-| Delivery score | 10% | On-time delivery rate from saved procurement decisions |
-
-- Suppliers filtered by `item_name` — only suppliers who carry the requested item are scored
-- New suppliers start at 50/100 neutral — scores improve automatically with every order
-- Only 2 database calls regardless of supplier count — O(n) score computation in memory
-
-#### Layer 2 — ML Price Analytics (HARTI Data)
-
-Powered by 128 days of daily wholesale price bulletins (Jan 01 – May 08, 2026) from the Hector Kobbekaduwa Agrarian Research and Training Institute. Admin uploads PDFs — system auto-parses and stores structured price records.
-
-| Model | Algorithm | Output |
-|---|---|---|
-| Price Prediction | Linear Regression (scikit-learn) | Next 4 weeks price forecast per commodity · R² score shown |
-| Market Trend Analysis | 7-day and 14-day Moving Average | Rising / stable / falling trend per commodity |
-| Demand Forecasting | Price Velocity Index | High / moderate / low demand signal · buy now or wait advice |
-| Delivery Optimisation | K-Means Clustering (k=3, scikit-learn) | 3 market clusters by price level and volatility |
-| Seasonal Price Patterns | Monthly Decomposition | Cheapest and most expensive month per commodity |
-| Market Comparison | Cross-market Mean Price Analysis | Cheapest market per item · saving percentage |
-
-> **Data:** 128 PDFs · 10 wholesale markets · 40+ commodities · 5,120+ price records
-> **ML endpoint:** `GET /api/v1/ml/analytics`
-
-All 6 models include a **"How this works"** transparency panel showing the algorithm, formula, data used, and confidence level — supporting the research claim of explainable, auditable decision support.
-
-**HARTI data source:** Hector Kobbekaduwa Agrarian Research and Training Institute, Daily Wholesale Price Bulletin. Available at: https://www.harti.gov.lk
-
----
-
-## 🤖 Machine Learning Summary
-
-| Component | Model | Library | Data source |
-|---|---|---|---|
-| Module 2 | Linear Regression — demand forecasting | scikit-learn | Sale transactions |
-| Module 2 | Stock runout prediction | scikit-learn | Sale transactions |
-| Module 2 | Reorder quantity recommendation | Formula | Predicted demand |
-| Module 4 | Linear Regression — price prediction | scikit-learn | HARTI daily PDFs |
-| Module 4 | Moving Average — market trend | pandas | HARTI daily PDFs |
-| Module 4 | K-Means — delivery optimisation | scikit-learn | HARTI daily PDFs |
-| Module 4 | Price Velocity — demand signal | numpy | HARTI daily PDFs |
-| Module 4 | Monthly decomposition — seasonal | pandas | HARTI daily PDFs |
-| Module 4 | Cross-market comparison | pandas | HARTI daily PDFs |
+Both frontends share one warm, human "Kade" design language — cream-paper backgrounds, deep teal with turmeric and terracotta accents, rounded shapes, and the Nunito typeface — chosen to feel approachable for rural merchants rather than like intimidating corporate fintech. **Light and dark modes** are available on both web and mobile via a toggle.
 
 ---
 
 ## ⚙️ Technology Stack
 
-### Backend
+**Web frontend** — Next.js 14 (App Router), React 18, Tailwind CSS, JWT auth, light/dark theme.
 
-| Package | Version | Purpose |
-|---|---|---|
-| FastAPI | 0.115.0 | REST API framework |
-| Python | 3.11 | Runtime |
-| Motor | 3.5.1 | Async MongoDB driver |
-| PyMongo | 4.8.0 | MongoDB sync driver |
-| Pydantic | 2.9.2 | Data validation |
-| pydantic-settings | 2.5.2 | Environment config |
-| python-jose | 3.3.0 | JWT authentication |
-| bcrypt | 4.2.0 | Password hashing |
-| passlib | 1.7.4 | Password utilities |
-| ReportLab | 4.2.2 | PDF report generation |
-| pdfplumber | latest | HARTI PDF parsing |
-| scikit-learn | 1.3.2 | ML models — Linear Regression, K-Means |
-| pandas | 2.1.3 | Data processing and moving averages |
-| numpy | 1.26.0 | Numerical computation |
-| certifi | latest | Windows TLS fix for Atlas |
-| python-dotenv | 1.0.1 | .env file loading |
+**Mobile app** — Flutter (Dart), built-in `HttpClient`, `setState` state management, Material 3, light/dark theme.
 
-### Frontend
+**Backend** — Node.js + Express, `@supabase/supabase-js`, `jsonwebtoken`, `bcryptjs`, `joi`, `axios`, `cors`, `morgan`, `dotenv`.
 
-| Technology | Purpose |
-|---|---|
-| Next.js 14 | React framework with server-side routing |
-| React 18 | Component-based UI |
-| Tailwind CSS | Utility-first styling |
-| IndexedDB | Offline-first local storage |
-| JWT (localStorage) | Authentication token storage |
+**ML service** — FastAPI + Uvicorn, `joblib`, `scikit-learn`, `xgboost`, `pandas`, `shap`.
 
 ---
 
-## 👥 User Roles
+## 🗂️ Project Structure
 
-| Role | How created | Access |
-|---|---|---|
-| **Merchant** | Default on register | Inventory, Ledger, Transactions, Suppliers, Procurement, Market Prices, Notifications |
-| **Bank Agent** | Promoted by admin after bank verification | All merchant modules + Agency Banking |
-| **Admin** | Register with `"role": "admin"` in body | Full access + User Management + Price Data Upload + System Dashboard |
+```
+R26-IT-139/
+├── frontend/      Next.js web app          (port 3000)
+├── mobile_app/    Flutter mobile app
+├── backend/       Node + Express + Supabase (port 5000)
+└── ml_service/    Python + FastAPI          (port 8000)
+```
 
-> Suppliers are **data**, not user accounts. They are managed by merchants through the supplier module.
+### frontend/ (Next.js)
+```
+frontend
+    ├── public
+    │   ├── icons
+    │   │   └── .gitkeep
+    │   ├── images
+    │   │   ├── .gitkeep
+    │   │   └── lankalinklogo.png
+    │   ├── logos
+    │   │   ├── .gitkeep
+    │   │   └── lankalinklogo.png
+    │   └── manifest.json
+    ├── src
+    │   ├── app
+    │   │   ├── auth
+    │   │   │   ├── forgot-password
+    │   │   │   │   ├── .gitkeep
+    │   │   │   │   └── page.jsx
+    │   │   │   ├── login
+    │   │   │   │   ├── .gitkeep
+    │   │   │   │   └── page.jsx
+    │   │   │   ├── register
+    │   │   │   │   ├── .gitkeep
+    │   │   │   │   └── page.jsx
+    │   │   │   └── .gitkeep
+    │   │   ├── dashboard
+    │   │   │   ├── agency-banking
+    │   │   │   │   ├── [Id]
+    │   │   │   │   │   └── edit
+    │   │   │   │   │       └── page.jsx
+    │   │   │   │   ├── create
+    │   │   │   │   │   └── page.jsx
+    │   │   │   │   ├── .gitkeep
+    │   │   │   │   └── page.jsx
+    │   │   │   ├── inventory
+    │   │   │   │   ├── [Id]
+    │   │   │   │   │   └── edit
+    │   │   │   │   │       ├── .gitkeep
+    │   │   │   │   │       └── page.jsx
+    │   │   │   │   ├── alerts
+    │   │   │   │   │   └── page.jsx
+    │   │   │   │   ├── create
+    │   │   │   │   │   ├── .gitkeep
+    │   │   │   │   │   └── page.jsx
+    │   │   │   │   ├── .gitkeep
+    │   │   │   │   └── page.jsx
+    │   │   │   ├── notifications
+    │   │   │   │   ├── .gitkeep
+    │   │   │   │   └── page.jsx
+    │   │   │   ├── predictions
+    │   │   │   │   ├── anomaly
+    │   │   │   │   │   └── page.jsx
+    │   │   │   │   ├── credit
+    │   │   │   │   │   └── page.jsx
+    │   │   │   │   ├── demand
+    │   │   │   │   │   └── page.jsx
+    │   │   │   │   ├── procurement
+    │   │   │   │   │   └── page.jsx
+    │   │   │   │   └── page.jsx
+    │   │   │   ├── procurement
+    │   │   │   │   ├── [Id]
+    │   │   │   │   │   └── edit
+    │   │   │   │   │       ├── .gitkeep
+    │   │   │   │   │       └── page.jsx
+    │   │   │   │   ├── create
+    │   │   │   │   │   ├── .gitkeep
+    │   │   │   │   │   └── page.jsx
+    │   │   │   │   ├── .gitkeep
+    │   │   │   │   ├── AdminProcurementPage.jsx
+    │   │   │   │   ├── MerchantProcurementPage.jsx
+    │   │   │   │   └── page.jsx
+    │   │   │   ├── profile
+    │   │   │   │   └── page.jsx
+    │   │   │   ├── suppliers
+    │   │   │   │   ├── [Id]
+    │   │   │   │   │   └── edit
+    │   │   │   │   │       ├── .gitkeep
+    │   │   │   │   │       └── page.jsx
+    │   │   │   │   ├── create
+    │   │   │   │   │   ├── .gitkeep
+    │   │   │   │   │   └── page.jsx
+    │   │   │   │   ├── .gitkeep
+    │   │   │   │   └── page.jsx
+    │   │   │   ├── transactions
+    │   │   │   │   ├── [Id]
+    │   │   │   │   │   └── edit
+    │   │   │   │   │       ├── .gitkeep
+    │   │   │   │   │       └── page.jsx
+    │   │   │   │   ├── create
+    │   │   │   │   │   ├── .gitkeep
+    │   │   │   │   │   └── page.jsx
+    │   │   │   │   ├── .gitkeep
+    │   │   │   │   └── page.jsx
+    │   │   │   ├── .gitkeep
+    │   │   │   ├── layout.jsx
+    │   │   │   └── page.jsx
+    │   │   ├── .gitkeep
+    │   │   ├── favicon.ico
+    │   │   ├── globals.css
+    │   │   ├── layout.jsx
+    │   │   └── page.jsx
+    │   ├── components
+    │   │   ├── common
+    │   │   │   ├── .gitkeep
+    │   │   │   ├── EmptyState.jsx
+    │   │   │   ├── Footer.jsx
+    │   │   │   ├── LoadingSpinner.jsx
+    │   │   │   ├── ModuleNavigation.jsx
+    │   │   │   ├── Navbar.jsx
+    │   │   │   ├── PageHeader.jsx
+    │   │   │   ├── Sidebar.jsx
+    │   │   │   └── StatusBadge.jsx
+    │   │   ├── dashboard
+    │   │   │   ├── .gitkeep
+    │   │   │   ├── AdminDashboard.jsx
+    │   │   │   ├── AdminPriceUploadWidget.jsx
+    │   │   │   ├── BankAgentDashboard.jsx
+    │   │   │   ├── MarketPriceWidget.jsx
+    │   │   │   ├── MerchantDashboard.jsx
+    │   │   │   └── MLAnalyticsWidget.jsx
+    │   │   ├── forms
+    │   │   │   ├── .gitkeep
+    │   │   │   ├── AgencyBankingForm.jsx
+    │   │   │   ├── AuthForm.jsx
+    │   │   │   ├── FormField.jsx
+    │   │   │   ├── InventoryForm.jsx
+    │   │   │   ├── ProcurementForm.jsx
+    │   │   │   ├── SupplierForm.jsx
+    │   │   │   └── TransactionForm.jsx
+    │   │   ├── inventory
+    │   │   │   ├── .gitkeep
+    │   │   │   ├── InventoryCard.jsx
+    │   │   │   └── InventoryTable.jsx
+    │   │   ├── predictions
+    │   │   │   ├── PredictionForm.jsx
+    │   │   │   └── PredictionResult.jsx
+    │   │   ├── procurement
+    │   │   │   ├── .gitkeep
+    │   │   │   ├── ProcurementCard.jsx
+    │   │   │   ├── ProcurementTable.jsx
+    │   │   │   ├── RecommendationPanel.jsx
+    │   │   │   └── SupplierRecommendationTable.jsx
+    │   │   └── ui
+    │   │       ├── .gitkeep
+    │   │       ├── Button.jsx
+    │   │       ├── Card.jsx
+    │   │       ├── Input.jsx
+    │   │       ├── Select.jsx
+    │   │       └── Table.jsx
+    │   ├── hooks
+    │   │   ├── .gitkeep
+    │   │   ├── useAgencyBanking.js
+    │   │   ├── useAuth.js
+    │   │   ├── useAuthGuard.js
+    │   │   ├── useInventory.js
+    │   │   ├── usePrediction.js
+    │   │   ├── useProcurement.js
+    │   │   ├── useSuppliers.js
+    │   │   └── useTransactions.js
+    │   ├── lib
+    │   │   ├── auth
+    │   │   │   ├── .gitkeep
+    │   │   │   ├── authHelpers.js
+    │   │   │   └── tokenService.js
+    │   │   ├── constants
+    │   │   │   ├── .gitkeep
+    │   │   │   └── index.js
+    │   │   ├── formatters
+    │   │   │   ├── .gitkeep
+    │   │   │   └── index.js
+    │   │   ├── helpers
+    │   │   │   ├── .gitkeep
+    │   │   │   └── index.js
+    │   │   ├── validators
+    │   │   │   ├── .gitkeep
+    │   │   │   └── index.js
+    │   │   ├── .gitkeep
+    │   │   ├── agencyBankingLinks.js
+    │   │   ├── constants.js
+    │   │   ├── formatters.js
+    │   │   ├── inventoryLinks.js
+    │   │   ├── ledgerLinks.js
+    │   │   ├── procurementLinks.js
+    │   │   └── validators.js
+    │   ├── services
+    │   │   ├── api
+    │   │   │   ├── .gitkeep
+    │   │   │   ├── agencyBanking.js
+    │   │   │   ├── auth.js
+    │   │   │   ├── client.js
+    │   │   │   ├── inventory.js
+    │   │   │   ├── prediction.js
+    │   │   │   ├── procurement.js
+    │   │   │   ├── supplier.js
+    │   │   │   └── transaction.js
+    │   │   ├── auth
+    │   │   │   ├── .gitkeep
+    │   │   │   └── tokenService.js
+    │   │   ├── storage
+    │   │   │   ├── .gitkeep
+    │   │   │   └── indexedDb.js
+    │   │   └── sync
+    │   │       ├── .gitkeep
+    │   │       └── syncManager.js
+    │   └── middleware.js
+    ├── .eslintrc.json
+    ├── .gitignore
+    ├── .gitkeep
+    ├── jsconfig.json
+    ├── next.config.mjs
+    ├── package-lock.json
+    ├── package.json
+    ├── postcss.config.mjs
+    ├── README.md
+    └── tailwind.config.js
+```
+
+### mobile_app/ (Flutter)
+```
+mobile app
+    ├── android
+    │   ├── .gradle
+    │   │   ├── 9.1.0
+    │   │   │   ├── checksums
+    │   │   │   │   └── checksums.lock
+    │   │   │   ├── fileChanges
+    │   │   │   │   └── last-build.bin
+    │   │   │   ├── fileHashes
+    │   │   │   │   ├── fileHashes.bin
+    │   │   │   │   └── fileHashes.lock
+    │   │   │   └── gc.properties
+    │   │   ├── buildOutputCleanup
+    │   │   │   ├── buildOutputCleanup.lock
+    │   │   │   └── cache.properties
+    │   │   └── vcs-1
+    │   │       └── gc.properties
+    │   ├── app
+    │   │   ├── src
+    │   │   │   ├── debug
+    │   │   │   │   └── AndroidManifest.xml
+    │   │   │   ├── main
+    │   │   │   │   ├── kotlin
+    │   │   │   │   │   └── com
+    │   │   │   │   │       └── example
+    │   │   │   │   │           └── app
+    │   │   │   │   │               └── MainActivity.kt
+    │   │   │   │   ├── res
+    │   │   │   │   │   ├── drawable
+    │   │   │   │   │   │   └── launch_background.xml
+    │   │   │   │   │   ├── drawable-v21
+    │   │   │   │   │   │   └── launch_background.xml
+    │   │   │   │   │   ├── mipmap-hdpi
+    │   │   │   │   │   │   └── ic_launcher.png
+    │   │   │   │   │   ├── mipmap-mdpi
+    │   │   │   │   │   │   └── ic_launcher.png
+    │   │   │   │   │   ├── mipmap-xhdpi
+    │   │   │   │   │   │   └── ic_launcher.png
+    │   │   │   │   │   ├── mipmap-xxhdpi
+    │   │   │   │   │   │   └── ic_launcher.png
+    │   │   │   │   │   ├── mipmap-xxxhdpi
+    │   │   │   │   │   │   └── ic_launcher.png
+    │   │   │   │   │   ├── values
+    │   │   │   │   │   │   └── styles.xml
+    │   │   │   │   │   └── values-night
+    │   │   │   │   │       └── styles.xml
+    │   │   │   │   └── AndroidManifest.xml
+    │   │   │   └── profile
+    │   │   │       └── AndroidManifest.xml
+    │   │   └── build.gradle.kts
+    │   ├── gradle
+    │   │   └── wrapper
+    │   │       └── gradle-wrapper.properties
+    │   ├── .gitignore
+    │   ├── build.gradle.kts
+    │   ├── gradle.properties
+    │   └── settings.gradle.kts
+    ├── ios
+    │   ├── Flutter
+    │   │   ├── AppFrameworkInfo.plist
+    │   │   ├── Debug.xcconfig
+    │   │   └── Release.xcconfig
+    │   ├── Runner
+    │   │   ├── Assets.xcassets
+    │   │   │   ├── AppIcon.appiconset
+    │   │   │   │   ├── Contents.json
+    │   │   │   │   ├── Icon-App-1024x1024@1x.png
+    │   │   │   │   ├── Icon-App-20x20@1x.png
+    │   │   │   │   ├── Icon-App-20x20@2x.png
+    │   │   │   │   ├── Icon-App-20x20@3x.png
+    │   │   │   │   ├── Icon-App-29x29@1x.png
+    │   │   │   │   ├── Icon-App-29x29@2x.png
+    │   │   │   │   ├── Icon-App-29x29@3x.png
+    │   │   │   │   ├── Icon-App-40x40@1x.png
+    │   │   │   │   ├── Icon-App-40x40@2x.png
+    │   │   │   │   ├── Icon-App-40x40@3x.png
+    │   │   │   │   ├── Icon-App-60x60@2x.png
+    │   │   │   │   ├── Icon-App-60x60@3x.png
+    │   │   │   │   ├── Icon-App-76x76@1x.png
+    │   │   │   │   ├── Icon-App-76x76@2x.png
+    │   │   │   │   └── Icon-App-83.5x83.5@2x.png
+    │   │   │   └── LaunchImage.imageset
+    │   │   │       ├── Contents.json
+    │   │   │       ├── LaunchImage.png
+    │   │   │       ├── LaunchImage@2x.png
+    │   │   │       ├── LaunchImage@3x.png
+    │   │   │       └── README.md
+    │   │   ├── Base.lproj
+    │   │   │   ├── LaunchScreen.storyboard
+    │   │   │   └── Main.storyboard
+    │   │   ├── AppDelegate.swift
+    │   │   ├── Info.plist
+    │   │   ├── Runner-Bridging-Header.h
+    │   │   └── SceneDelegate.swift
+    │   ├── Runner.xcodeproj
+    │   │   ├── project.xcworkspace
+    │   │   │   ├── xcshareddata
+    │   │   │   │   ├── IDEWorkspaceChecks.plist
+    │   │   │   │   └── WorkspaceSettings.xcsettings
+    │   │   │   └── contents.xcworkspacedata
+    │   │   ├── xcshareddata
+    │   │   │   └── xcschemes
+    │   │   │       └── Runner.xcscheme
+    │   │   └── project.pbxproj
+    │   ├── Runner.xcworkspace
+    │   │   ├── xcshareddata
+    │   │   │   ├── IDEWorkspaceChecks.plist
+    │   │   │   └── WorkspaceSettings.xcsettings
+    │   │   └── contents.xcworkspacedata
+    │   ├── RunnerTests
+    │   │   └── RunnerTests.swift
+    │   └── .gitignore
+    ├── lib
+    │   ├── config
+    │   │   ├── modules.dart
+    │   │   └── predictions.dart
+    │   ├── core
+    │   │   ├── api.dart
+    │   │   ├── config.dart
+    │   │   └── theme.dart
+    │   ├── models
+    │   │   ├── field_config.dart
+    │   │   └── module_config.dart
+    │   ├── screens
+    │   │   ├── auth
+    │   │   │   ├── login_screen.dart
+    │   │   │   └── register_screen.dart
+    │   │   ├── crud
+    │   │   │   ├── form_screen.dart
+    │   │   │   └── list_screen.dart
+    │   │   ├── predictions
+    │   │   │   ├── prediction_screen.dart
+    │   │   │   └── predictions_hub_screen.dart
+    │   │   └── dashboard_screen.dart
+    │   ├── services
+    │   │   ├── auth_service.dart
+    │   │   ├── crud_service.dart
+    │   │   └── prediction_service.dart
+    │   ├── widgets
+    │   │   ├── empty_state.dart
+    │   │   └── loading.dart
+    │   └── main.dart
+    ├── linux
+    │   ├── flutter
+    │   │   ├── CMakeLists.txt
+    │   │   ├── generated_plugin_registrant.cc
+    │   │   ├── generated_plugin_registrant.h
+    │   │   └── generated_plugins.cmake
+    │   ├── runner
+    │   │   ├── CMakeLists.txt
+    │   │   ├── main.cc
+    │   │   ├── my_application.cc
+    │   │   └── my_application.h
+    │   ├── .gitignore
+    │   └── CMakeLists.txt
+    ├── macos
+    │   ├── Flutter
+    │   │   ├── Flutter-Debug.xcconfig
+    │   │   ├── Flutter-Release.xcconfig
+    │   │   └── GeneratedPluginRegistrant.swift
+    │   ├── Runner
+    │   │   ├── Assets.xcassets
+    │   │   │   └── AppIcon.appiconset
+    │   │   │       ├── app_icon_1024.png
+    │   │   │       ├── app_icon_128.png
+    │   │   │       ├── app_icon_16.png
+    │   │   │       ├── app_icon_256.png
+    │   │   │       ├── app_icon_32.png
+    │   │   │       ├── app_icon_512.png
+    │   │   │       ├── app_icon_64.png
+    │   │   │       └── Contents.json
+    │   │   ├── Base.lproj
+    │   │   │   └── MainMenu.xib
+    │   │   ├── Configs
+    │   │   │   ├── AppInfo.xcconfig
+    │   │   │   ├── Debug.xcconfig
+    │   │   │   ├── Release.xcconfig
+    │   │   │   └── Warnings.xcconfig
+    │   │   ├── AppDelegate.swift
+    │   │   ├── DebugProfile.entitlements
+    │   │   ├── Info.plist
+    │   │   ├── MainFlutterWindow.swift
+    │   │   └── Release.entitlements
+    │   ├── Runner.xcodeproj
+    │   │   ├── project.xcworkspace
+    │   │   │   └── xcshareddata
+    │   │   │       └── IDEWorkspaceChecks.plist
+    │   │   ├── xcshareddata
+    │   │   │   └── xcschemes
+    │   │   │       └── Runner.xcscheme
+    │   │   └── project.pbxproj
+    │   ├── Runner.xcworkspace
+    │   │   ├── xcshareddata
+    │   │   │   └── IDEWorkspaceChecks.plist
+    │   │   └── contents.xcworkspacedata
+    │   ├── RunnerTests
+    │   │   └── RunnerTests.swift
+    │   └── .gitignore
+    ├── test
+    │   └── widget_test.dart
+    ├── web
+    │   ├── icons
+    │   │   ├── Icon-192.png
+    │   │   ├── Icon-512.png
+    │   │   ├── Icon-maskable-192.png
+    │   │   └── Icon-maskable-512.png
+    │   ├── favicon.png
+    │   ├── index.html
+    │   └── manifest.json
+    ├── windows
+    │   ├── flutter
+    │   │   ├── CMakeLists.txt
+    │   │   ├── generated_plugin_registrant.cc
+    │   │   ├── generated_plugin_registrant.h
+    │   │   └── generated_plugins.cmake
+    │   ├── runner
+    │   │   ├── resources
+    │   │   │   └── app_icon.ico
+    │   │   ├── CMakeLists.txt
+    │   │   ├── flutter_window.cpp
+    │   │   ├── flutter_window.h
+    │   │   ├── main.cpp
+    │   │   ├── resource.h
+    │   │   ├── runner.exe.manifest
+    │   │   ├── Runner.rc
+    │   │   ├── utils.cpp
+    │   │   ├── utils.h
+    │   │   ├── win32_window.cpp
+    │   │   └── win32_window.h
+    │   ├── .gitignore
+    │   └── CMakeLists.txt
+    ├── .gitignore
+    ├── .gitkeep
+    ├── .metadata
+    ├── analysis_options.yaml
+    ├── pubspec.lock
+    ├── pubspec.yaml
+    └── README.md
+```
+
+### backend/ (Node)
+```backend
+    ├── src
+    │   ├── config
+    │   │   └── supabase.js
+    │   ├── controllers
+    │   │   ├── .gitkeep
+    │   │   ├── agencyBanking.controller.js
+    │   │   ├── auth.controller.js
+    │   │   ├── inventory.controller.js
+    │   │   ├── prediction.controller.js
+    │   │   ├── procurement.controller.js
+    │   │   ├── supplier.controller.js
+    │   │   ├── sync.controller.js
+    │   │   └── transaction.controller.js
+    │   ├── middlewares
+    │   │   ├── .gitkeep
+    │   │   ├── auth.middleware.js
+    │   │   ├── error.middleware.js
+    │   │   └── validate.middleware.js
+    │   ├── routes
+    │   │   ├── .gitkeep
+    │   │   ├── agencyBanking.routes.js
+    │   │   ├── auth.routes.js
+    │   │   ├── inventory.routes.js
+    │   │   ├── prediction.routes.js
+    │   │   ├── procurement.routes.js
+    │   │   ├── supplier.routes.js
+    │   │   ├── sync.routes.js
+    │   │   └── transaction.routes.js
+    │   └── utils
+    │       ├── .gitkeep
+    │       ├── helpers.js
+    │       └── mlClient.js
+    ├── .gitkeep
+    ├── package-lock.json
+    ├── package.json
+    ├── schema.sql
+    └── server.js
+
+```
+
+### ml_service/ (Python)
+```
+ml_service
+    ├── models
+    │   ├── component1_sales_financial_model.pkl
+    │   ├── component2_demand_forecast_model.pkl
+    │   ├── component3_procurement_model.pkl
+    │   └── component4_banking_anomaly_model.pkl
+    ├── app.py
+    ├── check_features.py
+    └── requirements.txt
+```
 
 ---
 
-## 🚀 Setup Guide
+## 🚀 Setup
 
 ### Prerequisites
-
 ```
-Python 3.11+
-Node.js 18+
-MongoDB Atlas account (free tier)
+Node.js 18+ · Python 3.11+ · Flutter SDK · a Supabase project
 ```
 
-### Backend
+### 1. Database (Supabase)
+Create a project → open the SQL Editor → run `backend/schema.sql`. From **Settings → API**, copy the **service_role** key.
 
+### 2. ML Service
 ```bash
-cd E:\project\backend\backend
-
-# Activate virtual environment
-.venv\Scripts\activate
-
-# Install dependencies
+cd ml_service
 pip install -r requirements.txt
-
-# Start server
-python run.py
+python -m uvicorn app:app --port 8000
 ```
+Check `http://localhost:8000/health` — it lists the four loaded models.
 
-Backend runs at: `http://localhost:8000`
-Swagger docs at: `http://localhost:8000/docs`
-
-### Frontend
-
+### 3. Backend
 ```bash
-cd E:\project\frontend
-
+cd backend
 npm install
-
 npm run dev
 ```
+Runs at `http://localhost:Port Number`.
 
-Frontend runs at: `http://localhost:3000`
+### 4. Web Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Runs at `http://localhost:Port Number`.
 
-### Environment Configuration (.env)
+### 5. Mobile App
+```bash
+cd mobile_app
+flutter pub get
+flutter run
+```
 
+### Environment Variables
+
+**backend/.env**
 ```env
-APP_NAME=Lanka-Link Backend
-APP_ENV=development
-APP_HOST=127.0.0.1
-APP_PORT=8000
-
-MONGODB_URL=your-mongodb-atlas-connection-string
-MONGODB_DB=lankalink
-
-JWT_SECRET=your-secret-key-here
-JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=60
+PORT=5000
+SUPABASE_URL=your-supabase-project-url
+SUPABASE_KEY=your-service-role-key
+JWT_SECRET=your-long-random-secret
+JWT_EXPIRES_IN=7d
+ML_URL=http://localhost:Port Number
 ```
 
-> **Note:** The `lankalink` database is created automatically in MongoDB Atlas on first user registration. No manual setup needed.
+**frontend/.env.local**
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:Port Number/api/v1
+```
 
-### Uploading HARTI Price Data (required for ML analytics)
-
-1. Log in as **admin**
-2. Go to `/dashboard/admin/price-data`
-3. Click **Drop all PDFs here** and select all daily price bulletin PDFs
-4. System auto-detects format (daily or weekly) and parses all records
-5. ML analytics activate automatically once data is uploaded
+> Generate a JWT secret:
+> `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`
 
 ---
 
-# File Tree: frontend
-
-```
-├── public
-│   ├── icons
-│   │   └── .gitkeep
-│   ├── images
-│   │   ├── .gitkeep
-│   │   └── lankalinklogo.png
-│   ├── logos
-│   │   ├── .gitkeep
-│   │   └── lankalinklogo.png
-│   └── manifest.json
-├── src
-│   ├── app
-│   │   ├── auth
-│   │   │   ├── forgot-password
-│   │   │   │   ├── .gitkeep
-│   │   │   │   └── page.jsx
-│   │   │   ├── login
-│   │   │   │   ├── .gitkeep
-│   │   │   │   └── page.jsx
-│   │   │   ├── register
-│   │   │   │   ├── .gitkeep
-│   │   │   │   └── page.jsx
-│   │   │   └── .gitkeep
-│   │   ├── dashboard
-│   │   │   ├── agency-banking
-│   │   │   │   ├── [agencyId]
-│   │   │   │   │   ├── edit
-│   │   │   │   │   │   └── page.jsx
-│   │   │   │   │   └── page.jsx
-│   │   │   │   ├── create
-│   │   │   │   │   └── page.jsx
-│   │   │   │   ├── summary
-│   │   │   │   │   └── page.jsx
-│   │   │   │   ├── .gitkeep
-│   │   │   │   └── page.jsx
-│   │   │   ├── inventory
-│   │   │   │   ├── [inventoryId]
-│   │   │   │   │   ├── edit
-│   │   │   │   │   │   ├── .gitkeep
-│   │   │   │   │   │   └── page.jsx
-│   │   │   │   │   ├── .gitkeep
-│   │   │   │   │   └── page.jsx
-│   │   │   │   ├── alerts
-│   │   │   │   │   └── page.jsx
-│   │   │   │   ├── create
-│   │   │   │   │   ├── .gitkeep
-│   │   │   │   │   └── page.jsx
-│   │   │   │   ├── .gitkeep
-│   │   │   │   └── page.jsx
-│   │   │   ├── ledger
-│   │   │   │   ├── [ledgerId]
-│   │   │   │   │   ├── edit
-│   │   │   │   │   │   ├── .gitkeep
-│   │   │   │   │   │   └── page.jsx
-│   │   │   │   │   ├── .gitkeep
-│   │   │   │   │   └── page.jsx
-│   │   │   │   ├── create
-│   │   │   │   │   ├── .gitkeep
-│   │   │   │   │   └── page.jsx
-│   │   │   │   ├── journal
-│   │   │   │   │   └── page.jsx
-│   │   │   │   ├── reports
-│   │   │   │   │   └── page.jsx
-│   │   │   │   ├── .gitkeep
-│   │   │   │   └── page.jsx
-│   │   │   ├── notifications
-│   │   │   │   ├── .gitkeep
-│   │   │   │   └── page.jsx
-│   │   │   ├── procurement
-│   │   │   │   ├── [procurementId]
-│   │   │   │   │   ├── edit
-│   │   │   │   │   │   ├── .gitkeep
-│   │   │   │   │   │   └── page.jsx
-│   │   │   │   │   ├── .gitkeep
-│   │   │   │   │   └── page.jsx
-│   │   │   │   ├── create
-│   │   │   │   │   ├── .gitkeep
-│   │   │   │   │   └── page.jsx
-│   │   │   │   ├── .gitkeep
-│   │   │   │   ├── AdminProcurementPage.jsx
-│   │   │   │   ├── MerchantProcurementPage.jsx
-│   │   │   │   └── page.jsx
-│   │   │   ├── profile
-│   │   │   │   └── page.jsx
-│   │   │   ├── suppliers
-│   │   │   │   ├── [supplierId]
-│   │   │   │   │   ├── edit
-│   │   │   │   │   │   ├── .gitkeep
-│   │   │   │   │   │   └── page.jsx
-│   │   │   │   │   ├── .gitkeep
-│   │   │   │   │   └── page.jsx
-│   │   │   │   ├── compare
-│   │   │   │   │   └── page.jsx
-│   │   │   │   ├── create
-│   │   │   │   │   ├── .gitkeep
-│   │   │   │   │   └── page.jsx
-│   │   │   │   ├── .gitkeep
-│   │   │   │   └── page.jsx
-│   │   │   ├── transactions
-│   │   │   │   ├── [transactionId]
-│   │   │   │   │   ├── edit
-│   │   │   │   │   │   └── page.jsx
-│   │   │   │   │   ├── .gitkeep
-│   │   │   │   │   └── page.jsx
-│   │   │   │   ├── create
-│   │   │   │   │   ├── .gitkeep
-│   │   │   │   │   └── page.jsx
-│   │   │   │   ├── history
-│   │   │   │   │   ├── .gitkeep
-│   │   │   │   │   └── page.jsx
-│   │   │   │   ├── .gitkeep
-│   │   │   │   └── page.jsx
-│   │   │   ├── .gitkeep
-│   │   │   ├── layout.jsx
-│   │   │   └── page.jsx
-│   │   ├── .gitkeep
-│   │   ├── favicon.ico
-│   │   ├── globals.css
-│   │   ├── layout.jsx
-│   │   └── page.jsx
-│   ├── components
-│   │   ├── common
-│   │   │   ├── EmptyState.jsx
-│   │   │   ├── Footer.jsx
-│   │   │   ├── LoadingSpinner.jsx
-│   │   │   ├── ModuleNavigation.jsx
-│   │   │   ├── Navbar.jsx
-│   │   │   ├── PageHeader.jsx
-│   │   │   ├── Sidebar.jsx
-│   │   │   └── StatusBadge.jsx
-│   │   ├── dashboard
-│   │   │   ├── AdminDashboard.jsx
-│   │   │   ├── AdminPriceUploadWidget.jsx
-│   │   │   ├── BankAgentDashboard.jsx
-│   │   │   ├── MLAnalyticsWidget.jsx
-│   │   │   ├── MarketPriceWidget.jsx
-│   │   │   └── MerchantDashboard.jsx
-│   │   ├── forms
-│   │   │   ├── .gitkeep
-│   │   │   ├── AgencyBankingForm.jsx
-│   │   │   ├── AuthForm.jsx
-│   │   │   ├── FormField.jsx
-│   │   │   ├── InventoryForm.jsx
-│   │   │   ├── LedgerForm.jsx
-│   │   │   ├── ProcurementForm.jsx
-│   │   │   ├── SupplierForm.jsx
-│   │   │   └── TransactionForm.jsx
-│   │   ├── inventory
-│   │   │   ├── .gitkeep
-│   │   │   ├── InventoryCard.jsx
-│   │   │   └── InventoryTable.jsx
-│   │   ├── ledger
-│   │   │   ├── .gitkeep
-│   │   │   ├── JournalTable.jsx
-│   │   │   ├── LedgerCard.jsx
-│   │   │   └── LedgerTable.jsx
-│   │   ├── notifications
-│   │   │   ├── .gitkeep
-│   │   │   ├── NotificationCard.jsx
-│   │   │   └── NotificationList.jsx
-│   │   ├── procurement
-│   │   │   ├── .gitkeep
-│   │   │   ├── ProcurementCard.jsx
-│   │   │   ├── ProcurementTable.jsx
-│   │   │   ├── RecommendationPanel.jsx
-│   │   │   └── SupplierRecommendationTable.jsx
-│   │   ├── suppliers
-│   │   │   ├── .gitkeep
-│   │   │   ├── SupplierCard.jsx
-│   │   │   └── SupplierTable.jsx
-│   │   ├── transactions
-│   │   │   ├── .gitkeep
-│   │   │   ├── TransactionCard.jsx
-│   │   │   └── TransactionTable.jsx
-│   │   └── ui
-│   │       ├── Button.jsx
-│   │       ├── Card.jsx
-│   │       ├── Input.jsx
-│   │       ├── Select.jsx
-│   │       └── Table.jsx
-│   ├── hooks
-│   │   ├── .gitkeep
-│   │   ├── useAgencyBanking.js
-│   │   ├── useAuth.js
-│   │   ├── useAuthGuard.js
-│   │   ├── useDashboard.js
-│   │   ├── useInventory.js
-│   │   ├── useJournal.js
-│   │   ├── useLedger.js
-│   │   ├── useNotifications.js
-│   │   ├── useProcurement.js
-│   │   ├── useSuppliers.js
-│   │   └── useTransactions.js
-│   ├── lib
-│   │   ├── auth
-│   │   │   └── authHelpers.js
-│   │   ├── constants
-│   │   │   └── index.js
-│   │   ├── formatters
-│   │   │   └── index.js
-│   │   ├── helpers
-│   │   │   └── index.js
-│   │   ├── validators
-│   │   │   └── index.js
-│   │   ├── agencyBankingLinks.js
-│   │   ├── constants.js
-│   │   ├── inventoryLinks.js
-│   │   ├── ledgerLinks.js
-│   │   └── procurementLinks.js
-│   ├── services
-│   │   ├── api
-│   │   │   ├── .gitkeep
-│   │   │   ├── agencyBanking.api.js
-│   │   │   ├── auth.api.js
-│   │   │   ├── client.js
-│   │   │   ├── dashboard.api.js
-│   │   │   ├── inventory.api.js
-│   │   │   ├── journal.api.js
-│   │   │   ├── ledger.api.js
-│   │   │   ├── notification.api.js
-│   │   │   ├── priceData.api.js
-│   │   │   ├── procurement.api.js
-│   │   │   ├── supplier.api.js
-│   │   │   └── transaction.api.js
-│   │   ├── auth
-│   │   │   └── tokenService.js
-│   │   ├── storage
-│   │   │   └── indexedDb.js
-│   │   └── sync
-│   │       └── syncManager.js
-│   ├── store
-│   │   ├── .gitkeep
-│   │   ├── authStore.js
-│   │   ├── inventoryStore.js
-│   │   ├── ledgerStore.js
-│   │   ├── notificationStore.js
-│   │   ├── procurementStore.js
-│   │   ├── supplierStore.js
-│   │   └── transactionStore.js
-│   ├── styles
-│   │   └── index.css
-│   └── middleware.js
-├── .eslintrc.json
-├── .gitignore
-├── .gitkeep
-├── README.md
-├── jsconfig.json
-├── next.config.mjs
-├── package-lock.json
-├── package.json
-├── postcss.config.mjs
-└── tailwind.config.js
-```
-
-# File Tree: backend
-
-
-```
-├── app
-│   ├── api
-│   │   ├── v1
-│   │   │   ├── endpoints
-│   │   │   │   ├── .gitkeep
-│   │   │   │   ├── __init__.py
-│   │   │   │   ├── agency_banking_routes.py
-│   │   │   │   ├── auth_routes.py
-│   │   │   │   ├── dashboard_routes.py
-│   │   │   │   ├── inventory_routes.py
-│   │   │   │   ├── journal_routes.py
-│   │   │   │   ├── ledger_routes.py
-│   │   │   │   ├── ml_routes.py
-│   │   │   │   ├── notification_routes.py
-│   │   │   │   ├── price_data_routes.py
-│   │   │   │   ├── procurement_routes.py
-│   │   │   │   ├── supplier_routes.py
-│   │   │   │   ├── sync_routes.py
-│   │   │   │   └── transaction_routes.py
-│   │   │   ├── .gitkeep
-│   │   │   ├── __init__.py
-│   │   │   └── router.py
-│   │   ├── .gitkeep
-│   │   ├── __init__.py
-│   │   └── deps.py
-│   ├── core
-│   │   ├── .gitkeep
-│   │   ├── __init__.py
-│   │   ├── config.py
-│   │   ├── database.py
-│   │   └── security.py
-│   ├── models
-│   │   ├── .gitkeep
-│   │   ├── __init__.py
-│   │   ├── agency_banking_model.py
-│   │   ├── inventory_model.py
-│   │   ├── journal_model.py
-│   │   ├── ledger_model.py
-│   │   ├── notification_model.py
-│   │   ├── procurement_model.py
-│   │   ├── supplier_model.py
-│   │   ├── sync_model.py
-│   │   ├── transaction_model.py
-│   │   └── user_model.py
-│   ├── repositories
-│   │   ├── .gitkeep
-│   │   ├── __init__.py
-│   │   ├── agency_banking_repository.py
-│   │   ├── inventory_repository.py
-│   │   ├── journal_repository.py
-│   │   ├── ledger_repository.py
-│   │   ├── notification_repository.py
-│   │   ├── price_data_repository.py
-│   │   ├── procurement_repository.py
-│   │   ├── supplier_repository.py
-│   │   ├── sync_repository.py
-│   │   ├── transaction_repository.py
-│   │   └── user_repository.py
-│   ├── schemas
-│   │   ├── .gitkeep
-│   │   ├── __init__.py
-│   │   ├── agency_banking_schema.py
-│   │   ├── auth_schema.py
-│   │   ├── inventory_schema.py
-│   │   ├── journal_schema.py
-│   │   ├── ledger_schema.py
-│   │   ├── notification_schema.py
-│   │   ├── procurement_schema.py
-│   │   ├── supplier_schema.py
-│   │   └── transaction_schema.py
-│   ├── services
-│   │   ├── .gitkeep
-│   │   ├── __init__.py
-│   │   ├── agency_banking_service.py
-│   │   ├── auth_service.py
-│   │   ├── dashboard_service.py
-│   │   ├── inventory_ml_service.py
-│   │   ├── inventory_service.py
-│   │   ├── journal_service.py
-│   │   ├── ledger_service.py
-│   │   ├── ml_service.py
-│   │   ├── notification_service.py
-│   │   ├── price_data_service.py
-│   │   ├── procurement_service.py
-│   │   ├── supplier_service.py
-│   │   ├── sync_service.py
-│   │   └── transaction_service.py
-│   ├── utils
-│   │   ├── .gitkeep
-│   │   ├── __init__.py
-│   │   └── helpers.py
-│   ├── .gitkeep
-│   ├── __init__.py
-│   └── main.py
-├── .gitignore
-├── .gitkeep
-├── README.md
-├── requirements.txt
-└── run.py
-```
-
----
-
-## 🔌 API Reference
+## 🔌 API Reference (base `/api/v1`)
 
 ### Authentication
-
 ```
-POST   /api/v1/auth/register          Create account (role field optional)
-POST   /api/v1/auth/login             Login — returns JWT with role + actual_role
-POST   /api/v1/auth/switch-role       Switch session role (no password needed)
-GET    /api/v1/auth/me                Get current user info
-GET    /api/v1/auth/users             List all users (admin only)
-PUT    /api/v1/auth/users/{id}/role   Promote/demote user (admin only)
+POST  /auth/register          Create account
+POST  /auth/login             Login — returns { token, user }
+POST  /auth/forgot-password   Request a reset token
+POST  /auth/reset-password    Reset password with token
 ```
 
-### Ledger & Transactions
-
+### Core Modules (Bearer token required)
 ```
-GET    /api/v1/ledger                 List entries
-POST   /api/v1/ledger                 Create entry
-GET    /api/v1/ledger/summary         Income, expense, profit, cash balance
-GET    /api/v1/ledger/payment-split   Breakdown by payment method
-GET    /api/v1/ledger/export/pdf      PDF report
-GET    /api/v1/journal                Journal entries
-GET    /api/v1/journal/trial-balance  Trial balance
-POST   /api/v1/transactions           Create transaction (auto-deducts inventory)
-GET    /api/v1/transactions           List transactions
+GET/POST/PUT/DELETE   /transactions      /transactions/:id
+GET/POST/PUT/DELETE   /inventory         /inventory/:id   + GET /inventory/status
+GET/POST/PUT/DELETE   /suppliers         /suppliers/:id
+GET/POST/PUT/DELETE   /procurement       /procurement/:id
+GET/POST/PUT/DELETE   /agency-banking    /agency-banking/:id
 ```
 
-### Inventory & Suppliers
-
+### Predictions
 ```
-GET    /api/v1/inventory              List items
-POST   /api/v1/inventory              Add item
-PUT    /api/v1/inventory/{id}         Update item
-DELETE /api/v1/inventory/{id}         Delete item
-GET    /api/v1/inventory/ml/demand    ML demand forecast + reorder recommendations
-GET    /api/v1/suppliers              List suppliers
-POST   /api/v1/suppliers              Add supplier
-PUT    /api/v1/suppliers/{id}         Update supplier
-DELETE /api/v1/suppliers/{id}         Delete supplier
-POST   /api/v1/sync/submit            Submit offline queue on reconnect
-GET    /api/v1/sync/status            Check sync status
+POST  /predict/credit         Credit-readiness score
+POST  /predict/demand         Demand forecast
+POST  /predict/procurement    Buy-now-vs-wait decision
+POST  /predict/anomaly        Transaction anomaly flag
 ```
-
-### Agency Banking (bank_agent + admin only)
-
-```
-GET    /api/v1/agency-banking         List transactions
-POST   /api/v1/agency-banking         Create transaction (CBSL limit enforced)
-PUT    /api/v1/agency-banking/{id}    Update transaction
-DELETE /api/v1/agency-banking/{id}    Delete transaction
-GET    /api/v1/agency-banking/summary Daily volume and commission totals
-```
-
-### Procurement DSS
-
-```
-POST   /api/v1/procurement/recommend  Run supplier scoring — returns ranked list
-GET    /api/v1/procurement            List saved decisions
-POST   /api/v1/procurement            Save a decision
-PUT    /api/v1/procurement/{id}       Update decision
-DELETE /api/v1/procurement/{id}       Delete decision
-```
-
-### ML Price Analytics
-
-```
-GET    /api/v1/ml/analytics           Full analytics — all 6 ML models
-GET    /api/v1/ml/predict/{item}      Price prediction for a single item
-GET    /api/v1/ml/summary             Data summary — date range, item count
-GET    /api/v1/ml/export/csv          Download all price data as CSV (admin)
-POST   /api/v1/price-data/upload      Upload HARTI PDF — auto-parsed
-GET    /api/v1/price-data/latest      Latest price data per item
-GET    /api/v1/price-data/export/csv  Export price data as CSV
-```
+Each takes `{ "features": { ... } }` matching the model's training columns. Use `GET /features/{component}` on the ML service to see the exact columns expected.
 
 ---
 
 ## 🔐 Security
 
-- **Server-side guard** — `middleware.js` intercepts all `/dashboard/*` routes before rendering
-- **Client-side guard** — `useAuthGuard()` hook on all dashboard pages
-- **API guard** — `require_bank_agent` on agency banking, `require_admin` on user management
-- **JWT** — tokens carry both `role` (session) and `actual_role` (database) to support role switching
-- **CBSL enforcement** — transaction limits validated on every agency banking request
+- **Route protection** — `middleware.js` guards `/dashboard/*`; `useAuthGuard()` on each dashboard page.
+- **API auth** — JWT verified on every protected endpoint.
+- **Passwords** — bcrypt hashing; reset tokens with expiry.
+- **Validation** — Joi schemas + UUID-format checks before any database write.
+- **CBSL limits** — enforced per agency-banking transaction type.
+- **Separation** — the ML service runs as a separate process; the service_role key is used only server-side.
 
 ---
 
 ## 📊 Research Claims
 
-| Claim | How it is met |
+| Claim | Met by |
 |---|---|
-| Offline-first for low connectivity | IndexedDB + syncManager.js + POST /sync/submit |
-| No accounting knowledge needed | Double-entry posted automatically — merchant sees income/expense only |
-| ML-powered demand forecasting | Linear Regression on sale transactions predicts stock runout per item |
-| ML-powered price analytics | 6 models on 128 days of HARTI government wholesale price data |
-| Explainable ML recommendations | Every model shows algorithm, formula, R² score, and confidence level |
-| CBSL-aligned agency banking | Per-transaction limits enforced front and back |
-| Supplier reliability grows over time | Auto-built from completed/total orders — never manually entered |
-| Transparent supplier scoring | score_breakdown returned with every recommendation |
+| ML credit-readiness scoring | Component 1 |
+| ML demand forecasting | Component 2 |
+| ML procurement timing | Component 3 |
+| ML anomaly detection | Component 4 |
+| Explainable recommendations | SHAP across all four components |
+| Real / real-anchored data | Public datasets + real-price-anchored generated data, limitations documented |
+| Clean service separation | Node business logic + Python inference over HTTP |
+| Cross-platform delivery | Shared design across web and mobile |
 
 ---
 
-## 🌍 CORS Configuration
+## 🔮 Future Work
 
-```python
-# main.py
-origins = [
-    "http://localhost:3000",
-    "http://localhost:3001",
-]
-```
-
----
-
-## 🔮 Future Enhancements
-
-- Real bank API integration (beyond simulated agency banking)
-- Mobile app (React Native)
-- Fraud / anomaly detection for agency banking (requires labelled transaction data)
-- Cash flow forecasting for the ledger (requires 6+ months of transaction history)
-- ARIMA time-series forecasting (requires 30+ weeks of HARTI data)
-- Multi-language support (Sinhala, Tamil)
+- Primary pilot data collection with real Sri Lankan micro-merchants for final validation
+- Baseline comparisons (model vs. a merchant's current manual method) for each component
+- A small user study evaluating whether the SHAP explanations improve trust and decisions
+- Live in-app SHAP explanation panels returning per-prediction feature contributions
+- Offline-first sync with a full replay engine (currently queue-only)
+- Sinhala and Tamil language support
 
 ---
 
-## 👨‍💻 Development Team
+## 📝 Notes on Data
 
-| Member | GitHub |
-|---|---|
-| Team Member 1 | [@MaheshaJayaruwani](https://github.com/MaheshaJayaruwani) |
-| Team Member 2 | [@ParameeAponsu](https://github.com/ParameeAponsu) |
-| Team Member 3 | [@Leshvi](https://github.com/Leshvi) |
-| Team Member 4 | [@sathirapramudith123](https://github.com/sathirapramudith123) |
-
----
-
-## 📜 License
-
-This project is developed for academic research purposes only as part of an undergraduate BSc in Information Technology programme.
+No single public dataset contains all the micro-merchant parameters needed for the Sri Lankan context. The project uses real public data where it exists, real-price-anchored generated data where it does not, and documents this gap honestly as part of the research contribution. The intended final validation step is a primary pilot with real merchants.
 
 ---
 
