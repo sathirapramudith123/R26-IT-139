@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../core/theme.dart';
 import '../../models/module_config.dart';
 import '../../services/crud_service.dart';
-import '../../widgets/loading.dart';
-import '../../widgets/empty_state.dart';
 import 'form_screen.dart';
 
 class ListScreen extends StatefulWidget {
@@ -32,11 +31,16 @@ class _ListScreenState extends State<ListScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text("Delete?"),
         content: const Text("This cannot be undone."),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Delete")),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: KadeColors.terra),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete"),
+          ),
         ],
       ),
     );
@@ -48,42 +52,61 @@ class _ListScreenState extends State<ListScreen> {
   void _snack(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
   Future<void> _openForm([Map<String, dynamic>? item]) async {
-    final changed = await Navigator.push<bool>(context,
-        MaterialPageRoute(builder: (_) => FormScreen(module: widget.module, item: item)));
+    final changed = await Navigator.push<bool>(
+      context, MaterialPageRoute(builder: (_) => FormScreen(module: widget.module, item: item)),
+    );
     if (changed == true) _load();
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final teal = isDark ? KadeColors.tealDark : KadeColors.teal;
     final cols = widget.module.listColumns;
+
     return Scaffold(
       appBar: AppBar(title: Text(widget.module.title)),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: teal,
+        foregroundColor: Colors.white,
         onPressed: () => _openForm(),
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.add),
+        label: const Text("Add", style: TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito")),
       ),
       body: loading
-          ? const Loading()
+          ? const Center(child: CircularProgressIndicator())
           : error != null
-              ? Center(child: Text(error!, style: const TextStyle(color: Colors.red)))
+              ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(error!, style: const TextStyle(color: KadeColors.terra))))
               : items.isEmpty
-                  ? EmptyState(icon: widget.module.icon, title: "No ${widget.module.title.toLowerCase()}", description: "Tap + to add one.")
+                  ? _empty()
                   : RefreshIndicator(
                       onRefresh: _load,
                       child: ListView.builder(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
                         itemCount: items.length,
                         itemBuilder: (_, i) {
                           final it = items[i];
                           final title = "${it[cols.first] ?? "—"}";
                           final subtitle = cols.skip(1).map((k) => "${it[k] ?? "—"}").join("  ·  ");
-                          return Card(
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).cardTheme.color,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: isDark ? KadeColors.borderDark : KadeColors.borderLight),
+                            ),
                             child: ListTile(
-                              title: Text(title),
-                              subtitle: Text(subtitle),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                              leading: Container(
+                                height: 42, width: 42,
+                                decoration: BoxDecoration(color: teal.withOpacity(0.12), borderRadius: BorderRadius.circular(12)),
+                                child: Center(child: Text(widget.module.icon, style: const TextStyle(fontSize: 20))),
+                              ),
+                              title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito")),
+                              subtitle: Text(subtitle, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
                               trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                                IconButton(icon: const Icon(Icons.edit, size: 20), onPressed: () => _openForm(it)),
-                                IconButton(icon: const Icon(Icons.delete, size: 20, color: Colors.red), onPressed: () => _delete("${it["id"]}")),
+                                IconButton(icon: const Icon(Icons.edit_outlined, size: 20), onPressed: () => _openForm(it)),
+                                IconButton(icon: const Icon(Icons.delete_outline, size: 20, color: KadeColors.terra), onPressed: () => _delete("${it["id"]}")),
                               ]),
                             ),
                           );
@@ -92,4 +115,15 @@ class _ListScreenState extends State<ListScreen> {
                     ),
     );
   }
+
+  Widget _empty() => Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(widget.module.icon, style: const TextStyle(fontSize: 52)),
+          const SizedBox(height: 12),
+          Text("No ${widget.module.title.toLowerCase()} yet",
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
+          const SizedBox(height: 6),
+          Text("Tap + to add one.", style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color)),
+        ]),
+      );
 }
