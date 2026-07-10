@@ -93,7 +93,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           child: const Center(child: Text("🌿", style: TextStyle(fontSize: 22))),
                         ),
                         const SizedBox(width: 10),
-                        const Text("Kade", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
+                        const Text("Lanka-Link", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
                         const Spacer(),
                         ValueListenableBuilder<ThemeMode>(
                           valueListenable: ThemeController.mode,
@@ -113,7 +113,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(height: 18),
                       const Text("Ayubowan 👋", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
                       const SizedBox(height: 4),
-                      Text("Here's your kade today.", style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 14)),
+                      Text("Here's your Lanka-Link today.", style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 14)),
                     ],
                   ),
                 ),
