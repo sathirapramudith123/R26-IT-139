@@ -20,7 +20,11 @@ const modules = <ModuleConfig>[
     listColumns: ["name", "quantity", "unit_price"],
     fields: [
       FieldConfig("name", "Item Name", required: true),
-      FieldConfig("supplier_name", "Supplier"),
+      // supplier dropdown — loads names from /suppliers
+      FieldConfig("supplier_name", "Supplier",
+          type: "select",
+          optionsSource: "/suppliers",
+          optionsLabelKey: "name"),
       FieldConfig("quantity", "Quantity", type: "number", required: true),
       FieldConfig("reorder_level", "Reorder Level", type: "number"),
       FieldConfig("unit", "Unit", type: "select",
@@ -50,7 +54,11 @@ const modules = <ModuleConfig>[
       FieldConfig("quantity", "Quantity", type: "number", required: true),
       FieldConfig("delivery_location", "Delivery Location"),
       FieldConfig("expected_selling_price", "Expected Selling Price (LKR)", type: "number"),
-      FieldConfig("selected_supplier_name", "Selected Supplier"),
+      // supplier dropdown — loads names from /suppliers
+      FieldConfig("selected_supplier_name", "Selected Supplier",
+          type: "select",
+          optionsSource: "/suppliers",
+          optionsLabelKey: "name"),
       FieldConfig("total_cost", "Total Cost (LKR)", type: "number"),
       FieldConfig("estimated_profit", "Estimated Profit (LKR)", type: "number"),
       FieldConfig("status", "Status", type: "select",
