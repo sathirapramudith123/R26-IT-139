@@ -1,8 +1,10 @@
 class FieldConfig {
   final String key;
   final String label;
-  final String type; // "text" | "number" | "select"
-  final List<String> options; // for select
+  final String type; 
+  final List<String> options;       
+  final String? optionsSource;      
+  final String? optionsLabelKey;    
   final bool required;
 
   const FieldConfig(
@@ -10,6 +12,8 @@ class FieldConfig {
     this.label, {
     this.type = "text",
     this.options = const [],
+    this.optionsSource,
+    this.optionsLabelKey,
     this.required = false,
   });
 }
