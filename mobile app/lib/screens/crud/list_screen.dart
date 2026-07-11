@@ -58,6 +58,63 @@ class _ListScreenState extends State<ListScreen> {
     if (changed == true) _load();
   }
 
+  void _viewDetails(Map<String, dynamic> item) {
+    const hidden = ["user_id"];
+    final entries = item.entries.where((e) => !hidden.contains(e.key)).toList();
+    String label(String k) => k
+        .split("_")
+        .map((w) => w.isEmpty ? w : "${w[0].toUpperCase()}${w.substring(1)}")
+        .join(" ");
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Details", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
+                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: entries.map((e) {
+                      final v = e.value;
+                      final text = (v == null || "$v".isEmpty) ? "—" : "$v";
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white10 : const Color(0xFFF3ECE0),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(flex: 2, child: Text(label(e.key), style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodySmall?.color))),
+                            Expanded(flex: 3, child: Text(text, textAlign: TextAlign.right, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700))),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -97,6 +154,7 @@ class _ListScreenState extends State<ListScreen> {
                             ),
                             child: ListTile(
                               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                              onTap: () => _viewDetails(it),
                               leading: Container(
                                 height: 42, width: 42,
                                 decoration: BoxDecoration(color: teal.withOpacity(0.12), borderRadius: BorderRadius.circular(12)),
@@ -105,6 +163,7 @@ class _ListScreenState extends State<ListScreen> {
                               title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito")),
                               subtitle: Text(subtitle, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
                               trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                                IconButton(icon: const Icon(Icons.visibility_outlined, size: 20), onPressed: () => _viewDetails(it)),
                                 IconButton(icon: const Icon(Icons.edit_outlined, size: 20), onPressed: () => _openForm(it)),
                                 IconButton(icon: const Icon(Icons.delete_outline, size: 20, color: KadeColors.terra), onPressed: () => _delete("${it["id"]}")),
                               ]),
