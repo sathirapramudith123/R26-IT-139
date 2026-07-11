@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -11,23 +12,27 @@ import { inventoryApi } from "@/services/api/inventory";
 
 export default function EditInventoryPage() {
   useAuthGuard();
-  const { id } = useParams();
+  const { Id } = useParams();          // ← capital Id, matches [Id] folder
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!id) return;
-    inventoryApi.getById(id).then(setItem).catch(e => setError(e.message || "Failed")).finally(() => setLoading(false));
-  }, [id]);
+    if (!Id) return;
+    inventoryApi.getById(Id)
+      .then(setItem)
+      .catch((e) => setError(e.message || "Failed to load"))
+      .finally(() => setLoading(false));
+  }, [Id]);
 
   return (
-    <div className="page-container">
-      <PageHeader title="Edit Inventory Item" description="Update item details."
-        action={<Link href="/dashboard/inventory"><Button variant="secondary">← Back</Button></Link>} />
-      {loading ? <LoadingSpinner /> : error ? <p className="text-sm text-red-600">{error}</p> :
-       !item ? <p className="text-sm text-slate-500">Not found.</p> :
-       <InventoryForm initialData={item} itemId={id} />}
+    <div className="space-y-6">
+      <PageHeader title="Edit Inventory Item" description="Update the details."
+        action={<Link href="/dashboard/inventory"><Button variant="outline">← Back</Button></Link>} />
+      {loading ? <LoadingSpinner /> :
+       error ? <p className="text-red-500">{error}</p> :
+       !item ? <p className="text-soft">Not found.</p> :
+       <InventoryForm initialData={item} itemId={Id} />}
     </div>
   );
 }

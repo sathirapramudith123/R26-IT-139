@@ -12,17 +12,22 @@ import EmptyState from "@/components/common/EmptyState";
 import useAgencyBanking from "@/hooks/useAgencyBanking";
 import { agencyBankingApi } from "@/services/api/agencyBanking";
 import { formatCurrency, titleCase } from "@/lib/formatters";
+import DetailDialog from "@/components/common/DetailDialog";
 
 const COLS = [
-  { key: "customer_name", label: "Customer" }, { key: "transaction_type", label: "Type" },
-  { key: "amount", label: "Amount" }, { key: "commission", label: "Commission" },
-  { key: "status", label: "Status" }, { key: "actions", label: "" },
+  { key: "customer_name", label: "Customer" },
+  { key: "transaction_type", label: "Type" },
+  { key: "amount", label: "Amount" },
+  { key: "commission", label: "Commission" },
+  { key: "status", label: "Status" },
+  { key: "actions", label: "" },
 ];
 
 export default function AgencyBankingPage() {
   useAuthGuard();
   const { items, summary, loading, error, fetchAll } = useAgencyBanking();
   const [search, setSearch] = useState("");
+  const [viewItem, setViewItem] = useState(null);
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   async function handleDelete(id) {
@@ -43,6 +48,7 @@ export default function AgencyBankingPage() {
     status: <StatusBadge status={item.status} />,
     actions: (
       <div className="flex gap-2">
+        <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => setViewItem(item)}>View</Button>
         <Link href={`/dashboard/agency-banking/${item.id}/edit`}><Button variant="secondary" size="sm">Edit</Button></Link>
         <Button variant="danger" size="sm" onClick={() => handleDelete(item.id)}>Delete</Button>
       </div>
@@ -72,6 +78,14 @@ export default function AgencyBankingPage() {
        error ? <Card><p className="text-sm text-red-600">{error}</p></Card> :
        items.length === 0 ? <EmptyState icon="🏦" title="No transactions" description="Record a banking transaction." action={<Link href="/dashboard/agency-banking/create"><Button>New Transaction</Button></Link>} /> :
        <Table columns={COLS} rows={rows} />}
+
+       <DetailDialog
+        open={!!viewItem}
+        title={viewItem?.name || "Agency Banking"}
+        data={viewItem}
+        onClose={() => setViewItem(null)}
+      />
+
     </div>
   );
 }

@@ -12,17 +12,22 @@ import EmptyState from "@/components/common/EmptyState";
 import useProcurement from "@/hooks/useProcurement";
 import { procurementApi } from "@/services/api/procurement";
 import { formatCurrency } from "@/lib/formatters";
+import DetailDialog from "@/components/common/DetailDialog";
 
 const COLS = [
-  { key: "item_name", label: "Item" }, { key: "quantity", label: "Qty" },
-  { key: "selected_supplier_name", label: "Supplier" }, { key: "total_cost", label: "Total Cost" },
-  { key: "status", label: "Status" }, { key: "actions", label: "" },
+  { key: "item_name", label: "Item" },
+  { key: "quantity", label: "Qty" },
+  { key: "selected_supplier_name", label: "Supplier" },
+  { key: "total_cost", label: "Total Cost" },
+  { key: "status", label: "Status" },
+  { key: "actions", label: "" },
 ];
 
 export default function ProcurementPage() {
   useAuthGuard();
   const { items, loading, error, fetchAll } = useProcurement();
   const [search, setSearch] = useState("");
+  const [viewItem, setViewItem] = useState(null);
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   async function handleDelete(id) {
@@ -42,6 +47,7 @@ export default function ProcurementPage() {
     status: <StatusBadge status={item.status} />,
     actions: (
       <div className="flex gap-2">
+        <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => setViewItem(item)}>View</Button>
         <Link href={`/dashboard/procurement/${item.id}/edit`}><Button variant="secondary" size="sm">Edit</Button></Link>
         <Button variant="danger" size="sm" onClick={() => handleDelete(item.id)}>Delete</Button>
       </div>
@@ -59,6 +65,13 @@ export default function ProcurementPage() {
        error ? <Card><p className="text-sm text-red-600">{error}</p></Card> :
        items.length === 0 ? <EmptyState icon="🛒" title="No procurement records" description="Create your first decision." action={<Link href="/dashboard/procurement/create"><Button>New Decision</Button></Link>} /> :
        <Table columns={COLS} rows={rows} />}
+
+       <DetailDialog
+        open={!!viewItem}
+        title={viewItem?.name || "Procument"}
+        data={viewItem}
+        onClose={() => setViewItem(null)}
+      />
     </div>
   );
 }
