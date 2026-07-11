@@ -11,15 +11,15 @@ import { agencyBankingApi } from "@/services/api/agencyBanking";
 
 export default function EditAgencyBankingPage() {
   useAuthGuard();
-  const { id } = useParams();
+  const { Id } = useParams();
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!id) return;
-    agencyBankingApi.getById(id).then(setItem).catch(e => setError(e.message || "Failed")).finally(() => setLoading(false));
-  }, [id]);
+    if (!Id) return;
+    agencyBankingApi.getById(Id).then(setItem).catch(e => setError(e.message || "Failed")).finally(() => setLoading(false));
+  }, [Id]);
 
   return (
     <div className="page-container">
@@ -27,7 +27,7 @@ export default function EditAgencyBankingPage() {
         action={<Link href="/dashboard/agency-banking"><Button variant="secondary">← Back</Button></Link>} />
       {loading ? <LoadingSpinner /> : error ? <p className="text-sm text-red-600">{error}</p> :
        !item ? <p className="text-sm text-slate-500">Not found.</p> :
-       <AgencyBankingForm initialData={item} agencyId={id} />}
+       <AgencyBankingForm initialData={item} agencyId={Id} />}
     </div>
   );
 }

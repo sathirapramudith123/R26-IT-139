@@ -11,16 +11,21 @@ import EmptyState from "@/components/common/EmptyState";
 import useInventory from "@/hooks/useInventory";
 import { inventoryApi } from "@/services/api/inventory";
 import { formatCurrency } from "@/lib/formatters";
+import DetailDialog from "@/components/common/DetailDialog";
 
 const COLS = [
-  { key: "name", label: "Item" }, { key: "supplier_name", label: "Supplier" },
-  { key: "quantity", label: "Qty" }, { key: "reorder_level", label: "Reorder" },
-  { key: "unit_price", label: "Unit Price" }, { key: "actions", label: "" },
+  { key: "name", label: "Item" },
+  { key: "supplier_name", label: "Supplier" },
+  { key: "quantity", label: "Qty" },
+  { key: "reorder_level", label: "Reorder" },
+  { key: "unit_price", label: "Unit Price" },
+  { key: "actions", label: "" },
 ];
 
 export default function InventoryPage() {
   useAuthGuard();
   const { items, loading, error, fetchAll } = useInventory();
+  const [viewItem, setViewItem] = useState(null);
   const [search, setSearch] = useState("");
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -43,6 +48,7 @@ export default function InventoryPage() {
       ? <span className="font-semibold text-red-600">{item.quantity}</span> : item.quantity,
     actions: (
       <div className="flex gap-2">
+        <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => setViewItem(item)}>View</Button>
         <Link href={`/dashboard/inventory/${item.id}/edit`}><Button variant="secondary" size="sm">Edit</Button></Link>
         <Button variant="danger" size="sm" onClick={() => handleDelete(item.id)}>Delete</Button>
       </div>
@@ -66,6 +72,13 @@ export default function InventoryPage() {
        error ? <Card><p className="text-sm text-red-600">{error}</p></Card> :
        items.length === 0 ? <EmptyState icon="📦" title="No inventory items" description="Add your first stock item." action={<Link href="/dashboard/inventory/create"><Button>Add Item</Button></Link>} /> :
        <Table columns={COLS} rows={rows} />}
+
+      <DetailDialog
+        open={!!viewItem}
+        title={viewItem?.name || "Inventory Item"}
+        data={viewItem}
+        onClose={() => setViewItem(null)}
+      />
     </div>
   );
 }
