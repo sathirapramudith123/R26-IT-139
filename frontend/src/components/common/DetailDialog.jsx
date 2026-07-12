@@ -1,19 +1,65 @@
 "use client";
 
+// never show these to the user
+const HIDDEN = [
+  "id",
+  "user_id",
+  "item_name",          // duplicated as `name`
+  "item_status",        // duplicated as `status`
+  "supplier_status",
+  "procurement_status",
+  "banking_status",
+  "notification_type",
+  "notification_category",
+];
+
+const DATE_FIELDS = ["created_at", "updated_at", "read_at"];
+
+const MONEY_FIELDS = [
+  "amount", "unit_price", "delivery_cost", "total_cost",
+  "estimated_profit", "expected_selling_price", "service_fee", "commission",
+];
+
+function label(k) {
+  return k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function formatDate(v) {
+  const d = new Date(v);
+  if (isNaN(d)) return "—";
+  return d.toLocaleString("en-LK", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatMoney(v) {
+  const n = Number(v);
+  if (isNaN(n)) return "—";
+  return "LKR " + n.toLocaleString("en-LK", { minimumFractionDigits: 2 });
+}
+
+function display(k, v) {
+  if (v === null || v === undefined || v === "") return "—";
+  if (DATE_FIELDS.includes(k)) return formatDate(v);
+  if (MONEY_FIELDS.includes(k)) return formatMoney(v);
+  if (typeof v === "boolean") return v ? "Yes" : "No";
+  // "cash_deposit" → "Cash Deposit"
+  if (typeof v === "string" && /^[a-z_]+$/.test(v)) {
+    return v.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+  return String(v);
+}
+
 export default function DetailDialog({ open, title, data, onClose }) {
-  if (!open) return null;
+  if (!open || !data) return null;
 
-  const hidden = ["user_id"];
-  const entries = Object.entries(data || {}).filter(([k]) => !hidden.includes(k));
-
-  function label(k) {
-    return k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-  }
-  function display(v) {
-    if (v === null || v === undefined || v === "") return "—";
-    if (typeof v === "boolean") return v ? "Yes" : "No";
-    return String(v);
-  }
+  const entries = Object.entries(data).filter(
+    ([k, v]) => !HIDDEN.includes(k) && v !== null && v !== undefined && v !== ""
+  );
 
   return (
     <div
@@ -22,18 +68,28 @@ export default function DetailDialog({ open, title, data, onClose }) {
       onClick={onClose}
     >
       <div
-        className="card-elevated w-full max-w-lg max-h-[85vh] overflow-y-auto"
+        className="card-elevated max-h-[85vh] w-full max-w-lg overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-bold font-outfit" style={{ color: "var(--text)" }}>{title}</h3>
+          <h3 className="font-outfit text-lg font-bold text-slate-900 dark:text-slate-100">
+            {title}
+          </h3>
           <button onClick={onClose} className="btn-ghost !px-3 !py-1.5 text-base">✕</button>
         </div>
+
         <div className="space-y-2">
           {entries.map(([k, v]) => (
-            <div key={k} className="flex items-start justify-between gap-4 rounded-xl px-4 py-2.5" style={{ background: "var(--bg-soft)" }}>
-              <span className="text-sm font-medium text-soft">{label(k)}</span>
-              <span className="text-sm font-semibold text-right" style={{ color: "var(--text)" }}>{display(v)}</span>
+            <div
+              key={k}
+              className="flex items-start justify-between gap-4 rounded-xl bg-slate-50 px-4 py-2.5 dark:bg-slate-800"
+            >
+              <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                {label(k)}
+              </span>
+              <span className="text-right text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {display(k, v)}
+              </span>
             </div>
           ))}
         </div>
