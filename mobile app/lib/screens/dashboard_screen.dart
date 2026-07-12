@@ -5,6 +5,7 @@ import '../core/api.dart';
 import '../services/auth_service.dart';
 import 'auth/login_screen.dart';
 import 'crud/list_screen.dart';
+import 'notifications_screen.dart';
 import 'predictions/predictions_hub_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool loading = true;
   double income = 0, expense = 0;
   int lowStock = 0;
+  int unread = 0;
 
   @override
   void initState() { super.initState(); _loadMetrics(); }
@@ -46,7 +48,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         }
       }
 
-      if (mounted) setState(() { income = inc; expense = exp; lowStock = low; });
+      // unread notification count for the bell badge
+      int un = 0;
+      try {
+        final n = await Api.get("/notifications/unread-count");
+        if (n is Map && n["count"] is num) un = (n["count"] as num).toInt();
+      } catch (_) {}
+
+      if (mounted) setState(() { income = inc; expense = exp; lowStock = low; unread = un; });
     } catch (_) {
       // leave metrics at 0 on error
     } finally {
@@ -95,6 +104,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         const SizedBox(width: 10),
                         const Text("Lanka-Link", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
                         const Spacer(),
+
+                        // ---- Notification bell with unread badge ----
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                              tooltip: "Notifications",
+                              onPressed: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                                );
+                                _loadMetrics(); // refresh the badge when coming back
+                              },
+                            ),
+                            if (unread > 0)
+                              Positioned(
+                                right: 6,
+                                top: 6,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                  constraints: const BoxConstraints(minWidth: 18),
+                                  decoration: BoxDecoration(
+                                    color: KadeColors.terra,
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    unread > 9 ? "9+" : "$unread",
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+
                         ValueListenableBuilder<ThemeMode>(
                           valueListenable: ThemeController.mode,
                           builder: (context, mode, _) => IconButton(
@@ -130,22 +180,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _metricCard(
                       label: "Total Income",
                       value: loading ? "…" : _money(income),
-                      gradient: const [Color(0xFF0D7566), Color(0xFF0891A5)],   // teal
+                      gradient: const [Color(0xFF0D7566), Color(0xFF0891A5)],
                     ),
                     _metricCard(
                       label: "Total Expense",
                       value: loading ? "…" : _money(expense),
-                      gradient: const [Color(0xFFF59E0B), Color(0xFFEF4444)],   // orange → red
+                      gradient: const [Color(0xFFF59E0B), Color(0xFFEF4444)],
                     ),
                     _metricCard(
                       label: "Net Profit",
                       value: loading ? "…" : _money(income - expense),
-                      gradient: const [Color(0xFF059669), Color(0xFF0D7566)],   // green
+                      gradient: const [Color(0xFF059669), Color(0xFF0D7566)],
                     ),
                     _metricCard(
                       label: "Low Stock Items",
                       value: loading ? "…" : "$lowStock",
-                      gradient: const [Color(0xFF1E3A5F), Color(0xFF1E40AF)],   // navy
+                      gradient: const [Color(0xFF1E3A5F), Color(0xFF1E40AF)],
                     ),
                   ]),
                 ),
