@@ -1,56 +1,90 @@
 import { supabase } from "../config/supabase.js";
-const TABLE = "procurement";
+import { toClient, up } from "../utils/mappers.js";
+import { notify } from "./notification.controller.js";
 
-export const create = async (req, res, next) => {
-  try {
-    const { data, error } = await supabase
-      .from(TABLE).insert({ ...req.body, user_id: req.user.id }).select().single();
-    if (error) throw error;
-    res.status(201).json(data);
-  } catch (e) { next(e); }
+const TABLE = "procurement";
+const ID = "procurement_id";
+const num = (v) => (v === "" || v == null ? 0 : Number(v));
+
+const toDb = (b) => ({
+  item_name:              b.item_name,
+  quantity:               Number(b.quantity),
+  delivery_location:      b.delivery_location || null,
+  expected_selling_price: num(b.expected_selling_price),
+  selected_supplier_name: b.selected_supplier_name || null,
+  total_cost:             num(b.total_cost),
+  estimated_profit:       num(b.estimated_profit),
+  procurement_status:     up(b.status || b.procurement_status || "pending"),
+});
+
+const shape = (row) => {
+  const c = toClient(row, ID);
+  c.status = c.procurement_status;
+  return c;
 };
 
 export const getAll = async (req, res, next) => {
   try {
     const { data, error } = await supabase
-      .from(TABLE).select("*").eq("user_id", req.user.id)
+      .from(TABLE).select("*")
+      .eq("user_id", req.user.id)
       .order("created_at", { ascending: false });
     if (error) throw error;
-    res.json(data);
+    res.json((data || []).map(shape));
   } catch (e) { next(e); }
 };
 
 export const getOne = async (req, res, next) => {
   try {
-    const { data } = await supabase
-      .from(TABLE).select("*").eq("id", req.params.id)
-      .eq("user_id", req.user.id).maybeSingle();
-    if (!data) return res.status(404).json({ error: "Not found" });
-    res.json(data);
+    const { data, error } = await supabase
+      .from(TABLE).select("*")
+      .eq(ID, req.params.id).eq("user_id", req.user.id).maybeSingle();
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: "Record not found" });
+    res.json(shape(data));
+  } catch (e) { next(e); }
+};
+
+export const create = async (req, res, next) => {
+  try {
+    const { data, error } = await supabase
+      .from(TABLE)
+      .insert([{ user_id: req.user.id, ...toDb(req.body) }])
+      .select().single();
+    if (error) throw error;
+    res.status(201).json(shape(data));
   } catch (e) { next(e); }
 };
 
 export const update = async (req, res, next) => {
   try {
-    const { data } = await supabase
-      .from(TABLE).update(req.body).eq("id", req.params.id)
-      .eq("user_id", req.user.id).select().maybeSingle();
-    if (!data) return res.status(404).json({ error: "Not found" });
-    res.json(data);
+    const { data, error } = await supabase
+      .from(TABLE)
+      .update({ ...toDb(req.body), updated_at: new Date().toISOString() })
+      .eq(ID, req.params.id).eq("user_id", req.user.id)
+      .select().maybeSingle();
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: "Record not found" });
+
+    if (data.procurement_status === "RECEIVED") {
+      await notify(req.user.id, {
+        title: "Procurement received",
+        message: `${data.item_name} (${data.quantity}) has been marked as received.`,
+        type: "SUCCESS",
+        category: "PROCUREMENT",
+        link: "/dashboard/procurement",
+      });
+    }
+    res.json(shape(data));
   } catch (e) { next(e); }
 };
 
 export const remove = async (req, res, next) => {
   try {
-    const { data: existing } = await supabase
-      .from(TABLE).select("id").eq("id", req.params.id)
-      .eq("user_id", req.user.id).maybeSingle();
-    if (!existing) return res.status(404).json({ error: "Not found" });
-
     const { error } = await supabase
-      .from(TABLE).delete().eq("id", req.params.id).eq("user_id", req.user.id);
+      .from(TABLE).delete()
+      .eq(ID, req.params.id).eq("user_id", req.user.id);
     if (error) throw error;
-
-    res.json({ message: "Deleted" });
+    res.json({ message: "Record deleted" });
   } catch (e) { next(e); }
 };

@@ -29,7 +29,7 @@ export default function RootLayout({ children }) {
       <body>
         <ThemeProvider>
           <Navbar />
-          <main className="mx-auto min-h-screen max-w-7xl px-4 py-6">{children}</main>
+          <main className="mx-auto min-h-screen max-w-9xl px-4 py-6">{children}</main>
           <Footer />
         </ThemeProvider>
       </body>
