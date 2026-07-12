@@ -58,13 +58,63 @@ class _ListScreenState extends State<ListScreen> {
     if (changed == true) _load();
   }
 
+  // ---------- Details dialog ----------
+
+  static const _hidden = [
+    "id", "user_id",
+    "item_name", "item_status",
+    "supplier_status", "procurement_status", "banking_status",
+  ];
+  static const _dateFields = ["created_at", "updated_at", "read_at"];
+  static const _moneyFields = [
+    "amount", "unit_price", "delivery_cost", "total_cost",
+    "estimated_profit", "expected_selling_price", "service_fee", "commission",
+  ];
+  static const _months = [
+    "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"
+  ];
+
+  String _titleCase(String s) => s
+      .split("_")
+      .map((w) => w.isEmpty ? w : "${w[0].toUpperCase()}${w.substring(1)}")
+      .join(" ");
+
+  String _fmtDate(dynamic v) {
+    final d = DateTime.tryParse("$v");
+    if (d == null) return "—";
+    final l = d.toLocal();
+    final h = l.hour % 12 == 0 ? 12 : l.hour % 12;
+    final ap = l.hour < 12 ? "AM" : "PM";
+    final mm = l.minute.toString().padLeft(2, "0");
+    return "${l.day} ${_months[l.month - 1]} ${l.year}, $h:$mm $ap";
+  }
+
+  String _fmtMoney(dynamic v) {
+    final n = num.tryParse("$v");
+    if (n == null) return "—";
+    return "LKR ${n.toStringAsFixed(2)}";
+  }
+
+  String _display(String key, dynamic v) {
+    if (v == null || "$v".isEmpty) return "—";
+    if (_dateFields.contains(key)) return _fmtDate(v);
+    if (_moneyFields.contains(key)) return _fmtMoney(v);
+    if (v is bool) return v ? "Yes" : "No";
+    final s = "$v";
+    if (RegExp(r'^[a-z_]+$').hasMatch(s)) return _titleCase(s);
+    return s;
+  }
+
   void _viewDetails(Map<String, dynamic> item) {
-    const hidden = ["user_id"];
-    final entries = item.entries.where((e) => !hidden.contains(e.key)).toList();
-    String label(String k) => k
-        .split("_")
-        .map((w) => w.isEmpty ? w : "${w[0].toUpperCase()}${w.substring(1)}")
-        .join(" ");
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final entries = item.entries
+        .where((e) =>
+            !_hidden.contains(e.key) &&
+            e.value != null &&
+            "${e.value}".isNotEmpty)
+        .toList();
+
     showDialog(
       context: context,
       builder: (_) => Dialog(
@@ -78,7 +128,8 @@ class _ListScreenState extends State<ListScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("Details", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
+                  const Text("Details",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
                   IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
                 ],
               ),
@@ -87,20 +138,34 @@ class _ListScreenState extends State<ListScreen> {
                 child: SingleChildScrollView(
                   child: Column(
                     children: entries.map((e) {
-                      final v = e.value;
-                      final text = (v == null || "$v".isEmpty) ? "—" : "$v";
                       return Container(
                         margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white10 : const Color(0xFFF3ECE0),
+                          color: isDark ? Colors.white10 : const Color(0xFFF3ECE0),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(flex: 2, child: Text(label(e.key), style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodySmall?.color))),
-                            Expanded(flex: 3, child: Text(text, textAlign: TextAlign.right, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700))),
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                _titleCase(e.key),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Theme.of(context).textTheme.bodySmall?.color,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 3,
+                              child: Text(
+                                _display(e.key, e.value),
+                                textAlign: TextAlign.right,
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                              ),
+                            ),
                           ],
                         ),
                       );
@@ -114,6 +179,8 @@ class _ListScreenState extends State<ListScreen> {
       ),
     );
   }
+
+  // ---------- Build ----------
 
   @override
   Widget build(BuildContext context) {
@@ -133,7 +200,12 @@ class _ListScreenState extends State<ListScreen> {
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : error != null
-              ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(error!, style: const TextStyle(color: KadeColors.terra))))
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(error!, style: const TextStyle(color: KadeColors.terra)),
+                  ),
+                )
               : items.isEmpty
                   ? _empty()
                   : RefreshIndicator(
@@ -144,28 +216,49 @@ class _ListScreenState extends State<ListScreen> {
                         itemBuilder: (_, i) {
                           final it = items[i];
                           final title = "${it[cols.first] ?? "—"}";
-                          final subtitle = cols.skip(1).map((k) => "${it[k] ?? "—"}").join("  ·  ");
+                          final subtitle = cols
+                              .skip(1)
+                              .map((k) => _display(k, it[k]))
+                              .join("  ·  ");
                           return Container(
                             margin: const EdgeInsets.only(bottom: 12),
                             decoration: BoxDecoration(
                               color: Theme.of(context).cardTheme.color,
                               borderRadius: BorderRadius.circular(18),
-                              border: Border.all(color: isDark ? KadeColors.borderDark : KadeColors.borderLight),
+                              border: Border.all(
+                                  color: isDark ? KadeColors.borderDark : KadeColors.borderLight),
                             ),
                             child: ListTile(
                               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                               onTap: () => _viewDetails(it),
                               leading: Container(
                                 height: 42, width: 42,
-                                decoration: BoxDecoration(color: teal.withOpacity(0.12), borderRadius: BorderRadius.circular(12)),
-                                child: Center(child: Text(widget.module.icon, style: const TextStyle(fontSize: 20))),
+                                decoration: BoxDecoration(
+                                  color: teal.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Center(
+                                    child: Text(widget.module.icon,
+                                        style: const TextStyle(fontSize: 20))),
                               ),
-                              title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito")),
-                              subtitle: Text(subtitle, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
+                              title: Text(title,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w700, fontFamily: "Nunito")),
+                              subtitle: Text(subtitle,
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context).textTheme.bodySmall?.color)),
                               trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                                IconButton(icon: const Icon(Icons.visibility_outlined, size: 20), onPressed: () => _viewDetails(it)),
-                                IconButton(icon: const Icon(Icons.edit_outlined, size: 20), onPressed: () => _openForm(it)),
-                                IconButton(icon: const Icon(Icons.delete_outline, size: 20, color: KadeColors.terra), onPressed: () => _delete("${it["id"]}")),
+                                IconButton(
+                                    icon: const Icon(Icons.visibility_outlined, size: 20),
+                                    onPressed: () => _viewDetails(it)),
+                                IconButton(
+                                    icon: const Icon(Icons.edit_outlined, size: 20),
+                                    onPressed: () => _openForm(it)),
+                                IconButton(
+                                    icon: const Icon(Icons.delete_outline,
+                                        size: 20, color: KadeColors.terra),
+                                    onPressed: () => _delete("${it["id"]}")),
                               ]),
                             ),
                           );
@@ -182,7 +275,8 @@ class _ListScreenState extends State<ListScreen> {
           Text("No ${widget.module.title.toLowerCase()} yet",
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
           const SizedBox(height: 6),
-          Text("Tap + to add one.", style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color)),
+          Text("Tap + to add one.",
+              style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color)),
         ]),
       );
 }
