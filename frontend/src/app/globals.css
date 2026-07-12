@@ -32,3 +32,51 @@ a { @apply text-inherit no-underline; }
 }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-thumb { @apply rounded-full bg-slate-300 dark:bg-slate-700; }
+
+/* ============================================================
+   DARK MODE SAFETY NET
+   Catches components that hardcode light-mode slate colors
+   without a dark: variant. Placed last so it wins the cascade.
+   ============================================================ */
+.dark .text-slate-900,
+.dark .text-slate-800 { color: #f1f5f9; }
+
+.dark .text-slate-700,
+.dark .text-slate-600 { color: #cbd5e1; }
+
+.dark .text-slate-500 { color: #94a3b8; }
+.dark .text-slate-400 { color: #64748b; }
+
+.dark .bg-white     { background-color: #0f172a; }
+.dark .bg-slate-50  { background-color: #1e293b; }
+.dark .bg-slate-100 { background-color: #1e293b; }
+
+.dark .border-slate-100,
+.dark .border-slate-200 { border-color: #1e293b; }
+
+/* soft-tinted alert/callout backgrounds */
+.dark .bg-amber-50   { background-color: #451a03; }
+.dark .text-amber-800,
+.dark .text-amber-700 { color: #fcd34d; }
+.dark .border-amber-200 { border-color: #78350f; }
+
+.dark .bg-red-50    { background-color: #450a0a; }
+.dark .text-red-700,
+.dark .text-red-600 { color: #fca5a5; }
+.dark .border-red-200 { border-color: #7f1d1d; }
+
+.dark .bg-teal-50   { background-color: #042f2e; }
+.dark .text-teal-700 { color: #5eead4; }
+.dark .border-teal-200 { border-color: #115e59; }
+
+.dark .bg-emerald-50 { background-color: #022c22; }
+.dark .text-emerald-700 { color: #6ee7b7; }
+.dark .border-emerald-200 { border-color: #065f46; }
+
+.dark .bg-blue-50   { background-color: #172554; }
+.dark .text-blue-700 { color: #93c5fd; }
+.dark .border-blue-200 { border-color: #1e3a8a; }
+
+.dark .bg-purple-50 { background-color: #2e1065; }
+.dark .text-purple-700 { color: #c4b5fd; }
+.dark .border-purple-200 { border-color: #5b21b6; }

@@ -1,16 +1,15 @@
 import { Router } from "express";
-import * as ctrl from "../controllers/inventory.controller.js";
+import * as ctrl from "../controllers/notification.controller.js";
 import auth from "../middlewares/auth.middleware.js";
 import { validateId } from "../middlewares/validate.middleware.js";
 
 const router = Router();
 router.use(auth);
 
-router.post("/", ctrl.create);
 router.get("/", ctrl.getAll);
-router.get("/status", ctrl.status);          // must come BEFORE /:id
-router.get("/:id", validateId, ctrl.getOne);
-router.put("/:id", validateId, ctrl.update);
+router.get("/unread-count", ctrl.unreadCount);
+router.put("/read-all", ctrl.markAllRead);
+router.put("/:id/read", validateId, ctrl.markRead);
 router.delete("/:id", validateId, ctrl.remove);
 
 export default router;
