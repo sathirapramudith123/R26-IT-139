@@ -1,15 +1,8 @@
-// existing body validator
-export default (schema) => (req, res, next) => {
-  const { error, value } = schema.validate(req.body, { abortEarly: false });
-  if (error) return res.status(400).json({ error: error.details.map((d) => d.message) });
-  req.body = value;
-  next();
-};
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-// NEW: validate the :id URL param is a valid UUID
 export const validateId = (req, res, next) => {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!uuidRegex.test(req.params.id))
-    return res.status(400).json({ error: "Invalid id format" });
+  if (!UUID_RE.test(req.params.id))
+    return res.status(400).json({ error: "Invalid ID format" });
   next();
 };

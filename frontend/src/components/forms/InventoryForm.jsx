@@ -1,10 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import FormField from "./FormField";
 import Button from "@/components/ui/Button";
 import { inventoryApi } from "@/services/api/inventory";
+import { supplierApi } from "@/services/api/supplier";
 import { INVENTORY_UNITS } from "@/lib/constants";
 
 export default function InventoryForm({ initialData = {}, itemId = null }) {
@@ -13,6 +14,7 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState(null);
   const [errors, setErrors] = useState({});
+  const [suppliers, setSuppliers] = useState([]);
   const [v, setV] = useState({
     name:          initialData.name          ?? "",
     supplier_name: initialData.supplier_name ?? "",
@@ -22,6 +24,13 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
     unit_price:    initialData.unit_price    ?? "",
   });
   function set(k, val) { setV(p => ({ ...p, [k]: val })); setErrors(p => ({ ...p, [k]: undefined })); }
+
+
+  useEffect(() => {
+    supplierApi.list()
+      .then((data) => setSuppliers(Array.isArray(data) ? data : []))
+      .catch(() => setSuppliers([]));
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -53,9 +62,20 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
         <FormField label="Item Name" error={errors.name} required>
           <input className={cls("name")} value={v.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Rice 5kg" />
         </FormField>
-        <FormField label="Supplier Name" hint="Optional">
-          <input className="input-field" value={v.supplier_name} onChange={e => set("supplier_name", e.target.value)} placeholder="e.g. ABC Traders" />
+
+        <FormField label="Supplier" hint={suppliers.length === 0 ? "No suppliers yet — add one first, or type a name." : "Choose from your suppliers"}>
+          {suppliers.length > 0 ? (
+            <select className="input" value={v.supplier_name} onChange={(e) => set("supplier_name", e.target.value)}>
+              <option value="">Select a supplier </option>
+              {suppliers.map((s) => (
+                <option key={s.id} value={s.name}>{s.name}</option>
+              ))}
+            </select>
+          ) : (
+            <input className="input" value={v.supplier_name} onChange={(e) => set("supplier_name", e.target.value)} placeholder="ABC Traders" />
+          )}
         </FormField>
+
         <FormField label="Quantity" error={errors.quantity} required>
           <input className={cls("quantity")} type="number" min="0" step="0.01" value={v.quantity} onChange={e => set("quantity", e.target.value)} />
         </FormField>

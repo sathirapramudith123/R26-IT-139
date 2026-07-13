@@ -11,15 +11,15 @@ import { procurementApi } from "@/services/api/procurement";
 
 export default function EditProcurementPage() {
   useAuthGuard();
-  const { id } = useParams();
+  const { Id } = useParams();
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!id) return;
-    procurementApi.getById(id).then(setItem).catch(e => setError(e.message || "Failed")).finally(() => setLoading(false));
-  }, [id]);
+    if (!Id) return;
+    procurementApi.getById(Id).then(setItem).catch(e => setError(e.message || "Failed")).finally(() => setLoading(false));
+  }, [Id]);
 
   return (
     <div className="page-container">
@@ -27,7 +27,7 @@ export default function EditProcurementPage() {
         action={<Link href="/dashboard/procurement"><Button variant="secondary">← Back</Button></Link>} />
       {loading ? <LoadingSpinner /> : error ? <p className="text-sm text-red-600">{error}</p> :
        !item ? <p className="text-sm text-slate-500">Not found.</p> :
-       <ProcurementForm initialData={item} procurementId={id} />}
+       <ProcurementForm initialData={item} procurementId={Id} />}
     </div>
   );
 }
