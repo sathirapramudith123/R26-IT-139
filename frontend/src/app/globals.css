@@ -80,3 +80,28 @@ a { @apply text-inherit no-underline; }
 .dark .bg-purple-50 { background-color: #2e1065; }
 .dark .text-purple-700 { color: #c4b5fd; }
 .dark .border-purple-200 { border-color: #5b21b6; }
+
+/* ============================================================
+   NATIVE SELECT DROPDOWNS IN DARK MODE
+   The browser renders <option> lists with its own default
+   colours, which stay white. Force them dark so the text
+   (e.g. supplier names) is readable.
+   ============================================================ */
+.dark select {
+  background-color: #1e293b;
+  color: #f1f5f9;
+}
+
+.dark select option {
+  background-color: #1e293b;
+  color: #f1f5f9;
+}
+
+.dark select option:checked {
+  background-color: #0f766e;
+  color: #ffffff;
+}
+
+.dark select option:disabled {
+  color: #64748b;
+}
