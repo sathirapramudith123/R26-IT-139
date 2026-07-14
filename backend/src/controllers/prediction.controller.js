@@ -11,6 +11,7 @@ export const run = async (req, res) => {
     const result = await predict(component, req.body.features);
     res.json({ component, ...result });
   } catch (e) {
+    // pass the ML service's real status + detail through
     const status = e.response?.status || 502;
     const detail = e.response?.data?.detail || e.response?.data || e.message;
     res.status(status).json({ error: "ML service error", detail });

@@ -11,6 +11,10 @@ const modules = <ModuleConfig>[
       FieldConfig("payment_method", "Payment Method", type: "select", required: true,
           options: ["cash", "bank", "digital"]),
       FieldConfig("amount", "Amount (LKR)", type: "number", required: true),
+      // sale of a tracked item → stock is deducted automatically
+      FieldConfig("item_name", "Item Sold (deducts stock)",
+          type: "select", optionsSource: "/inventory", optionsLabelKey: "name"),
+      FieldConfig("quantity", "Units Sold", type: "number"),
       FieldConfig("category", "Category"),
       FieldConfig("description", "Description"),
     ],
@@ -20,11 +24,8 @@ const modules = <ModuleConfig>[
     listColumns: ["name", "quantity", "unit_price"],
     fields: [
       FieldConfig("name", "Item Name", required: true),
-      // supplier dropdown — loads names from /suppliers
       FieldConfig("supplier_name", "Supplier",
-          type: "select",
-          optionsSource: "/suppliers",
-          optionsLabelKey: "name"),
+          type: "select", optionsSource: "/suppliers", optionsLabelKey: "name"),
       FieldConfig("quantity", "Quantity", type: "number", required: true),
       FieldConfig("reorder_level", "Reorder Level", type: "number"),
       FieldConfig("unit", "Unit", type: "select",
@@ -50,17 +51,22 @@ const modules = <ModuleConfig>[
     title: "Procurement", path: "/procurement", icon: "🛒",
     listColumns: ["item_name", "quantity", "status"],
     fields: [
-      FieldConfig("item_name", "Item Name", required: true),
+      FieldConfig("item_name", "Item Name",
+          type: "select", optionsSource: "/inventory", optionsLabelKey: "name", required: true),
       FieldConfig("quantity", "Quantity", type: "number", required: true),
-      FieldConfig("delivery_location", "Delivery Location"),
+      FieldConfig("delivery_location", "Delivery Location", type: "select", options: [
+        "Colombo", "Gampaha", "Kalutara", "Kandy", "Matale", "Nuwara Eliya",
+        "Galle", "Matara", "Hambantota", "Jaffna", "Kilinochchi", "Mannar",
+        "Vavuniya", "Mullaitivu", "Batticaloa", "Ampara", "Trincomalee",
+        "Kurunegala", "Puttalam", "Anuradhapura", "Polonnaruwa", "Badulla",
+        "Monaragala", "Ratnapura", "Kegalle",
+      ]),
       FieldConfig("expected_selling_price", "Expected Selling Price (LKR)", type: "number"),
-      // supplier dropdown — loads names from /suppliers
       FieldConfig("selected_supplier_name", "Selected Supplier",
-          type: "select",
-          optionsSource: "/suppliers",
-          optionsLabelKey: "name"),
+          type: "select", optionsSource: "/suppliers", optionsLabelKey: "name"),
       FieldConfig("total_cost", "Total Cost (LKR)", type: "number"),
       FieldConfig("estimated_profit", "Estimated Profit (LKR)", type: "number"),
+      // marking this RECEIVED adds the quantity to inventory
       FieldConfig("status", "Status", type: "select",
           options: ["pending", "ordered", "received", "cancelled"]),
     ],

@@ -27,19 +27,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     _load();
   }
 
-  IconData _icon(String t) => switch (t) {
-        "warning" => Icons.warning_amber_rounded,
-        "success" => Icons.check_circle_outline,
-        "alert"   => Icons.error_outline,
-        _         => Icons.info_outline,
-      };
+  IconData _icon(String t) {
+    if (t == "warning") return Icons.warning_amber_rounded;
+    if (t == "success") return Icons.check_circle_outline;
+    if (t == "alert")   return Icons.error_outline;
+    return Icons.info_outline;
+  }
 
-  Color _color(String t) => switch (t) {
-        "warning" => KadeColors.amber,
-        "success" => KadeColors.teal,
-        "alert"   => KadeColors.terra,
-        _         => Colors.blueGrey,
-      };
+  Color _color(String t) {
+    if (t == "warning") return KadeColors.amber;
+    if (t == "success") return KadeColors.teal;
+    if (t == "alert")   return KadeColors.terra;
+    return Colors.blueGrey;
+  }
 
   String _ago(String? iso) {
     final d = DateTime.tryParse(iso ?? "");
