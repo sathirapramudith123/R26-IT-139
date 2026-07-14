@@ -28,18 +28,6 @@ const shape = (row) => {
   return c;
 };
 
-async function raiseLowStock(userId, row) {
-  if (Number(row.quantity) <= Number(row.reorder_level)) {
-    await notify(userId, {
-      title: "Low stock alert",
-      message: `${row.item_name} is down to ${row.quantity} ${String(row.unit).toLowerCase()}.`,
-      type: "WARNING",
-      category: "INVENTORY",
-      link: "/dashboard/inventory",
-    });
-  }
-}
-
 export const getAll = async (req, res, next) => {
   try {
     const { data, error } = await supabase
@@ -76,11 +64,24 @@ export const status = async (req, res, next) => {
 export const create = async (req, res, next) => {
   try {
     const { data, error } = await supabase
-      .from(TABLE)
-      .insert([{ user_id: req.user.id, ...toDb(req.body) }])
+      .from(TABLE).insert([{ user_id: req.user.id, ...toDb(req.body) }])
       .select().single();
-    if (error) throw error;
-    await raiseLowStock(req.user.id, data);
+    if (error) {
+      if (error.code === "23505")
+        return res.status(409).json({ error: "You already have an item with that name." });
+      throw error;
+    }
+
+    if (Number(data.quantity) <= Number(data.reorder_level)) {
+      await notify(req.user.id, {
+        title: "Low stock alert",
+        message: `${data.item_name} was added at ${data.quantity} — already at or below its reorder level.`,
+        type: "WARNING",
+        category: "INVENTORY",
+        link: "/dashboard/inventory/alerts",
+      });
+    }
+
     res.status(201).json(shape(data));
   } catch (e) { next(e); }
 };
@@ -92,9 +93,12 @@ export const update = async (req, res, next) => {
       .update({ ...toDb(req.body), updated_at: new Date().toISOString() })
       .eq(ID, req.params.id).eq("user_id", req.user.id)
       .select().maybeSingle();
-    if (error) throw error;
+    if (error) {
+      if (error.code === "23505")
+        return res.status(409).json({ error: "You already have an item with that name." });
+      throw error;
+    }
     if (!data) return res.status(404).json({ error: "Item not found" });
-    await raiseLowStock(req.user.id, data);
     res.json(shape(data));
   } catch (e) { next(e); }
 };

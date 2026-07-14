@@ -14,6 +14,7 @@ import procurementRoutes from "./src/routes/procurement.routes.js";
 import agencyBankingRoutes from "./src/routes/agencyBanking.routes.js";
 import notificationRoutes from "./src/routes/notification.routes.js";
 import predictionRoutes from "./src/routes/prediction.routes.js";
+import insightsRoutes from "./src/routes/insights.routes.js";
 
 dotenv.config();
 
@@ -35,11 +36,13 @@ app.use(`${API}/procurement`, procurementRoutes);
 app.use(`${API}/agency-banking`, agencyBankingRoutes);
 app.use(`${API}/notifications`, notificationRoutes);
 app.use(`${API}/predict`, predictionRoutes);
+app.use(`${API}/insights`, insightsRoutes);
 
 app.use((req, res) => res.status(404).json({ error: "Route not found" }));
 app.use(errorHandler);
 
-app.listen(PORT, async () => {
+// "0.0.0.0" lets phones on the same network reach the API
+app.listen(PORT, "0.0.0.0", async () => {
   console.log(`API running on http://localhost:${PORT}`);
   await checkSupabase();
 });

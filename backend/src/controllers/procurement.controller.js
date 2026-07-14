@@ -1,6 +1,7 @@
 import { supabase } from "../config/supabase.js";
 import { toClient, up } from "../utils/mappers.js";
 import { notify } from "./notification.controller.js";
+import { adjustStock } from "../utils/stock.js";
 
 const TABLE = "procurement";
 const ID = "procurement_id";
@@ -22,6 +23,17 @@ const shape = (row) => {
   c.status = c.procurement_status;
   return c;
 };
+
+async function stockReceived(userId, item_name, quantity) {
+  await adjustStock(userId, item_name, Number(quantity), "procurement received");
+  await notify(userId, {
+    title: "Stock received",
+    message: `${quantity} of ${item_name} added to your inventory.`,
+    type: "SUCCESS",
+    category: "PROCUREMENT",
+    link: "/dashboard/inventory",
+  });
+}
 
 export const getAll = async (req, res, next) => {
   try {
@@ -48,43 +60,61 @@ export const getOne = async (req, res, next) => {
 export const create = async (req, res, next) => {
   try {
     const { data, error } = await supabase
-      .from(TABLE)
-      .insert([{ user_id: req.user.id, ...toDb(req.body) }])
+      .from(TABLE).insert([{ user_id: req.user.id, ...toDb(req.body) }])
       .select().single();
     if (error) throw error;
+
+    if (data.procurement_status === "RECEIVED")
+      await stockReceived(req.user.id, data.item_name, data.quantity);
+
     res.status(201).json(shape(data));
   } catch (e) { next(e); }
 };
 
 export const update = async (req, res, next) => {
   try {
+    const { data: old } = await supabase
+      .from(TABLE).select("*")
+      .eq(ID, req.params.id).eq("user_id", req.user.id).maybeSingle();
+    if (!old) return res.status(404).json({ error: "Record not found" });
+
     const { data, error } = await supabase
       .from(TABLE)
       .update({ ...toDb(req.body), updated_at: new Date().toISOString() })
       .eq(ID, req.params.id).eq("user_id", req.user.id)
       .select().maybeSingle();
     if (error) throw error;
-    if (!data) return res.status(404).json({ error: "Record not found" });
 
-    if (data.procurement_status === "RECEIVED") {
-      await notify(req.user.id, {
-        title: "Procurement received",
-        message: `${data.item_name} (${data.quantity}) has been marked as received.`,
-        type: "SUCCESS",
-        category: "PROCUREMENT",
-        link: "/dashboard/procurement",
-      });
-    }
+    const wasReceived = old.procurement_status === "RECEIVED";
+    const nowReceived = data.procurement_status === "RECEIVED";
+
+    // pending → received: add stock
+    if (!wasReceived && nowReceived)
+      await stockReceived(req.user.id, data.item_name, data.quantity);
+
+    // received → not received: reverse it
+    if (wasReceived && !nowReceived)
+      await adjustStock(req.user.id, old.item_name, -Number(old.quantity), "procurement reversed");
+
     res.json(shape(data));
   } catch (e) { next(e); }
 };
 
 export const remove = async (req, res, next) => {
   try {
+    const { data: old } = await supabase
+      .from(TABLE).select("*")
+      .eq(ID, req.params.id).eq("user_id", req.user.id).maybeSingle();
+    if (!old) return res.status(404).json({ error: "Record not found" });
+
     const { error } = await supabase
       .from(TABLE).delete()
       .eq(ID, req.params.id).eq("user_id", req.user.id);
     if (error) throw error;
+
+    if (old.procurement_status === "RECEIVED")
+      await adjustStock(req.user.id, old.item_name, -Number(old.quantity), "procurement deleted");
+
     res.json({ message: "Record deleted" });
   } catch (e) { next(e); }
 };
