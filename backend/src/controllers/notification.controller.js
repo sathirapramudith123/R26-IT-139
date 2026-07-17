@@ -60,7 +60,6 @@ export const remove = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-/** Internal helper used by other controllers. */
 export async function notify(userId, { title, message, type = "INFO", category, link }) {
   try {
     await supabase.from(TABLE).insert([{

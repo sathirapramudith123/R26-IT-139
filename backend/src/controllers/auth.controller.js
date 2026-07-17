@@ -5,7 +5,7 @@ import { supabase } from "../config/supabase.js";
 
 const signToken = (u) =>
   jwt.sign({ id: u.user_id, email: u.email }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+    expiresIn: process.env.JWT_EXPIRES_IN || "15min",
   });
 
 const publicUser = (u) => ({
@@ -30,8 +30,7 @@ export const register = async (req, res, next) => {
 
     const password_hash = await bcrypt.hash(password, 10);
     const { data, error } = await supabase
-      .from("users")
-      .insert([{ full_name: name, email, password_hash }])
+      .from("users").insert([{ full_name: name, email, password_hash }])
       .select().single();
     if (error) throw error;
 
@@ -79,7 +78,7 @@ export const forgotPassword = async (req, res, next) => {
 
     res.json({
       message: "If that email exists, a reset token was generated",
-      resetToken: reset_token, // dev only
+      resetToken: reset_token, 
     });
   } catch (e) { next(e); }
 };

@@ -7,7 +7,7 @@ const ENUM_FIELDS = [
   "notification_type", "notification_category",
 ];
 
-/** Rename the table-specific id to `id`, and lowercase enum values for the frontend. */
+
 export function toClient(row, idField) {
   if (!row) return row;
   const { [idField]: id, ...rest } = row;

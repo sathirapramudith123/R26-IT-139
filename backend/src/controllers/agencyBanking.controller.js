@@ -6,6 +6,7 @@ const TABLE = "agency_banking";
 const ID = "agency_banking_id";
 const num = (v) => (v === "" || v == null ? 0 : Number(v));
 
+// CBSL per-transaction limits (LKR)
 const LIMITS = {
   CASH_DEPOSIT: 500000,
   CASH_WITHDRAWAL: 200000,
@@ -29,6 +30,13 @@ const shape = (row) => {
   c.status = c.banking_status;
   return c;
 };
+
+function checkLimit(payload) {
+  const limit = LIMITS[payload.transaction_type];
+  if (limit && payload.amount > limit)
+    return `Amount exceeds the CBSL limit of LKR ${limit.toLocaleString()} for ${payload.transaction_type.replace(/_/g, " ").toLowerCase()}.`;
+  return null;
+}
 
 export const getAll = async (req, res, next) => {
   try {
@@ -55,15 +63,11 @@ export const getOne = async (req, res, next) => {
 export const create = async (req, res, next) => {
   try {
     const payload = toDb(req.body);
-    const limit = LIMITS[payload.transaction_type];
-    if (limit && payload.amount > limit)
-      return res.status(400).json({
-        error: `Amount exceeds the CBSL limit of LKR ${limit.toLocaleString()}`,
-      });
+    const err = checkLimit(payload);
+    if (err) return res.status(400).json({ error: err });
 
     const { data, error } = await supabase
-      .from(TABLE)
-      .insert([{ user_id: req.user.id, ...payload }])
+      .from(TABLE).insert([{ user_id: req.user.id, ...payload }])
       .select().single();
     if (error) throw error;
 
@@ -82,11 +86,8 @@ export const create = async (req, res, next) => {
 export const update = async (req, res, next) => {
   try {
     const payload = toDb(req.body);
-    const limit = LIMITS[payload.transaction_type];
-    if (limit && payload.amount > limit)
-      return res.status(400).json({
-        error: `Amount exceeds the CBSL limit of LKR ${limit.toLocaleString()}`,
-      });
+    const err = checkLimit(payload);
+    if (err) return res.status(400).json({ error: err });
 
     const { data, error } = await supabase
       .from(TABLE)

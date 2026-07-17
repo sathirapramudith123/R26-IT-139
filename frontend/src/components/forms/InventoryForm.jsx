@@ -25,12 +25,18 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
   });
   function set(k, val) { setV(p => ({ ...p, [k]: val })); setErrors(p => ({ ...p, [k]: undefined })); }
 
-
   useEffect(() => {
     supplierApi.list()
       .then((data) => setSuppliers(Array.isArray(data) ? data : []))
       .catch(() => setSuppliers([]));
   }, []);
+
+  // keep the saved supplier visible on edit, even if it's no longer in the list
+  const supplierNames = suppliers.map((s) => s.name);
+  const supplierOptions = [...supplierNames];
+  if (v.supplier_name && !supplierNames.includes(v.supplier_name)) {
+    supplierOptions.unshift(v.supplier_name);
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -53,45 +59,67 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
     } catch (err) { setServerError(err.message || "Save failed."); }
     finally { setSaving(false); }
   }
+
   const cls = k => `input-field ${errors[k] ? "border-red-400 ring-2 ring-red-100" : ""}`;
 
   return (
     <form onSubmit={handleSubmit} noValidate className="card-elevated max-w-3xl space-y-5">
-      {serverError && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{serverError}</div>}
+      {serverError && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {serverError}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <FormField label="Item Name" error={errors.name} required>
           <input className={cls("name")} value={v.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Rice 5kg" />
         </FormField>
 
-        <FormField label="Supplier" hint={suppliers.length === 0 ? "No suppliers yet — add one first, or type a name." : "Choose from your suppliers"}>
-          {suppliers.length > 0 ? (
-            <select className="input" value={v.supplier_name} onChange={(e) => set("supplier_name", e.target.value)}>
-              <option value="">Select a supplier </option>
-              {suppliers.map((s) => (
-                <option key={s.id} value={s.name}>{s.name}</option>
+        <FormField
+          label="Supplier"
+          hint={supplierOptions.length === 0 ? "No suppliers yet — add one first, or type a name." : "Choose from your suppliers"}
+        >
+          {supplierOptions.length > 0 ? (
+            <select
+              className="select-field"
+              value={v.supplier_name}
+              onChange={(e) => set("supplier_name", e.target.value)}
+            >
+              <option value="">Select a supplier</option>
+              {supplierOptions.map((name) => (
+                <option key={name} value={name}>{name}</option>
               ))}
             </select>
           ) : (
-            <input className="input" value={v.supplier_name} onChange={(e) => set("supplier_name", e.target.value)} placeholder="ABC Traders" />
+            <input
+              className="input-field"
+              value={v.supplier_name}
+              onChange={(e) => set("supplier_name", e.target.value)}
+              placeholder="e.g. ABC Traders"
+            />
           )}
         </FormField>
 
         <FormField label="Quantity" error={errors.quantity} required>
           <input className={cls("quantity")} type="number" min="0" step="0.01" value={v.quantity} onChange={e => set("quantity", e.target.value)} />
         </FormField>
+
         <FormField label="Reorder Level" hint="Alert when quantity falls to this level">
           <input className="input-field" type="number" min="0" step="0.01" value={v.reorder_level} onChange={e => set("reorder_level", e.target.value)} />
         </FormField>
+
         <FormField label="Unit">
           <select className="select-field" value={v.unit} onChange={e => set("unit", e.target.value)}>
             {INVENTORY_UNITS.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
           </select>
         </FormField>
+
         <FormField label="Unit Price (LKR)" error={errors.unit_price}>
           <input className={cls("unit_price")} type="number" min="0" step="0.01" value={v.unit_price} onChange={e => set("unit_price", e.target.value)} placeholder="e.g. 1252.50" />
         </FormField>
       </div>
-      <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
+
+      <div className="flex justify-end gap-3 border-t border-slate-100 pt-5 dark:border-slate-800">
         <Link href="/dashboard/inventory"><Button variant="secondary" type="button">Cancel</Button></Link>
         <Button type="submit" disabled={saving}>{saving ? "Saving..." : (isEdit ? "Update Item" : "Add Item")}</Button>
       </div>

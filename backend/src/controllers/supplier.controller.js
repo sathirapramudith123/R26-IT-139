@@ -49,8 +49,7 @@ export const getOne = async (req, res, next) => {
 export const create = async (req, res, next) => {
   try {
     const { data, error } = await supabase
-      .from(TABLE)
-      .insert([{ user_id: req.user.id, ...toDb(req.body) }])
+      .from(TABLE).insert([{ user_id: req.user.id, ...toDb(req.body) }])
       .select().single();
     if (error) throw error;
     res.status(201).json(shape(data));
