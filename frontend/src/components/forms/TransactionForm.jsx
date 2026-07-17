@@ -34,6 +34,17 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
   const isSale = v.transaction_type === "sale";
   const selected = items.find(i => i.name === v.item_name);
 
+  // Auto-calculate Amount (LKR) = Units Sold × the selected item's price
+  useEffect(() => {
+    if (!isSale || !selected) return;
+    const units = parseFloat(v.quantity);
+    const price = parseFloat(selected.selling_price ?? selected.price ?? selected.unit_price);
+    if (units > 0 && price > 0) {
+      set("amount", (units * price).toFixed(2));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [v.item_name, v.quantity, items, isSale]);
+
   async function handleSubmit(e) {
     e.preventDefault();
     const er = {};
@@ -99,7 +110,8 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
           </>
         )}
 
-        <FormField label="Amount (LKR)" error={errors.amount} required>
+        <FormField label="Amount (LKR)" error={errors.amount} required
+          hint={isSale && selected ? "Auto-calculated from units — editable" : undefined}>
           <input className={cls("amount")} type="number" min="0.01" step="0.01"
             value={v.amount} onChange={e => set("amount", e.target.value)} placeholder="0.00" />
         </FormField>
