@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           theme: buildLightTheme(),
           darkTheme: buildDarkTheme(),
-          themeMode: mode,          // switches with the toggle
+          themeMode: mode,
           home: const LoginScreen(),
         );
       },
