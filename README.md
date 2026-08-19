@@ -656,6 +656,7 @@ Create a project → open the SQL Editor → run `backend/schema.sql`. From **Se
 cd ml_service
 pip install -r requirements.txt
 python -m uvicorn app:app --port 8000
+python -m uvicorn app:app --port 8000 --reload
 ```
 Check `http://localhost:8000/health` — it lists the four loaded models.
 
