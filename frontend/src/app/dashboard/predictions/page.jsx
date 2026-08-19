@@ -8,45 +8,96 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { insightsApi } from "@/services/api/insights";
 import { formatCurrency } from "@/lib/formatters";
 
+// Modern Ring Gauge Component
 function Gauge({ score }) {
   const pct = Math.min(100, Math.max(0, Number(score) || 0));
-  const color = pct >= 70 ? "#059669" : pct >= 40 ? "#f59e0b" : "#ef4444";
+  const strokeDashoffset = 251.2 - (251.2 * pct) / 100;
+  const colorClass =
+    pct >= 70 ? "text-emerald-500" : pct >= 40 ? "text-amber-500" : "text-rose-500";
+
   return (
-    <div
-      className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-full"
-      style={{ background: `conic-gradient(${color} 0turn ${pct / 100}turn, #e2e8f0 ${pct / 100}turn 1turn)` }}
-    >
-      <div className="flex h-[72px] w-[72px] flex-col items-center justify-center rounded-full bg-white dark:bg-slate-900">
-        <span className="font-outfit text-xl font-bold" style={{ color }}>{pct.toFixed(0)}</span>
-        <span className="text-[10px] text-slate-400">/ 100</span>
+    <div className="relative flex h-24 w-24 shrink-0 items-center justify-center">
+      <svg className="h-full w-full -rotate-90 transform" viewBox="0 0 100 100">
+        <circle
+          cx="50"
+          cy="50"
+          r="40"
+          className="stroke-slate-100 dark:stroke-slate-800"
+          strokeWidth="10"
+          fill="transparent"
+        />
+        <circle
+          cx="50"
+          cy="50"
+          r="40"
+          className={`transition-all duration-1000 ease-out stroke-current ${colorClass}`}
+          strokeWidth="10"
+          strokeDasharray="251.2"
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          fill="transparent"
+        />
+      </svg>
+      <div className="absolute flex flex-col items-center justify-center text-center">
+        <span className={`font-outfit text-xl font-bold ${colorClass}`}>
+          {pct.toFixed(0)}
+        </span>
+        <span className="text-[10px] text-slate-400 font-medium">/ 100</span>
       </div>
     </div>
   );
 }
 
-function Shap({ explanation }) {
+// Visual SHAP Feature Impact Component
+function VisualShap({ explanation }) {
   if (!explanation?.length) return null;
+
+  const maxImpact = Math.max(...explanation.map((f) => Math.abs(f.impact)), 0.01);
+
   return (
-    <div className="mt-4 space-y-1.5 border-t border-slate-100 pt-3 dark:border-slate-800">
-      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Why this result?</p>
-      {explanation.slice(0, 3).map((f) => (
-        <div key={f.feature} className="flex items-center justify-between gap-2 text-xs">
-          <span className="flex items-center gap-1.5 truncate text-slate-700 dark:text-slate-300">
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full"
-              style={{ background: f.impact > 0 ? "#059669" : "#ef4444" }} />
-            {String(f.feature).replace(/_/g, " ")}
-          </span>
-          <span className="shrink-0 text-[10px] text-slate-400">
-            {f.impact > 0 ? "+" : ""}{Number(f.impact).toFixed(2)}
-          </span>
-        </div>
-      ))}
+    <div className="mt-4 space-y-2 border-t border-slate-100 pt-3 dark:border-slate-800">
+      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+        Key Driving Factors (SHAP Explanation)
+      </p>
+      {explanation.slice(0, 3).map((f) => {
+        const isPositive = f.impact > 0;
+        const widthPct = Math.min(100, (Math.abs(f.impact) / maxImpact) * 100);
+
+        return (
+          <div key={f.feature} className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="truncate text-slate-700 dark:text-slate-300 font-medium">
+                {String(f.feature).replace(/_/g, " ")}
+              </span>
+              <span
+                className={`font-mono text-[11px] font-bold ${
+                  isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                }`}
+              >
+                {isPositive ? "+" : ""}
+                {Number(f.impact).toFixed(2)}
+              </span>
+            </div>
+            {/* Visual Bar */}
+            <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  isPositive ? "bg-emerald-500" : "bg-rose-500"
+                }`}
+                style={{ width: `${widthPct}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 const NoData = ({ reason }) => (
-  <p className="py-8 text-center text-sm text-slate-400 dark:text-slate-500">{reason}</p>
+  <div className="py-8 text-center bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+    <p className="text-sm text-slate-500 dark:text-slate-400">{reason || "Data Unavailable"}</p>
+  </div>
 );
 
 export default function PredictionsDashboard() {
@@ -55,162 +106,266 @@ export default function PredictionsDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    insightsApi.get()
+    insightsApi
+      .get()
       .then(setData)
       .catch(() => setData(null))
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <LoadingSpinner label="Running your models…" />;
-  if (!data) return <p className="text-sm text-red-600">Could not load insights.</p>;
+  if (loading) return <LoadingSpinner label="Running predictive AI models..." />;
+  if (!data)
+    return (
+      <div className="p-6 text-center text-rose-600 font-medium">
+        Failed to fetch prediction models payload.
+      </div>
+    );
 
   const { credit = {}, demand = {}, procurement = {}, anomaly = {} } = data;
 
   return (
-    <div className="page-container">
+    <div className="page-container space-y-6">
       <PageHeader
-        title="Smart Predictions"
-        description="Four explainable models, running on your own data."
+        title="Predictive Intelligence Engine"
+        description="Real-time explainable Machine Learning forecasts driven by your business data."
       />
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      {/* Top High-level Metric Strip */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+          <p className="text-xs text-slate-500 font-medium">Credit Status</p>
+          <p className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-1">
+            {credit.prediction === 1 ? "✅ Eligible" : "⚠️ Review"}
+          </p>
+        </div>
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+          <p className="text-xs text-slate-500 font-medium">Demand Forecast</p>
+          <p className="text-lg font-bold text-amber-600 dark:text-amber-400 mt-1">
+            {demand.available ? `${Number(demand.prediction).toFixed(0)} Units` : "N/A"}
+          </p>
+        </div>
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+          <p className="text-xs text-slate-500 font-medium">Procurement Action</p>
+          <p className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-1">
+            {procurement.prediction === 1 ? "🛒 Buy Now" : "⏳ Hold"}
+          </p>
+        </div>
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+          <p className="text-xs text-slate-500 font-medium">Security Alert</p>
+          <p className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-1">
+            {anomaly.prediction === 1 ? "🚨 Anomaly" : "🛡️ Clear"}
+          </p>
+        </div>
+      </div>
 
+      {/* Grid Layout for Model Cards */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        
         {/* C1 — CREDIT READINESS */}
-        <div className="card">
-          <div className="mb-4 flex items-start justify-between">
-            <div>
-              <span className="text-xs font-bold text-teal-700 dark:text-teal-400">C1</span>
-              <h3 className="font-outfit font-semibold text-slate-900 dark:text-slate-100">Credit Readiness</h3>
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+          <div>
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="px-2 py-1 bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-400 text-xs font-bold rounded-md">
+                  C1 Model
+                </span>
+                <h3 className="font-outfit font-semibold text-lg text-slate-900 dark:text-slate-100">
+                  Credit Readiness
+                </h3>
+              </div>
+              <span className="text-2xl">💳</span>
             </div>
-            <span className="text-2xl">💳</span>
+
+            {!credit.available ? (
+              <NoData reason={credit.reason} />
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center gap-5 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl">
+                  <Gauge score={credit.score} />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
+                        credit.prediction === 1
+                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300"
+                          : "bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300"
+                      }`}
+                    >
+                      {credit.prediction === 1 ? "Credit Ready ✓" : "Requires Health Improvement"}
+                    </span>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                      Active: <b className="text-slate-700 dark:text-slate-200">{credit.features?.months_active} mo</b> · 
+                      Daily Txns: <b className="text-slate-700 dark:text-slate-200">{credit.features?.avg_daily_txns}</b> · 
+                      Margin: <b className="text-slate-700 dark:text-slate-200">{credit.features?.profit_margin_pct}%</b>
+                    </p>
+                  </div>
+                </div>
+                <VisualShap explanation={credit.explanation} />
+              </div>
+            )}
           </div>
 
-          {!credit.available ? <NoData reason={credit.reason} /> : (
-            <>
-              <div className="flex items-center gap-5">
-                <Gauge score={credit.score} />
-                <div className="min-w-0 flex-1">
-                  <span className={`badge ${credit.prediction === 1
-                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
-                    : "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400"}`}>
-                    {credit.prediction === 1 ? "Credit-ready ✓" : "Not yet ready"}
-                  </span>
-                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                    {credit.features?.months_active} months active ·{" "}
-                    {credit.features?.avg_daily_txns} txns/day ·{" "}
-                    {credit.features?.profit_margin_pct}% margin
-                  </p>
-                </div>
-              </div>
-              <Shap explanation={credit.explanation} />
-              <Link href="/dashboard/predictions/credit"
-                className="mt-3 inline-block text-xs font-semibold text-teal-700 hover:underline dark:text-teal-400">
-                Try different values →
-              </Link>
-            </>
-          )}
+          <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <Link
+              href="/dashboard/predictions/credit"
+              className="inline-flex items-center text-xs font-semibold text-teal-600 dark:text-teal-400 hover:text-teal-700 transition"
+            >
+              Simulate & Test Feature Scenarios →
+            </Link>
+          </div>
         </div>
 
         {/* C2 — DEMAND FORECAST */}
-        <div className="card">
-          <div className="mb-4 flex items-start justify-between">
-            <div>
-              <span className="text-xs font-bold text-amber-600 dark:text-amber-400">C2</span>
-              <h3 className="font-outfit font-semibold text-slate-900 dark:text-slate-100">Demand Forecast</h3>
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+          <div>
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="px-2 py-1 bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400 text-xs font-bold rounded-md">
+                  C2 Model
+                </span>
+                <h3 className="font-outfit font-semibold text-lg text-slate-900 dark:text-slate-100">
+                  Demand Forecast
+                </h3>
+              </div>
+              <span className="text-2xl">📈</span>
             </div>
-            <span className="text-2xl">📈</span>
+
+            {!demand.available ? (
+              <NoData reason={demand.reason} />
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-amber-50/50 dark:bg-amber-950/20 p-4 rounded-xl border border-amber-100 dark:border-amber-900/30">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Target Inventory Item: <b className="text-slate-800 dark:text-slate-200">{demand.item}</b>
+                  </p>
+                  <div className="mt-2 flex items-baseline space-x-2">
+                    <span className="font-outfit text-4xl font-extrabold text-amber-600 dark:text-amber-400">
+                      {Number(demand.prediction).toFixed(0)}
+                    </span>
+                    <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+                      Expected Units Next Wk
+                    </span>
+                  </div>
+                </div>
+                <VisualShap explanation={demand.explanation} />
+              </div>
+            )}
           </div>
 
-          {!demand.available ? <NoData reason={demand.reason} /> : (
-            <>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Next week for <b className="text-slate-800 dark:text-slate-200">{demand.item}</b>
-              </p>
-              <p className="mt-2 font-outfit text-4xl font-bold text-amber-600 dark:text-amber-400">
-                {Number(demand.prediction).toFixed(0)}
-                <span className="ml-1 text-base font-medium text-slate-400">units</span>
-              </p>
-              <Shap explanation={demand.explanation} />
-              <Link href="/dashboard/predictions/demand"
-                className="mt-3 inline-block text-xs font-semibold text-teal-700 hover:underline dark:text-teal-400">
-                Forecast another item →
-              </Link>
-            </>
-          )}
+          <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <Link
+              href="/dashboard/predictions/demand"
+              className="inline-flex items-center text-xs font-semibold text-amber-600 dark:text-amber-400 hover:underline transition"
+            >
+              Run Detailed Item Forecast →
+            </Link>
+          </div>
         </div>
 
         {/* C3 — BUY NOW OR WAIT */}
-        <div className="card">
-          <div className="mb-4 flex items-start justify-between">
-            <div>
-              <span className="text-xs font-bold text-orange-600 dark:text-orange-400">C3</span>
-              <h3 className="font-outfit font-semibold text-slate-900 dark:text-slate-100">Buy Now or Wait</h3>
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+          <div>
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="px-2 py-1 bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-400 text-xs font-bold rounded-md">
+                  C3 Model
+                </span>
+                <h3 className="font-outfit font-semibold text-lg text-slate-900 dark:text-slate-100">
+                  Procurement Optimizer
+                </h3>
+              </div>
+              <span className="text-2xl">🛒</span>
             </div>
-            <span className="text-2xl">🛒</span>
+
+            {!procurement.available ? (
+              <NoData reason={procurement.reason} />
+            ) : (
+              <div className="space-y-4">
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Item Evaluated</p>
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{procurement.item}</p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <span
+                      className={`px-4 py-2 rounded-xl font-outfit text-base font-bold ${
+                        procurement.prediction === 1
+                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                          : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
+                      }`}
+                    >
+                      {procurement.prediction === 1 ? "Buy Now" : "Wait / Hold"}
+                    </span>
+                    {typeof procurement.score === "number" && (
+                      <span className="text-xs font-bold text-slate-500">
+                        {procurement.score.toFixed(0)}% Conf.
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <VisualShap explanation={procurement.explanation} />
+              </div>
+            )}
           </div>
 
-          {!procurement.available ? <NoData reason={procurement.reason} /> : (
-            <>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                For <b className="text-slate-800 dark:text-slate-200">{procurement.item}</b>
-              </p>
-              <div className="mt-3 flex items-center gap-4">
-                <span className={`rounded-2xl px-4 py-2 font-outfit text-lg font-bold ${
-                  procurement.prediction === 1
-                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
-                    : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"}`}>
-                  {procurement.prediction === 1 ? "Buy now" : "Wait"}
-                </span>
-                {typeof procurement.score === "number" && (
-                  <span className="text-sm text-slate-500 dark:text-slate-400">
-                    {procurement.score.toFixed(0)}% confidence
-                  </span>
-                )}
-              </div>
-              <Shap explanation={procurement.explanation} />
-              <Link href="/dashboard/predictions/procurement"
-                className="mt-3 inline-block text-xs font-semibold text-teal-700 hover:underline dark:text-teal-400">
-                Check another item →
-              </Link>
-            </>
-          )}
+          <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <Link
+              href="/dashboard/predictions/procurement"
+              className="inline-flex items-center text-xs font-semibold text-orange-600 dark:text-orange-400 hover:underline transition"
+            >
+              Analyze Procurement Timing →
+            </Link>
+          </div>
         </div>
 
         {/* C4 — BANKING ANOMALY */}
-        <div className="card">
-          <div className="mb-4 flex items-start justify-between">
-            <div>
-              <span className="text-xs font-bold text-blue-600 dark:text-blue-400">C4</span>
-              <h3 className="font-outfit font-semibold text-slate-900 dark:text-slate-100">Banking Anomaly</h3>
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+          <div>
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="px-2 py-1 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-400 text-xs font-bold rounded-md">
+                  C4 Model
+                </span>
+                <h3 className="font-outfit font-semibold text-lg text-slate-900 dark:text-slate-100">
+                  Banking Anomaly Monitor
+                </h3>
+              </div>
+              <span className="text-2xl">🛡️</span>
             </div>
-            <span className="text-2xl">🛡️</span>
+
+            {!anomaly.available ? (
+              <NoData reason={anomaly.reason} />
+            ) : (
+              <div className="space-y-4">
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Latest Transaction</p>
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      {anomaly.customer} · {formatCurrency(anomaly.amount)}
+                    </p>
+                  </div>
+                  <span
+                    className={`px-3 py-1.5 rounded-xl font-outfit text-sm font-bold ${
+                      anomaly.prediction === 1
+                        ? "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300"
+                        : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                    }`}
+                  >
+                    {anomaly.prediction === 1 ? "⚠ Unusual Activity" : "✓ Normal"}
+                  </span>
+                </div>
+                <VisualShap explanation={anomaly.explanation} />
+              </div>
+            )}
           </div>
 
-          {!anomaly.available ? <NoData reason={anomaly.reason} /> : (
-            <>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Latest: {anomaly.customer} · {formatCurrency(anomaly.amount)}
-              </p>
-              <div className="mt-3">
-                <span className={`rounded-2xl px-4 py-2 font-outfit text-lg font-bold ${
-                  anomaly.prediction === 1
-                    ? "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400"
-                    : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"}`}>
-                  {anomaly.prediction === 1 ? "⚠ Looks unusual" : "✓ Looks normal"}
-                </span>
-              </div>
-              {typeof anomaly.score === "number" && (
-                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                  Anomaly score: {anomaly.score.toFixed(1)}/100
-                </p>
-              )}
-              <Shap explanation={anomaly.explanation} />
-              <Link href="/dashboard/predictions/anomaly"
-                className="mt-3 inline-block text-xs font-semibold text-teal-700 hover:underline dark:text-teal-400">
-                Check a transaction →
-              </Link>
-            </>
-          )}
+          <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <Link
+              href="/dashboard/predictions/anomaly"
+              className="inline-flex items-center text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline transition"
+            >
+              Verify Specific Transaction →
+            </Link>
+          </div>
         </div>
 
       </div>
