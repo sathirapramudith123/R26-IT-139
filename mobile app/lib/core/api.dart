@@ -3,12 +3,17 @@ import 'dart:io';
 import 'config.dart';
 
 class Api {
-  static String? token; // JWT held in memory (lost on restart — see note)
+  static String? token; 
 
   static Future<dynamic> _send(String method, String path, [Map<String, dynamic>? body]) async {
     final client = HttpClient();
     try {
-      final req = await client.openUrl(method, Uri.parse("$baseUrl$path"));
+      final formattedPath = path.startsWith('/') ? path : '/$path';
+      final formattedBase = AppConfig.baseUrl.endsWith('/') 
+          ? AppConfig.baseUrl.substring(0, AppConfig.baseUrl.length - 1) 
+          : AppConfig.baseUrl;
+
+      final req = await client.openUrl(method, Uri.parse("$formattedBase$formattedPath"));
       req.headers.set("Content-Type", "application/json");
       if (token != null) req.headers.set("Authorization", "Bearer $token");
       if (body != null) req.add(utf8.encode(jsonEncode(body)));

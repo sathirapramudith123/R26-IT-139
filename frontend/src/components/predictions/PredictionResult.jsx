@@ -1,41 +1,58 @@
 "use client";
-import Card from "@/components/ui/Card";
 
-export default function PredictionResult({ result, positiveLabel = "Yes", negativeLabel = "No", scoreLabel = "Score" }) {
+export default function PredictionResult({
+  result,
+  positiveLabel = "Positive",
+  negativeLabel = "Negative",
+  scoreLabel = "Score",
+}) {
   if (!result) return null;
-  const { prediction, score } = result;
-  const hasScore = typeof score === "number";
-  const isPositive = prediction === 1 || prediction === true;
-  const pct = hasScore ? Math.min(100, Math.max(0, score)) : null;
-  const color = pct == null ? "#0f766e" : pct >= 70 ? "#1D9E75" : pct >= 40 ? "#BA7517" : "#E24B4A";
+
+  const isRegression = result.score === undefined;
+  const rawPrediction = result.prediction;
+  const isPositive = rawPrediction === 1 || rawPrediction === true;
 
   return (
-    <Card className="max-w-3xl">
-      <h3 className="font-outfit text-lg font-bold text-slate-900 mb-4">Prediction Result</h3>
-      {!hasScore ? (
-        <div className="rounded-xl bg-slate-50 px-5 py-4">
-          <p className="text-xs text-slate-400">Predicted value</p>
-          <p className="text-3xl font-bold text-slate-900">{Number(prediction).toFixed(1)}</p>
+    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 space-y-4">
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+        Prediction Output
+      </h3>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="flex flex-col justify-between rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            Decision / Outcome
+          </span>
+          <div className="mt-2 flex items-center gap-2">
+            {!isRegression ? (
+              <span
+                className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ${
+                  isPositive
+                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400"
+                    : "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400"
+                }`}
+              >
+                {isPositive ? positiveLabel : negativeLabel}
+              </span>
+            ) : (
+              <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                {rawPrediction}
+              </span>
+            )}
+          </div>
         </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between rounded-xl bg-slate-50 px-5 py-4">
-            <span className="text-sm font-medium text-slate-500">Decision</span>
-            <span className={`rounded-full px-3 py-1 text-sm font-semibold ${isPositive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
-              {isPositive ? positiveLabel : negativeLabel}
+
+        {!isRegression && (
+          <div className="flex flex-col justify-between rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              {scoreLabel}
             </span>
-          </div>
-          <div>
-            <div className="flex justify-between text-sm mb-1">
-              <span className="text-slate-500">{scoreLabel}</span>
-              <span className="font-bold" style={{ color }}>{pct.toFixed(1)}/100</span>
-            </div>
-            <div className="h-3 rounded-full bg-slate-100 overflow-hidden">
-              <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+            <div className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+              {result.score}%
             </div>
           </div>
-        </div>
-      )}
-    </Card>
+        )}
+      </div>
+    </div>
   );
 }
