@@ -1,11 +1,11 @@
 import 'field_config.dart';
 
 class ModuleConfig {
-  final String title;   // "Inventory"
-  final String path;    // "/inventory"
-  final String icon;    // emoji
+  final String title;   
+  final String path;    
+  final String icon;    
   final List<FieldConfig> fields;
-  final List<String> listColumns; // keys shown in the list (first = title)
+  final List<String> listColumns; 
 
   const ModuleConfig({
     required this.title,
