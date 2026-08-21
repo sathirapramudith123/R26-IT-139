@@ -4,31 +4,30 @@ import '../../core/api.dart';
 import '../../services/crud_service.dart';
 
 const List<Map<String, String>> _txTypes = [
-  {"value": "sale",     "label": "Sale"},
+  {"value": "sale", "label": "Sale"},
   {"value": "purchase", "label": "Purchase"},
-  {"value": "expense",  "label": "Expense"},
-  {"value": "deposit",  "label": "Deposit"},
+  {"value": "expense", "label": "Expense"},
+  {"value": "deposit", "label": "Deposit"},
   {"value": "transfer", "label": "Transfer"},
 ];
 
 const List<Map<String, String>> _payMethods = [
-  {"value": "cash",    "label": "Cash"},
-  {"value": "bank",    "label": "Bank"},
+  {"value": "cash", "label": "Cash"},
+  {"value": "bank", "label": "Bank"},
   {"value": "digital", "label": "Digital"},
 ];
 
-// Which fields each type shows.
 const Map<String, Map<String, bool>> _typeConfig = {
-  "sale":     {"items": true},
+  "sale": {"items": true},
   "purchase": {"items": true},
-  "expense":  {"category": true, "description": true},
-  "deposit":  {"description": true},
+  "expense": {"category": true, "description": true},
+  "deposit": {"description": true},
   "transfer": {"description": true},
 };
 
 class TransactionFormScreen extends StatefulWidget {
-  final Map<String, dynamic>? item;   // pass for edit mode
-  final String? initialType;          // optional: open straight to a type
+  final Map<String, dynamic>? item;
+  final String? initialType;
   const TransactionFormScreen({super.key, this.item, this.initialType});
 
   @override
@@ -37,6 +36,7 @@ class TransactionFormScreen extends StatefulWidget {
 
 class _TransactionFormScreenState extends State<TransactionFormScreen> {
   final CrudService service = CrudService("/transactions");
+  final CrudService inventoryService = CrudService("/inventory");
 
   late String txType;
   late String paymentMethod;
@@ -47,7 +47,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
   List<Map<String, dynamic>> inventory = [];
 
-  // Sale/purchase cart: {item_name, quantity, unit_price, amount}
   final List<Map<String, dynamic>> cart = [];
   String? pickItem;
   final qtyCtrl = TextEditingController();
@@ -74,7 +73,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     categoryCtrl.text = it?["category"]?.toString() ?? "";
     descriptionCtrl.text = it?["description"]?.toString() ?? "";
 
-    // Rehydrate saved cart lines for edit mode
     final saved = it?["items"];
     if (saved is List) {
       for (final l in saved) {
@@ -91,6 +89,14 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     _loadInventory();
   }
 
+  // Sale/Purchase anuwa sahiya milak thoraganima
+  double _getPrice(Map<String, dynamic> inv) {
+    final raw = isPurchase
+        ? (inv["cost_price"] ?? inv["price"] ?? inv["unit_price"])
+        : (inv["selling_price"] ?? inv["price"] ?? inv["unit_price"]);
+    return double.tryParse("$raw") ?? 0.0;
+  }
+
   Future<void> _loadInventory() async {
     try {
       final data = await Api.get("/inventory");
@@ -103,7 +109,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         for (final l in cart) {
           if ((l["unit_price"] as num) == 0) {
             final inv = _findItem("${l["item_name"]}");
-            final price = double.tryParse("${inv["unit_price"] ?? ""}") ?? 0;
+            final price = _getPrice(inv);
             final q = (l["quantity"] as num).toDouble();
             l["unit_price"] = price;
             l["amount"] = double.parse((q * price).toStringAsFixed(2));
@@ -147,7 +153,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
     final inv = _findItem(name);
 
-    // Sales are capped by stock; purchases add stock (no cap)
     if (!isPurchase) {
       final stock = double.tryParse("${inv["quantity"] ?? ""}");
       final already = cart.where((l) => l["item_name"] == name)
@@ -159,7 +164,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       }
     }
 
-    final price = double.tryParse("${inv["unit_price"] ?? ""}") ?? 0;
+    final price = _getPrice(inv);
     setState(() {
       error = null;
       final idx = cart.indexWhere((l) => l["item_name"] == name);
@@ -178,6 +183,31 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       pickItem = null;
       qtyCtrl.clear();
     });
+  }
+
+  // Inventory stock adu/wadi karana function eka
+  Future<void> _updateInventoryStock() async {
+    if (!usesItems || cart.isEmpty) return;
+
+    for (final line in cart) {
+      final inv = _findItem("${line["item_name"]}");
+      if (inv.isNotEmpty && inv["id"] != null) {
+        final currentQty = double.tryParse("${inv["quantity"] ?? 0}") ?? 0.0;
+        final cartQty = (line["quantity"] as num).toDouble();
+        
+        final newQty = isPurchase 
+            ? currentQty + cartQty  // Purchase එකදී එකතු වේ
+            : currentQty - cartQty; // Sale එකදී අඩු වේ
+
+        try {
+          final updatedData = Map<String, dynamic>.from(inv);
+          updatedData["quantity"] = newQty < 0 ? 0 : newQty;
+          await inventoryService.update("${inv["id"]}", updatedData);
+        } catch (e) {
+          debugPrint("Failed to update stock for ${line["item_name"]}: $e");
+        }
+      }
+    }
   }
 
   Future<void> _save() async {
@@ -206,7 +236,13 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
     setState(() { saving = true; error = null; });
     try {
-      isEdit ? await service.update("${widget.item!["id"]}", payload) : await service.create(payload);
+      if (isEdit) {
+        await service.update("${widget.item!["id"]}", payload);
+      } else {
+        await service.create(payload);
+        // Create una pasu inventory stock update karanawa
+        await _updateInventoryStock();
+      }
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {
@@ -277,7 +313,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         child: Text(t, style: const TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito")),
       );
 
-  // ── Expense / deposit / transfer ──
   List<Widget> _simpleSection() {
     return [
       _label("Amount (LKR)"),
@@ -299,7 +334,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     ];
   }
 
-  // ── Sale / purchase item cart ──
   List<Widget> _cartSection() {
     final names = inventory.map((i) => "${i["name"] ?? ""}").where((s) => s.isNotEmpty).toList();
     final itemLabel = isPurchase ? "Item Purchased" : "Item Sold";
