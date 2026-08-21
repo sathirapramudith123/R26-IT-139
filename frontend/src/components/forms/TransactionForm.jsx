@@ -9,8 +9,8 @@ import { inventoryApi } from "@/services/api/inventory";
 import { TRANSACTION_TYPES, PAYMENT_METHODS } from "@/lib/constants";
 
 const TYPE_CONFIG = {
-  sale:     { mode: "items"                                        },
-  purchase: { mode: "items"                                        },
+  sale:     { mode: "items"                                  },
+  purchase: { mode: "items"                                  },
   expense:  { mode: "simple", category: true,  description: true   },
   deposit:  { mode: "simple", category: false, description: true   },
   transfer: { mode: "simple", category: false, description: true   },
@@ -57,7 +57,6 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
     return parseFloat(p) || 0;
   }
 
-
   function changeType(val) {
     set("transaction_type", val);
     set("item_name", "");
@@ -70,7 +69,6 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
     inventoryApi.list().then(d => setItems(Array.isArray(d) ? d : [])).catch(() => setItems([]));
   }, []);
 
-
   useEffect(() => {
     if (!isEdit || !items.length) return;
     setCart(prev => prev.map(l => {
@@ -79,20 +77,17 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
       const price = inv ? priceOf(inv) : 0;
       return { ...l, unit_price: price, amount: +(l.quantity * price).toFixed(2) };
     }));
-
   }, [items, isEdit]);
 
-  // Keep Amount (LKR) in sync with the cart total (still editable)
+  // Keep Amount (LKR) in sync with the cart total
   useEffect(() => {
     if (usesItems) set("amount", total ? total.toFixed(2) : "");
- 
   }, [total, usesItems]);
 
   function addLine() {
     if (!picked) return;
     const units = parseFloat(v.quantity);
     if (!units || units <= 0) { setErrors(p => ({ ...p, quantity: "Enter how many units." })); return; }
-
 
     if (isSale) {
       const already = cart.filter(l => l.item_name === picked.name).reduce((s, l) => s + l.quantity, 0);
@@ -120,6 +115,30 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
 
   function removeLine(idx) { setCart(prev => prev.filter((_, i) => i !== idx)); }
 
+  // Inventory tigo update karana logic eka
+  async function updateInventoryStock() {
+    if (!usesItems || cart.length === 0) return;
+
+    for (const line of cart) {
+      const invItem = items.find(i => i.name === line.item_name);
+      if (invItem) {
+        const currentQty = Number(invItem.quantity) || 0;
+        const newQty = isSale
+          ? currentQty - line.quantity  // Sale ekedi adu wenawa
+          : currentQty + line.quantity; // Purchase ekedi wadi wenawa
+
+        try {
+          await inventoryApi.update(invItem.id, {
+            ...invItem,
+            quantity: Math.max(0, newQty),
+          });
+        } catch (e) {
+          console.error(`Failed to update stock for ${line.item_name}:`, e);
+        }
+      }
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     const er = {};
@@ -146,12 +165,20 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
           category: cfg.category ? (v.category || null) : null,
           description: cfg.description ? (v.description || null) : null,
         };
+
     try {
-      if (isEdit) await transactionApi.update(txId, payload);
-      else await transactionApi.create(payload);
+      if (isEdit) {
+        await transactionApi.update(txId, payload);
+      } else {
+        await transactionApi.create(payload);
+        await updateInventoryStock();
+      }
       router.push("/dashboard/transactions");
-    } catch (err) { setServerError(err.message || "Save failed."); }
-    finally { setSaving(false); }
+    } catch (err) {
+      setServerError(err.message || "Save failed.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const cls = k => `input-field ${errors[k] ? "border-red-400 ring-2 ring-red-100" : ""}`;
