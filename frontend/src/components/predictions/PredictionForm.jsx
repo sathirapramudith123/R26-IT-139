@@ -1,33 +1,64 @@
 "use client";
+
 import { useState } from "react";
-import FormField from "@/components/forms/FormField";
 import Button from "@/components/ui/Button";
 
-export default function PredictionForm({ fields, onSubmit, loading }) {
-  const [values, setValues] = useState(() => Object.fromEntries(fields.map(f => [f.name, f.default ?? ""])));
-  function set(k, v) { setValues(p => ({ ...p, [k]: v })); }
-  function handleSubmit(e) {
+export default function PredictionForm({ fields = [], loading = false, onSubmit }) {
+  const [formData, setFormData] = useState(() => {
+    const initial = {};
+    fields.forEach((field) => {
+      initial[field.name] = field.default !== undefined ? field.default : "";
+    });
+    return initial;
+  });
+
+  const handleChange = (e, type) => {
+    const { name, value } = e.target;
+    let parsedValue = value;
+
+    if (type === "number") {
+      parsedValue = value === "" ? "" : Number(value);
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: parsedValue,
+    }));
+  };
+
+  const handleSubmit = (e) => {
     e.preventDefault();
-    const features = {};
-    for (const f of fields) features[f.name] = f.type === "number" ? Number(values[f.name]) : values[f.name];
-    onSubmit(features);
-  }
+    if (onSubmit) {
+      onSubmit(formData);
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="card-elevated max-w-3xl space-y-5">
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-        {fields.map(f => (
-          <FormField key={f.name} label={f.label} required>
-            {f.options
-              ? <select className="select-field" value={values[f.name]} onChange={e => set(f.name, e.target.value)}>
-                  {f.options.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
-              : <input className="input-field" type={f.type === "number" ? "number" : "text"} step="any"
-                  value={values[f.name]} onChange={e => set(f.name, e.target.value)} placeholder={f.label} />}
-          </FormField>
+    <form onSubmit={handleSubmit} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 space-y-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {fields.map((field) => (
+          <div key={field.name} className="space-y-1.5">
+            <label htmlFor={field.name} className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+              {field.label}
+            </label>
+            <input
+              id={field.name}
+              name={field.name}
+              type={field.type === "number" ? "number" : "text"}
+              step={field.type === "number" ? "any" : undefined}
+              value={formData[field.name] ?? ""}
+              disabled={loading}
+              onChange={(e) => handleChange(e, field.type)}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            />
+          </div>
         ))}
       </div>
-      <div className="flex justify-end border-t border-slate-100 pt-5">
-        <Button type="submit" disabled={loading}>{loading ? "Predicting..." : "Run Prediction"}</Button>
+
+      <div className="flex justify-end pt-2">
+        <Button type="submit" disabled={loading}>
+          {loading ? "Calculating..." : "Run Prediction"}
+        </Button>
       </div>
     </form>
   );

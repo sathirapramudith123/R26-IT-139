@@ -1,4 +1,3 @@
-// Inventory management links for dashboard navigation
 
 
 export const INVENTORY_LINKS = [

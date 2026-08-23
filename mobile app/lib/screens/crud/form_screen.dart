@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
-import '../../core/api.dart';                       // to fetch options
+import '../../core/api.dart';                       
 import '../../models/module_config.dart';
 import '../../models/field_config.dart';
 import '../../services/crud_service.dart';
@@ -17,7 +17,7 @@ class _FormScreenState extends State<FormScreen> {
   late final CrudService service = CrudService(widget.module.path);
   final Map<String, TextEditingController> controllers = {};
   final Map<String, String?> selects = {};
-  final Map<String, List<String>> dynamicOptions = {}; // NEW: loaded options per field
+  final Map<String, List<String>> dynamicOptions = {}; 
   bool saving = false;
   String? error;
 
@@ -37,7 +37,6 @@ class _FormScreenState extends State<FormScreen> {
     _loadDynamicOptions();
   }
 
-  // fetch options for any field with an optionsSource (e.g. suppliers)
   Future<void> _loadDynamicOptions() async {
     for (final f in widget.module.fields) {
       if (f.optionsSource != null) {
@@ -48,7 +47,6 @@ class _FormScreenState extends State<FormScreen> {
               .map((e) => "${e[f.optionsLabelKey ?? "name"] ?? ""}")
               .where((s) => s.isNotEmpty)
               .toList();
-          // keep the current value if it isn't in the list (edit case)
           final current = selects[f.key];
           if (current != null && current.isNotEmpty && !names.contains(current)) {
             names.insert(0, current);
@@ -136,7 +134,6 @@ class _FormScreenState extends State<FormScreen> {
   Widget _buildField(FieldConfig f) {
     final label = f.required ? "${f.label} *" : f.label;
 
-    // choose options: dynamic (loaded) if this field has a source, else static
     final isDynamic = f.optionsSource != null;
     final opts = isDynamic ? (dynamicOptions[f.key] ?? []) : f.options;
     final isSelect = f.type == "select";
@@ -149,7 +146,6 @@ class _FormScreenState extends State<FormScreen> {
           Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito")),
           const SizedBox(height: 6),
           if (isSelect && isDynamic && opts.isEmpty)
-            // suppliers still loading, or none exist → let them type
             TextField(
               onChanged: (val) => selects[f.key] = val,
               controller: TextEditingController(text: selects[f.key] ?? ""),

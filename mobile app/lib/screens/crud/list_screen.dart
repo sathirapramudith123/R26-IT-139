@@ -3,6 +3,11 @@ import '../../core/theme.dart';
 import '../../models/module_config.dart';
 import '../../services/crud_service.dart';
 import 'form_screen.dart';
+import '../transactions/transaction_form_screen.dart';
+import '../inventory/inventory_form_screen.dart';
+import '../suppliers/supplier_form_screen.dart';
+import '../procurement/procurement_form_screen.dart';
+import '../agency_banking/agency_banking_form_screen.dart';
 
 class ListScreen extends StatefulWidget {
   final ModuleConfig module;
@@ -52,10 +57,19 @@ class _ListScreenState extends State<ListScreen> {
   void _snack(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
   Future<void> _openForm([Map<String, dynamic>? item]) async {
+    Widget screen;
+    switch (widget.module.path) {
+      case "/transactions":   screen = TransactionFormScreen(item: item); break;
+      case "/inventory":      screen = InventoryFormScreen(item: item); break;
+      case "/suppliers":      screen = SupplierFormScreen(item: item); break;
+      case "/procurement":    screen = ProcurementFormScreen(item: item); break;
+      case "/agency-banking": screen = AgencyBankingFormScreen(item: item); break;
+      default:                screen = FormScreen(module: widget.module, item: item);
+    }
     final changed = await Navigator.push<bool>(
-      context, MaterialPageRoute(builder: (_) => FormScreen(module: widget.module, item: item)),
-    );
-    if (changed == true) _load();
+      context, MaterialPageRoute(builder: (_) => screen),
+    ) ?? false;
+    if (changed) _load();
   }
 
   // ---------- Details dialog ----------

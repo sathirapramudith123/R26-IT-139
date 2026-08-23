@@ -1,11 +1,10 @@
 "use client";
 
-// never show these to the user
 const HIDDEN = [
   "id",
   "user_id",
-  "item_name",          // duplicated as `name`
-  "item_status",        // duplicated as `status`
+  "item_name",          
+  "item_status",       
   "supplier_status",
   "procurement_status",
   "banking_status",
@@ -47,7 +46,6 @@ function display(k, v) {
   if (DATE_FIELDS.includes(k)) return formatDate(v);
   if (MONEY_FIELDS.includes(k)) return formatMoney(v);
   if (typeof v === "boolean") return v ? "Yes" : "No";
-  // "cash_deposit" → "Cash Deposit"
   if (typeof v === "string" && /^[a-z_]+$/.test(v)) {
     return v.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   }
