@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/theme.dart';
 import '../../core/api.dart';
 import '../../services/crud_service.dart';
@@ -44,14 +45,14 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   final amountCtrl = TextEditingController();
   final categoryCtrl = TextEditingController();
   final descriptionCtrl = TextEditingController();
-
-  List<Map<String, dynamic>> inventory = [];
-
-  final List<Map<String, dynamic>> cart = [];
-  String? pickItem;
   final qtyCtrl = TextEditingController();
 
+  List<Map<String, dynamic>> inventory = [];
+  final List<Map<String, dynamic>> cart = [];
+  String? pickItem;
+
   bool saving = false;
+  bool loadingInventory = true;
   String? error;
 
   bool get isEdit => widget.item != null;
@@ -89,7 +90,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     _loadInventory();
   }
 
-  // Sale/Purchase anuwa sahiya milak thoraganima
   double _getPrice(Map<String, dynamic> inv) {
     final raw = isPurchase
         ? (inv["cost_price"] ?? inv["price"] ?? inv["unit_price"])
@@ -106,6 +106,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       if (!mounted) return;
       setState(() {
         inventory = objs;
+        loadingInventory = false;
         for (final l in cart) {
           if ((l["unit_price"] as num) == 0) {
             final inv = _findItem("${l["item_name"]}");
@@ -117,7 +118,12 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         }
       });
     } catch (_) {
-      if (mounted) setState(() => inventory = []);
+      if (mounted) {
+        setState(() {
+          inventory = [];
+          loadingInventory = false;
+        });
+      }
     }
   }
 
@@ -135,6 +141,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
   void _changeType(String? val) {
     if (val == null) return;
+    FocusScope.of(context).unfocus();
     setState(() {
       txType = val;
       cart.clear();
@@ -146,10 +153,18 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   }
 
   void _addToCart() {
+    FocusScope.of(context).unfocus();
     final name = pickItem;
     final units = double.tryParse(qtyCtrl.text.trim()) ?? 0;
-    if (name == null || name.isEmpty) { setState(() => error = "Select an item first."); return; }
-    if (units <= 0) { setState(() => error = "Enter how many units."); return; }
+    
+    if (name == null || name.isEmpty) {
+      setState(() => error = "Select an item first.");
+      return;
+    }
+    if (units <= 0) {
+      setState(() => error = "Enter a valid quantity.");
+      return;
+    }
 
     final inv = _findItem(name);
 
@@ -185,7 +200,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     });
   }
 
-  // Inventory stock adu/wadi karana function eka
   Future<void> _updateInventoryStock() async {
     if (!usesItems || cart.isEmpty) return;
 
@@ -196,8 +210,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         final cartQty = (line["quantity"] as num).toDouble();
         
         final newQty = isPurchase 
-            ? currentQty + cartQty  // Purchase එකදී එකතු වේ
-            : currentQty - cartQty; // Sale එකදී අඩු වේ
+            ? currentQty + cartQty 
+            : currentQty - cartQty;
 
         try {
           final updatedData = Map<String, dynamic>.from(inv);
@@ -211,20 +225,28 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   }
 
   Future<void> _save() async {
+    FocusScope.of(context).unfocus();
+
     final Map<String, dynamic> payload = {
       "transaction_type": txType,
       "payment_method": paymentMethod,
     };
 
     if (usesItems) {
-      if (cart.isEmpty) { setState(() => error = "Add at least one item."); return; }
+      if (cart.isEmpty) {
+        setState(() => error = "Add at least one item.");
+        return;
+      }
       payload["items"] = cart
           .map((l) => {"item_name": l["item_name"], "quantity": l["quantity"]})
           .toList();
       payload["amount"] = cartTotal;
     } else {
       final amt = double.tryParse(amountCtrl.text.trim()) ?? 0;
-      if (amt <= 0) { setState(() => error = "Enter an amount greater than 0."); return; }
+      if (amt <= 0) {
+        setState(() => error = "Enter an amount greater than 0.");
+        return;
+      }
       payload["amount"] = amt;
       if (showCategory && categoryCtrl.text.trim().isNotEmpty) {
         payload["category"] = categoryCtrl.text.trim();
@@ -240,7 +262,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         await service.update("${widget.item!["id"]}", payload);
       } else {
         await service.create(payload);
-        // Create una pasu inventory stock update karanawa
         await _updateInventoryStock();
       }
       if (!mounted) return;
@@ -259,51 +280,54 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text("${isEdit ? "Edit" : "New"} Transaction")),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          if (error != null)
-            Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: KadeColors.terra.withOpacity(0.12), borderRadius: BorderRadius.circular(14)),
-              child: Row(children: [
-                const Icon(Icons.error_outline, color: KadeColors.terra, size: 18),
-                const SizedBox(width: 8),
-                Expanded(child: Text(error!, style: const TextStyle(color: KadeColors.terra, fontSize: 13))),
-              ]),
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            if (error != null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: KadeColors.terra.withOpacity(0.12), borderRadius: BorderRadius.circular(14)),
+                child: Row(children: [
+                  const Icon(Icons.error_outline, color: KadeColors.terra, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(error!, style: const TextStyle(color: KadeColors.terra, fontSize: 13))),
+                ]),
+              ),
+
+            _label("Transaction Type *"),
+            DropdownButtonFormField<String>(
+              value: _txTypes.any((t) => t["value"] == txType) ? txType : _txTypes.first["value"],
+              items: _txTypes.map((t) => DropdownMenuItem(value: t["value"], child: Text(t["label"]!))).toList(),
+              onChanged: saving ? null : _changeType,
             ),
+            const SizedBox(height: 16),
 
-          _label("Transaction Type"),
-          DropdownButtonFormField<String>(
-            initialValue: txType,
-            items: _txTypes.map((t) => DropdownMenuItem(value: t["value"], child: Text(t["label"]!))).toList(),
-            onChanged: _changeType,
-          ),
-          const SizedBox(height: 16),
-
-          _label("Payment Method"),
-          DropdownButtonFormField<String>(
-            initialValue: paymentMethod,
-            items: _payMethods.map((m) => DropdownMenuItem(value: m["value"], child: Text(m["label"]!))).toList(),
-            onChanged: (val) => setState(() => paymentMethod = val ?? "cash"),
-          ),
-          const SizedBox(height: 16),
-
-          if (usesItems) ..._cartSection() else ..._simpleSection(),
-
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 52,
-            child: FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: teal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999))),
-              onPressed: saving ? null : _save,
-              child: saving
-                  ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-                  : Text(isEdit ? "Update" : "Save", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
+            _label("Payment Method *"),
+            DropdownButtonFormField<String>(
+              value: _payMethods.any((m) => m["value"] == paymentMethod) ? paymentMethod : _payMethods.first["value"],
+              items: _payMethods.map((m) => DropdownMenuItem(value: m["value"], child: Text(m["label"]!))).toList(),
+              onChanged: saving ? null : (val) => setState(() => paymentMethod = val ?? "cash"),
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+
+            if (usesItems) ..._cartSection() else ..._simpleSection(),
+
+            const SizedBox(height: 24),
+            SizedBox(
+              height: 52,
+              child: FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: teal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999))),
+                onPressed: saving ? null : _save,
+                child: saving
+                    ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                    : Text(isEdit ? "Update" : "Save", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -315,53 +339,67 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
   List<Widget> _simpleSection() {
     return [
-      _label("Amount (LKR)"),
+      _label("Amount (LKR) *"),
       TextField(
         controller: amountCtrl,
+        enabled: !saving,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: const InputDecoration(hintText: "0.00"),
+        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+        decoration: const InputDecoration(hintText: "0.00", prefixText: "LKR "),
       ),
       if (showCategory) ...[
         const SizedBox(height: 16),
         _label("Category"),
-        TextField(controller: categoryCtrl, decoration: const InputDecoration(hintText: "e.g. utilities, rent")),
+        TextField(
+          controller: categoryCtrl,
+          enabled: !saving,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(hintText: "e.g. utilities, rent"),
+        ),
       ],
       if (showDescription) ...[
         const SizedBox(height: 16),
         _label("Description"),
-        TextField(controller: descriptionCtrl, decoration: const InputDecoration(hintText: "Optional")),
+        TextField(
+          controller: descriptionCtrl,
+          enabled: !saving,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(hintText: "Optional notes"),
+        ),
       ],
     ];
   }
 
   List<Widget> _cartSection() {
     final names = inventory.map((i) => "${i["name"] ?? ""}").where((s) => s.isNotEmpty).toList();
-    final itemLabel = isPurchase ? "Item Purchased" : "Item Sold";
+    final itemLabel = isPurchase ? "Item Purchased *" : "Item Sold *";
     final unitsLabel = isPurchase ? "Units bought" : "Units sold";
 
     return [
       _label(itemLabel),
       DropdownButtonFormField<String>(
-        initialValue: names.contains(pickItem) ? pickItem : null,
-        hint: Text(names.isEmpty ? "No inventory items yet" : "Select an item…"),
+        value: names.contains(pickItem) ? pickItem : null,
+        hint: Text(loadingInventory ? "Loading..." : (names.isEmpty ? "No inventory items yet" : "Select an item…")),
         items: names.map((o) {
           final inv = _findItem(o);
           return DropdownMenuItem(value: o, child: Text("$o (${inv["quantity"] ?? 0} in stock)"));
         }).toList(),
-        onChanged: (val) => setState(() => pickItem = val),
+        onChanged: saving ? null : (val) => setState(() => pickItem = val),
       ),
       const SizedBox(height: 10),
       Row(children: [
         Expanded(
           child: TextField(
             controller: qtyCtrl,
+            enabled: !saving,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
             decoration: InputDecoration(hintText: unitsLabel),
           ),
         ),
         const SizedBox(width: 10),
         FilledButton.tonal(
-          onPressed: pickItem == null ? null : _addToCart,
+          onPressed: (pickItem == null || saving) ? null : _addToCart,
           child: const Text("Add"),
         ),
       ]),
@@ -402,7 +440,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       ),
                     ),
                     Text("LKR ${amt.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w700)),
-                    IconButton(icon: const Icon(Icons.close, size: 18), onPressed: () => setState(() => cart.removeAt(i))),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 18), 
+                      onPressed: saving ? null : () => setState(() => cart.removeAt(i)),
+                    ),
                   ]),
                 );
               }),
