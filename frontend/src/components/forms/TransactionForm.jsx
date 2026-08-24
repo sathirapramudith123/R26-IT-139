@@ -8,12 +8,36 @@ import { transactionApi } from "@/services/api/transaction";
 import { inventoryApi } from "@/services/api/inventory";
 import { TRANSACTION_TYPES, PAYMENT_METHODS } from "@/lib/constants";
 
+// 1. Config for Transaction Modes
 const TYPE_CONFIG = {
-  sale:     { mode: "items"                                  },
-  purchase: { mode: "items"                                  },
-  expense:  { mode: "simple", category: true,  description: true   },
-  deposit:  { mode: "simple", category: false, description: true   },
-  transfer: { mode: "simple", category: false, description: true   },
+  sale:     { mode: "items" },
+  purchase: { mode: "items" },
+  expense:  { mode: "simple", category: true, description: true },
+  deposit:  { mode: "simple", category: true, description: true },
+  transfer: { mode: "simple", category: true, description: true },
+};
+
+// 2. Standardized Categories for AI & Analytics Models
+const CATEGORIES_BY_TYPE = {
+  expense: [
+    "Utilities (Electricity/Water)",
+    "Rent",
+    "Transport / Fuel",
+    "Labor / Wages",
+    "Loss / Wastage / Damage",
+    "Personal Drawings"
+  ],
+  deposit: [
+    "Agency Banking Cash-In",
+    "Owner Capital Injection",
+    "Loan Disbursement",
+    "Other Income"
+  ],
+  transfer: [
+    "Agency Wallet Top-up",
+    "Supplier Payment",
+    "Inter-Bank Transfer"
+  ]
 };
 
 export default function TransactionForm({ initialData = {}, txId = null }) {
@@ -40,7 +64,10 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
     }))
   );
 
-  function set(k, val) { setV(p => ({ ...p, [k]: val })); setErrors(p => ({ ...p, [k]: undefined })); }
+  function set(k, val) { 
+    setV(p => ({ ...p, [k]: val })); 
+    setErrors(p => ({ ...p, [k]: undefined })); 
+  }
 
   const type       = v.transaction_type;
   const cfg        = TYPE_CONFIG[type] ?? { mode: "simple", category: true, description: true };
@@ -62,6 +89,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
     set("item_name", "");
     set("quantity", "");
     set("amount", "");
+    set("category", "");
     setCart([]);
   }
 
@@ -87,12 +115,18 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
   function addLine() {
     if (!picked) return;
     const units = parseFloat(v.quantity);
-    if (!units || units <= 0) { setErrors(p => ({ ...p, quantity: "Enter how many units." })); return; }
+    if (!units || units <= 0) { 
+      setErrors(p => ({ ...p, quantity: "Enter how many units." })); 
+      return; 
+    }
 
     if (isSale) {
       const already = cart.filter(l => l.item_name === picked.name).reduce((s, l) => s + l.quantity, 0);
       if (units + already > Number(picked.quantity)) {
-        setErrors(p => ({ ...p, quantity: `Only ${picked.quantity} in stock${already ? ` (${already} already added)` : ""}.` }));
+        setErrors(p => ({ 
+          ...p, 
+          quantity: `Only ${picked.quantity} in stock${already ? ` (${already} already added)` : ""}.` 
+        }));
         return;
       }
     }
@@ -115,7 +149,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
 
   function removeLine(idx) { setCart(prev => prev.filter((_, i) => i !== idx)); }
 
-  // Inventory tigo update karana logic eka
+  // Inventory stock update logic
   async function updateInventoryStock() {
     if (!usesItems || cart.length === 0) return;
 
@@ -124,8 +158,8 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
       if (invItem) {
         const currentQty = Number(invItem.quantity) || 0;
         const newQty = isSale
-          ? currentQty - line.quantity  // Sale ekedi adu wenawa
-          : currentQty + line.quantity; // Purchase ekedi wadi wenawa
+          ? currentQty - line.quantity  // Sale - deduct stock
+          : currentQty + line.quantity; // Purchase - add stock
 
         try {
           await inventoryApi.update(invItem.id, {
@@ -144,6 +178,8 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
     const er = {};
     if (usesItems && cart.length === 0) er.amount = "Add at least one item.";
     if (!v.amount || Number(v.amount) <= 0) er.amount = er.amount || "Enter an amount greater than 0.";
+    if (cfg.category && !v.category) er.category = "Please select a category.";
+
     if (Object.keys(er).length) { setErrors(er); return; }
 
     setSaving(true); setServerError(null);
@@ -233,6 +269,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
               </Button>
             </div>
 
+            {/* Right: Cart Overview */}
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800">
               <p className="mb-2 text-sm font-semibold text-slate-700">{listLabel}</p>
               {cart.length === 0 ? (
@@ -274,15 +311,20 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
           </FormField>
 
           {cfg.category && (
-            <FormField label="Category" hint="Optional">
-              <input className="input-field" value={v.category} onChange={e => set("category", e.target.value)} placeholder="e.g. utilities, rent" />
+            <FormField label="Category" error={errors.category} required hint="Required for AI Analytics">
+              <select className="select-field" value={v.category} onChange={e => set("category", e.target.value)}>
+                <option value="">Select Category...</option>
+                {(CATEGORIES_BY_TYPE[type] || []).map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
             </FormField>
           )}
 
           {cfg.description && (
             <div className="md:col-span-2">
               <FormField label="Description" hint="Optional">
-                <input className="input-field" value={v.description} onChange={e => set("description", e.target.value)} />
+                <input className="input-field" value={v.description} onChange={e => set("description", e.target.value)} placeholder="Add optional note..." />
               </FormField>
             </div>
           )}

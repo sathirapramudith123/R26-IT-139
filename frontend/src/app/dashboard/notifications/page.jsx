@@ -7,7 +7,7 @@ import Button from "@/components/ui/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import EmptyState from "@/components/common/EmptyState";
 import NotificationList from "@/components/notifications/NotificationList";
-import useNotifications from "@/hooks/usePrediction";
+import useNotifications from "@/hooks/useNotifications";
 
 export default function NotificationsPage() {
   const {

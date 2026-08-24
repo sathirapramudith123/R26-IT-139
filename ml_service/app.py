@@ -1,155 +1,258 @@
 import os
-import joblib
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import joblib
+import numpy as np
 import pandas as pd
 from pydantic import BaseModel, Field
 
-app = FastAPI(title="Smart Merchant ML Service", version="1.0")
+app = FastAPI(
+    title='Smart Merchant ML & Decision Engine API',
+    version='2.0',
+    description='Hybrid ML & Rule Engine Microservice for Credit & Procurement',
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=['*'],
+    allow_methods=['*'],
+    allow_headers=['*'],
 )
 
+# File Mapping
 FILES = {
-    "credit": "models/component1_sales_financial_model.pkl",
-    "pricing": "models/component2_price_model.pkl",
-    "demand": "models/component3_demand_forecast_model.pkl",
-    "anomaly": "models/component4_banking_anomaly_model.pkl",
+    'credit': 'models/component1_sales_financial_model.pkl',
+    'procurement': 'models/component2_procurement_model.pkl',
+    'demand': 'models/component3_demand_forecast_model.pkl',
+    'anomaly': 'models/component4_banking_anomaly_model.pkl',
 }
 
-REGRESSION = {"pricing", "demand"}
+BUNDLES = {}
 
-MODELS = {}
+# Load Models / Bundles into Memory
 for name, path in FILES.items():
-    if os.path.exists(path):
-        try:
-            MODELS[name] = joblib.load(path)
-            print(f"[ML Engine] Successfully loaded '{name}' from {path}")
-        except Exception as e:
-            print(f"[ML Engine] FAILED to load '{name}': {e}")
-    else:
-        print(f"[ML Engine] Missing file for '{name}': {path}")
-
-
-def expected_columns(model):
-    """Extract required feature names from a trained model/pipeline safely."""
-    cols = getattr(model, "feature_names_in_", None)
-    if cols is not None:
-        return list(cols)
-
-    steps = getattr(model, "named_steps", {})
-    for step in steps.values():
-        transformers = getattr(step, "transformers_", None) or getattr(
-            step, "transformers", None
-        )
-        if transformers:
-            out = []
-            for _, _, c in transformers:
-                if isinstance(c, (list, tuple)):
-                    out.extend(c)
-            if out:
-                return out
-        sub = getattr(step, "feature_names_in_", None)
-        if sub is not None:
-            return list(sub)
-    return None
+  if os.path.exists(path):
+    try:
+      BUNDLES[name] = joblib.load(path)
+      print(f"[ML Engine] Successfully loaded '{name}' from {path}")
+    except Exception as e:
+      print(f"[ML Engine] FAILED to load '{name}': {e}")
+  else:
+    print(f"[ML Engine] Missing file for '{name}': {path}")
 
 
 class PredictRequest(BaseModel):
-    component: str = Field(..., description="Target model component name")
-    features: dict = Field(..., description="Input key-value feature pair")
+  component: str = Field(
+      ...,
+      description="Component name: 'credit', 'procurement', 'demand', 'anomaly'",
+  )
+  features: dict = Field(
+      ..., description='Key-value pairs of input feature values'
+  )
 
 
-@app.get("/health")
+def extract_expected_columns(model_or_bundle):
+  """Extract expected column names whether it is a Bundle Dict or a Pipeline."""
+  if isinstance(model_or_bundle, dict):
+    if 'feature_names' in model_or_bundle:
+      return model_or_bundle['feature_names']
+    model = model_or_bundle.get('classifier_model') or model_or_bundle.get(
+        'regressor_model'
+    )
+  else:
+    model = model_or_bundle
+
+  if model is None:
+    return None
+
+  cols = getattr(model, 'feature_names_in_', None)
+  if cols is not None:
+    return list(cols)
+
+  steps = getattr(model, 'named_steps', {})
+  for step in steps.values():
+    transformers = getattr(step, 'transformers_', None) or getattr(
+        step, 'transformers', None
+    )
+    if transformers:
+      out = []
+      for _, _, c in transformers:
+        if isinstance(c, (list, tuple)):
+          out.extend(c)
+      if out:
+        return out
+  return None
+
+
+@app.get('/health')
 def health():
-    return {
-        "status": "ok",
-        "loaded_components": list(MODELS.keys()),
-        "missing_components": [k for k in FILES if k not in MODELS],
-    }
+  return {
+      'status': 'ok',
+      'loaded_components': list(BUNDLES.keys()),
+      'missing_components': [k for k in FILES if k not in BUNDLES],
+  }
 
 
-@app.get("/features/{component}")
+@app.get('/features/{component}')
 def features(component: str):
-    """Inspect expected columns for a specific component model."""
-    if component not in MODELS:
-        raise HTTPException(404, f"Model '{component}' not loaded")
-    cols = expected_columns(MODELS[component])
-    return {"component": component, "expected_features": cols}
+  comp_key = component.lower().strip()
+  if comp_key not in BUNDLES:
+    raise HTTPException(404, f"Model/Bundle '{component}' not loaded")
+  cols = extract_expected_columns(BUNDLES[comp_key])
+  return {'component': comp_key, 'expected_features': cols}
 
 
-@app.post("/predict")
-@app.post("/predict/")
+@app.post('/predict')
+@app.post('/predict/')
 def predict(req: PredictRequest):
-    comp_key = req.component.lower().strip()
-    
-    # Map common aliases from frontend
-    alias_map = {
-        "procurement": "demand",
-        "inventory": "demand",
-        "sales": "credit",
-    }
-    comp_key = alias_map.get(comp_key, comp_key)
+  comp_key = req.component.lower().strip()
 
-    if comp_key not in MODELS:
-        raise HTTPException(
-            404,
-            detail=f"Model '{req.component}' not found. Available models: {list(MODELS.keys())}"
+  # Alias Mapping
+  alias_map = {'sales': 'credit', 'pricing': 'procurement', 'inventory': 'demand'}
+  comp_key = alias_map.get(comp_key, comp_key)
+
+  if comp_key not in BUNDLES:
+    raise HTTPException(
+        404,
+        f"Component '{req.component}' not found. Available: {list(BUNDLES.keys())}",
+    )
+
+  bundle_or_model = BUNDLES[comp_key]
+  features_dict = req.features.copy()
+
+  # 1. Type Coercion
+  for k, v in features_dict.items():
+    if isinstance(v, str):
+      try:
+        features_dict[k] = float(v) if '.' in v else int(v)
+      except ValueError:
+        pass
+
+  # 2. Dynamic Feature Calculations
+  if (
+      'monthly_expenses_rs' in features_dict
+      and 'monthly_revenue_rs' in features_dict
+  ):
+    rev = features_dict['monthly_revenue_rs']
+    exp = features_dict['monthly_expenses_rs']
+    features_dict['net_cash_flow'] = rev - exp
+    features_dict['debt_to_income_ratio'] = exp / (rev + 1e-5)
+
+  if (
+      'current_price_rs' in features_dict
+      and 'historical_avg_price_rs' in features_dict
+  ):
+    curr = features_dict['current_price_rs']
+    hist = features_dict['historical_avg_price_rs']
+    features_dict['price_variance_pct'] = ((curr - hist) / (hist + 1e-5)) * 100
+
+  # 3. Missing Feature Auto-Fill
+  needed = extract_expected_columns(bundle_or_model)
+  if needed:
+    for col in needed:
+      if (
+          col not in features_dict
+          or features_dict[col] is None
+          or features_dict[col] == ''
+      ):
+        features_dict[col] = (
+            'general' if col in ['item', 'category'] else 0.0
         )
 
-    model = MODELS[comp_key]
-    features_dict = req.features.copy()
-
-    # Automatic Type Coercion for numbers passed as strings
-    for k, v in features_dict.items():
-        if isinstance(v, str):
-            try:
-                features_dict[k] = float(v) if "." in v else int(v)
-            except ValueError:
-                pass
-
-    # Dynamic Feature Calculation for Demand model
-    if comp_key == "demand":
-        if (
-            "sales_momentum" not in features_dict
-            and "lag1_units" in features_dict
-            and "lag2_units" in features_dict
-        ):
-            features_dict["sales_momentum"] = (
-                features_dict["lag1_units"] - features_dict["lag2_units"]
-            )
-
-    needed = expected_columns(model)
+  try:
+    X = pd.DataFrame([features_dict])
     if needed:
-        # Missing features තිබේ නම් Auto-fill කරගැනීම (422 Error එන එක නවත්වයි)
-        for col in needed:
-            if col not in features_dict or features_dict[col] is None or features_dict[col] == "":
-                if col in ["item", "category"]:
-                    features_dict[col] = "general"
-                else:
-                    features_dict[col] = 0
+      X = X[needed]
+  except Exception as e:
+    raise HTTPException(400, f'Could not construct feature DataFrame: {e}')
 
-    try:
-        X = pd.DataFrame([features_dict])
-        if needed:
-            X = X[needed]
-    except Exception as e:
-        raise HTTPException(400, f"Could not construct feature frame: {e}")
+  # 4. EXECUTION BY COMPONENT TYPE
+  try:
+    # --- COMPONENT 1: SALES & FINANCIAL CREDIT READINESS ---
+    if comp_key == 'credit':
+      cls_model = bundle_or_model['classifier_model']
+      reg_model = bundle_or_model['regressor_model']
 
-    try:
-        if comp_key in REGRESSION:
-            val = float(model.predict(X)[0])
-            return {"component": comp_key, "prediction": round(val, 2)}
+      prob_score = round(float(cls_model.predict_proba(X)[0, 1]) * 100, 1)
+      pred_limit = float(reg_model.predict(X)[0]) if prob_score >= 50 else 0.0
 
-        proba = float(model.predict_proba(X)[0, 1])
+      # Hybrid Business Rules
+      hard_blocks = []
+      if features_dict.get('debt_to_income_ratio', 0) > 0.85:
+        hard_blocks.append('CRITICAL: Debt-to-Income Ratio exceeds 85%.')
+      if features_dict.get('months_active', 100) < 3:
+        hard_blocks.append(
+            'HIGH RISK: Business active history is less than 3 months.'
+        )
+
+      if hard_blocks:
+        status, max_loan = 'REJECTED_BY_RULE_ENGINE', 0.0
+      elif prob_score >= 70:
+        status, max_loan = 'APPROVED_PRIME', round(pred_limit, -3)
+      elif prob_score >= 50:
+        status, max_loan = 'APPROVED_CONDITIONAL', min(
+            round(pred_limit, -3), 250000.0
+        )
+      else:
+        status, max_loan = 'REJECTED_LOW_SCORE', 0.0
+
+      return {
+          'component': 'credit',
+          'credit_score': prob_score,
+          'status': status,
+          'max_loan_limit_lkr': max_loan,
+          'rule_alerts': hard_blocks if hard_blocks else ['None'],
+      }
+
+    # --- COMPONENT 2: PROCUREMENT & BUY ADVICE ---
+    elif comp_key == 'procurement':
+      cls_model = bundle_or_model['classifier_model']
+      reg_model = bundle_or_model['regressor_model']
+
+      buy_score = round(float(cls_model.predict_proba(X)[0, 1]) * 100, 1)
+      predicted_4w_price = float(reg_model.predict(X)[0])
+      curr_price = features_dict.get('current_price_rs', 0)
+
+      rule_alerts = []
+      if (
+          features_dict.get('shelf_life_days', 30) <= 3
+          and features_dict.get('current_stock_kg', 0) > 50
+      ):
+        rule_alerts.append('HIGH PERISHABILITY: Stock risk detected.')
+      if features_dict.get('current_stock_kg', 0) >= 400:
+        rule_alerts.append('OVERSTOCK: Stock level exceeds capacity.')
+
+      if any('OVERSTOCK' in a for a in rule_alerts):
+        action = 'HOLD'
+      elif buy_score >= 75:
+        action = 'BULK_BUY_NOW'
+      elif buy_score >= 50:
+        action = 'MODERATE_BUY'
+      else:
+        action = 'WAIT_DO_NOT_BUY'
+
+      return {
+          'component': 'procurement',
+          'buy_confidence_score': buy_score,
+          'current_price_lkr': curr_price,
+          'predicted_4w_price_lkr': round(predicted_4w_price, 2),
+          'recommended_action': action,
+          'rule_alerts': rule_alerts if rule_alerts else ['None'],
+      }
+
+    # --- COMPONENT 3 & 4 (STANDALONE SINGLE MODELS) ---
+    else:
+      model = bundle_or_model
+      if hasattr(model, 'predict_proba'):
+        prob = float(model.predict_proba(X)[0, 1])
         return {
-            "component": comp_key,
-            "prediction": int(proba >= 0.5),
-            "score": round(proba * 100, 1),
+            'component': comp_key,
+            'prediction': int(prob >= 0.5),
+            'score': round(prob * 100, 1),
         }
-    except Exception as e:
-        raise HTTPException(500, f"Prediction processing failed: {e}")
+      else:
+        val = float(model.predict(X)[0])
+        return {'component': comp_key, 'prediction': round(val, 2)}
+
+  except Exception as e:
+    raise HTTPException(500, f'Prediction execution failed: {e}')

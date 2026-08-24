@@ -27,14 +27,14 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
   const [items, setItems] = useState([]);
 
   const [v, setV] = useState({
-    item_name:              initialData.item_name              ?? "",
-    quantity:               initialData.quantity               ?? "",
-    delivery_location:      initialData.delivery_location      ?? "",
+    item_name:               initialData.item_name               ?? "",
+    quantity:                initialData.quantity                ?? "",
+    delivery_location:       initialData.delivery_location       ?? "",
     expected_selling_price: initialData.expected_selling_price ?? "",
     selected_supplier_name: initialData.selected_supplier_name ?? "",
-    total_cost:             initialData.total_cost             ?? "",
-    estimated_profit:       initialData.estimated_profit       ?? "",
-    status:                 initialData.status                 ?? "pending",
+    total_cost:              initialData.total_cost              ?? "",
+    estimated_profit:        initialData.estimated_profit        ?? "",
+    status:                  initialData.status                  ?? "pending",
   });
 
   function set(k, val) {
@@ -42,7 +42,7 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
     setErrors(p => ({ ...p, [k]: undefined }));
   }
 
-  // load inventory items + suppliers for the dropdowns
+  // Load inventory items + suppliers
   useEffect(() => {
     supplierApi.list()
       .then((d) => setSuppliers(Array.isArray(d) ? d : []))
@@ -52,7 +52,36 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
       .catch(() => setItems([]));
   }, []);
 
-  // keep a saved value visible even if it's no longer in the list (edit case)
+  // 💡 AUTO-CALCULATION LOGIC FOR C3 OPTIMIZER
+  // Item හෝ Supplier මාරු වන විට Price/Cost ස්වයංක්‍රීයව ගණනය කිරීම
+  useEffect(() => {
+    const qty = Number(v.quantity) || 0;
+    const selectedSupplier = suppliers.find(s => s.name === v.selected_supplier_name);
+    const selectedItem = items.find(i => i.name === v.item_name);
+
+    // Auto-fill Selling Price if available from inventory
+    if (selectedItem && !v.expected_selling_price) {
+      const price = selectedItem.selling_price || selectedItem.unit_price || 0;
+      if (price) set("expected_selling_price", price);
+    }
+
+    if (qty > 0) {
+      const unitPrice = selectedSupplier?.unit_price || selectedItem?.cost_price || 0;
+      const deliveryCost = Number(selectedSupplier?.delivery_cost) || 0;
+      
+      // Total Cost = (Unit Price * Quantity) + Delivery Fee
+      const computedTotalCost = (unitPrice * qty) + deliveryCost;
+      set("total_cost", computedTotalCost.toFixed(2));
+
+      // Estimated Profit = (Selling Price * Quantity) - Total Cost
+      const sellingPrice = Number(v.expected_selling_price) || selectedItem?.selling_price || 0;
+      if (sellingPrice > 0) {
+        const computedProfit = (sellingPrice * qty) - computedTotalCost;
+        set("estimated_profit", computedProfit.toFixed(2));
+      }
+    }
+  }, [v.item_name, v.quantity, v.selected_supplier_name, v.expected_selling_price]);
+
   function withCurrent(list, current) {
     const names = list.filter(Boolean);
     if (current && !names.includes(current)) return [current, ...names];
@@ -101,8 +130,6 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
       )}
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-
-        {/* Item Name — from inventory */}
         <FormField
           label="Item Name"
           error={errors.item_name}
@@ -139,7 +166,6 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
           />
         </FormField>
 
-        {/* Delivery Location — Sri Lankan districts */}
         <FormField label="Delivery Location" hint="Select the district">
           <select
             className="select-field"
@@ -153,7 +179,7 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
           </select>
         </FormField>
 
-        <FormField label="Expected Selling Price (LKR)">
+        <FormField label="Expected Unit Selling Price (LKR)" hint="Auto-filled from inventory">
           <input
             className="input-field"
             type="number" min="0" step="0.01"
@@ -162,7 +188,6 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
           />
         </FormField>
 
-        {/* Selected Supplier — from suppliers */}
         <FormField
           label="Selected Supplier"
           hint={supplierOptions.length === 0 ? "No suppliers yet — add one first, or type a name." : "Choose from your suppliers"}
@@ -188,7 +213,7 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
           )}
         </FormField>
 
-        <FormField label="Total Cost (LKR)">
+        <FormField label="Total Cost (LKR)" hint="Auto-calculated (Cost + Delivery)">
           <input
             className="input-field"
             type="number" min="0" step="0.01"
@@ -197,7 +222,7 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
           />
         </FormField>
 
-        <FormField label="Estimated Profit (LKR)">
+        <FormField label="Estimated Profit (LKR)" hint="Auto-calculated (Revenue - Cost)">
           <input
             className="input-field"
             type="number" step="0.01"
