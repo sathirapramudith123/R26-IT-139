@@ -8,7 +8,6 @@ import { inventoryApi } from "@/services/api/inventory";
 import { supplierApi } from "@/services/api/supplier";
 import { INVENTORY_UNITS } from "@/lib/constants";
 
-// AI Models (C2/C3) සඳහා Pre-defined Categories
 const ITEM_CATEGORIES = [
   "Rice & Grains",
   "Beverages",
@@ -38,6 +37,7 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
     unit:          initialData.unit          ?? "unit",
     cost_price:    initialData.cost_price    ?? initialData.unit_price ?? "",
     selling_price: initialData.selling_price ?? initialData.unit_price ?? "",
+    lead_time_days: initialData.lead_time_days ?? "1", // AI Safety Stock එක සඳහා එකතු කරන ලදී
   });
 
   function set(k, val) { 
@@ -57,6 +57,12 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
     supplierOptions.unshift(v.supplier_name);
   }
 
+  // Categories වල අලුත් custom category එකක් තිබේ නම් dropdown එකට එකතු කිරීම
+  const categoryOptions = [...ITEM_CATEGORIES];
+  if (v.category && !categoryOptions.includes(v.category)) {
+    categoryOptions.unshift(v.category);
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     const er = {};
@@ -65,6 +71,11 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
     if (v.quantity === "" || Number(v.quantity) < 0) er.quantity = "Enter a valid quantity (0 or more).";
     if (v.cost_price !== "" && Number(v.cost_price) < 0) er.cost_price = "Cost price cannot be negative.";
     if (v.selling_price !== "" && Number(v.selling_price) < 0) er.selling_price = "Selling price cannot be negative.";
+    
+    // Margin Warning/Validation
+    if (Number(v.selling_price) < Number(v.cost_price)) {
+      er.selling_price = "Selling price should be higher than cost price.";
+    }
 
     if (Object.keys(er).length) { setErrors(er); return; }
     
@@ -76,8 +87,8 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
       reorder_level: v.reorder_level === "" ? 0 : Number(v.reorder_level),
       cost_price: v.cost_price === "" ? 0 : Number(v.cost_price),
       selling_price: v.selling_price === "" ? 0 : Number(v.selling_price),
-      // Backward compatibility for existing backend APIs using unit_price
       unit_price: v.selling_price === "" ? 0 : Number(v.selling_price),
+      lead_time_days: v.lead_time_days === "" ? 1 : Number(v.lead_time_days),
     };
 
     try {
@@ -106,11 +117,10 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
           <input className={cls("name")} value={v.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Rice 5kg" />
         </FormField>
 
-        {/* C2 Demand Forecasting සඳහා අලුතින් එකතු වූ Category Dropdown */}
         <FormField label="Category" error={errors.category} required hint="Required for AI Demand Forecasting">
           <select className="select-field" value={v.category} onChange={e => set("category", e.target.value)}>
             <option value="">Select Category...</option>
-            {ITEM_CATEGORIES.map(cat => (
+            {categoryOptions.map(cat => (
               <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>
@@ -151,17 +161,20 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
           <input className={cls("quantity")} type="number" min="0" step="0.01" value={v.quantity} onChange={e => set("quantity", e.target.value)} />
         </FormField>
 
-        <FormField label="Reorder Level" hint="Alert when quantity falls to this level">
-          <input className="input-field" type="number" min="0" step="0.01" value={v.reorder_level} onChange={e => set("reorder_level", e.target.value)} />
+        <FormField label="Reorder Level" hint="Alert threshold (Auto-calculated by AI if empty)">
+          <input className="input-field" type="number" min="0" step="0.01" value={v.reorder_level} onChange={e => set("reorder_level", e.target.value)} placeholder="Default: Auto AI" />
         </FormField>
 
-        {/* C1/C3 සඳහා වෙනස් කරන ලද Cost Price & Selling Price Fields */}
-        <FormField label="Cost Price per Unit (LKR)" error={errors.cost_price} hint="Buying price (For Procurement/Profit AI)">
+        <FormField label="Cost Price per Unit (LKR)" error={errors.cost_price} hint="Buying price">
           <input className={cls("cost_price")} type="number" min="0" step="0.01" value={v.cost_price} onChange={e => set("cost_price", e.target.value)} placeholder="e.g. 1100.00" />
         </FormField>
 
-        <FormField label="Selling Price per Unit (LKR)" error={errors.selling_price} hint="Selling price (For Sales Form Auto-fill)">
+        <FormField label="Selling Price per Unit (LKR)" error={errors.selling_price} hint="Selling price">
           <input className={cls("selling_price")} type="number" min="0" step="0.01" value={v.selling_price} onChange={e => set("selling_price", e.target.value)} placeholder="e.g. 1252.50" />
+        </FormField>
+
+        <FormField label="Item Delivery Lead Time (Days)" error={errors.lead_time_days} hint="Expected delivery time (Used for Dynamic Safety Stock)">
+          <input className={cls("lead_time_days")} type="number" min="0" step="1" value={v.lead_time_days} onChange={e => set("lead_time_days", e.target.value)} placeholder="e.g. 1" />
         </FormField>
       </div>
 

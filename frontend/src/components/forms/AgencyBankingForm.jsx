@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import FormField from "./FormField";
@@ -9,7 +9,7 @@ import { agencyBankingApi } from "@/services/api/agencyBanking";
 import { AGENCY_TRANSACTION_TYPES, CBSL_LIMITS } from "@/lib/constants";
 import { isValidPhone } from "@/lib/validators";
 import { formatCurrency } from "@/lib/formatters";
-import { User, Phone, DollarSign, AlertCircle, Loader2 } from "lucide-react";
+import { User, Phone, DollarSign, AlertCircle, Loader2, Building2 } from "lucide-react";
 
 const STATUSES = ["completed", "pending", "failed"];
 
@@ -27,6 +27,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
     amount:           initialData.amount           ?? "",
     service_fee:      initialData.service_fee      ?? "",
     commission:       initialData.commission       ?? "",
+    channel:          initialData.channel          ?? "pos_terminal", // ML Model එකට අවශ්‍යයි
     created_offline:  initialData.created_offline  ?? false,
     status:           initialData.status           ?? "completed",
   });
@@ -36,20 +37,25 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
     setErrors(p => ({ ...p, [k]: undefined }));
   }
 
-  // AUTO-CALCULATE SERVICE FEE & COMMISSION BASED ON AMOUNT
-  useEffect(() => {
-    const amt = Number(v.amount);
+  // ✅ Amount එක වෙනස් වන විට පමණක් Auto-Calculate වන ක්‍රමය
+  function handleAmountChange(val) {
+    const amt = Number(val);
+    let fee = v.service_fee;
+    let comm = v.commission;
+
     if (amt > 0 && !isEdit) {
-      if (!v.service_fee) {
-        const calculatedFee = Math.max(20, amt * 0.002);
-        setV(p => ({ ...p, service_fee: calculatedFee.toFixed(2) }));
-      }
-      if (!v.commission) {
-        const calculatedComm = amt * 0.005;
-        setV(p => ({ ...p, commission: calculatedComm.toFixed(2) }));
-      }
+      fee = Math.max(20, amt * 0.002).toFixed(2);
+      comm = (amt * 0.005).toFixed(2);
     }
-  }, [v.amount, v.transaction_type]);
+
+    setV(p => ({
+      ...p,
+      amount: val,
+      service_fee: fee,
+      commission: comm
+    }));
+    setErrors(p => ({ ...p, amount: undefined }));
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -71,7 +77,8 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
       ...v,
       amount: Number(v.amount),
       service_fee: num(v.service_fee),
-      commission: num(v.commission)
+      commission: num(v.commission),
+      tx_hour: new Date().getHours(), // ML Model (Anomaly Detection) එකට Real-time Hour එක ලබාදෙයි
     };
 
     try {
@@ -167,7 +174,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
               min="0.01"
               step="0.01"
               value={v.amount}
-              onChange={e => set("amount", e.target.value)}
+              onChange={e => handleAmountChange(e.target.value)}
               placeholder="0.00"
             />
           </div>

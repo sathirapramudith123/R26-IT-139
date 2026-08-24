@@ -24,7 +24,7 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
     unit_price:         initialData.unit_price         ?? "",
     delivery_cost:      initialData.delivery_cost      ?? "",
     available_quantity: initialData.available_quantity ?? "",
-    lead_time_days:     initialData.lead_time_days     ?? "", // Added for Procurement Optimization
+    lead_time_days:     initialData.lead_time_days     ?? "1", // AI Reorder Safety Stock Model සඳහා
     status:             initialData.status             ?? "active",
   });
 
@@ -36,23 +36,50 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
   async function handleSubmit(e) {
     e.preventDefault();
     const er = {};
+
+    // 1. Basic Required Validation
     if (!v.name.trim()) er.name = "Supplier name is required.";
-    if (!v.contact_number.trim()) er.contact_number = "Contact number is required.";
-    if (v.email && !isValidEmail(v.email)) er.email = "Enter a valid email.";
+
+    // 2. Contact Number Format Check (Sri Lankan / General 9-10 Digits)
+    const cleanPhone = v.contact_number.replace(/\D/g, "");
+    if (!v.contact_number.trim()) {
+      er.contact_number = "Contact number is required.";
+    } else if (cleanPhone.length < 9 || cleanPhone.length > 12) {
+      er.contact_number = "Enter a valid contact number (e.g. 0771234567).";
+    }
+
+    // 3. Email Check
+    if (v.email && !isValidEmail(v.email)) {
+      er.email = "Enter a valid email address.";
+    }
+
+    // 4. Numeric Inputs Non-negative Validation
+    if (v.unit_price !== "" && Number(v.unit_price) < 0) {
+      er.unit_price = "Unit price cannot be negative.";
+    }
+    if (v.delivery_cost !== "" && Number(v.delivery_cost) < 0) {
+      er.delivery_cost = "Delivery cost cannot be negative.";
+    }
+    if (v.available_quantity !== "" && Number(v.available_quantity) < 0) {
+      er.available_quantity = "Available quantity cannot be negative.";
+    }
     if (v.lead_time_days !== "" && Number(v.lead_time_days) < 0) {
       er.lead_time_days = "Lead time cannot be negative.";
     }
 
+    // Errors තිබේ නම් Form Submission එක නතර කිරීම
     if (Object.keys(er).length) { setErrors(er); return; }
 
-    setSaving(true); setServerError(null);
+    setSaving(true); 
+    setServerError(null);
 
+    // Backend Payload එක සකස් කිරීම (Numbers බවට Convert කිරීම)
     const payload = {
       ...v,
       unit_price: v.unit_price === "" ? 0 : Number(v.unit_price),
       delivery_cost: v.delivery_cost === "" ? 0 : Number(v.delivery_cost),
       available_quantity: v.available_quantity === "" ? 0 : Number(v.available_quantity),
-      lead_time_days: v.lead_time_days === "" ? 1 : Number(v.lead_time_days), // Default 1 day
+      lead_time_days: v.lead_time_days === "" ? 1 : Number(v.lead_time_days),
     };
 
     try {
@@ -60,7 +87,7 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
       else await supplierApi.create(payload);
       router.push("/dashboard/suppliers");
     } catch (err) { 
-      setServerError(err.message || "Save failed."); 
+      setServerError(err.message || "Failed to save supplier details."); 
     } finally { 
       setSaving(false); 
     }
@@ -93,20 +120,20 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
           <input className={cls("email")} type="email" value={v.email} onChange={e => set("email", e.target.value)} placeholder="supplier@example.com" />
         </FormField>
 
-        <FormField label="Unit Price (LKR)" hint="Base item price offered">
-          <input className="input-field" type="number" min="0" step="0.01" value={v.unit_price} onChange={e => set("unit_price", e.target.value)} placeholder="0.00" />
+        <FormField label="Unit Price (LKR)" error={errors.unit_price} hint="Base item price offered by supplier">
+          <input className={cls("unit_price")} type="number" min="0" step="0.01" value={v.unit_price} onChange={e => set("unit_price", e.target.value)} placeholder="0.00" />
         </FormField>
 
-        <FormField label="Delivery Cost (LKR)" hint="Fixed delivery fee per batch">
-          <input className="input-field" type="number" min="0" step="0.01" value={v.delivery_cost} onChange={e => set("delivery_cost", e.target.value)} placeholder="0.00" />
+        <FormField label="Delivery Cost (LKR)" error={errors.delivery_cost} hint="Fixed delivery fee per shipment">
+          <input className={cls("delivery_cost")} type="number" min="0" step="0.01" value={v.delivery_cost} onChange={e => set("delivery_cost", e.target.value)} placeholder="0.00" />
         </FormField>
 
-        <FormField label="Available Quantity">
-          <input className="input-field" type="number" min="0" step="0.01" value={v.available_quantity} onChange={e => set("available_quantity", e.target.value)} placeholder="0" />
+        <FormField label="Available Quantity" error={errors.available_quantity} hint="Stock quantity supplier can fulfill">
+          <input className={cls("available_quantity")} type="number" min="0" step="0.01" value={v.available_quantity} onChange={e => set("available_quantity", e.target.value)} placeholder="0" />
         </FormField>
 
-        {/* AI Model (Component 3) එකට එකතු කළ Lead Time Field එක */}
-        <FormField label="Lead Time (Days)" error={errors.lead_time_days} hint="Days required to deliver items (For Reorder Alerts)">
+        {/* Dynamic Safety Stock Reorder Engine එකට අවශ්‍ය Lead Time */}
+        <FormField label="Delivery Lead Time (Days)" error={errors.lead_time_days} hint="Days needed to deliver items (For AI Reorder Buffer)">
           <input className={cls("lead_time_days")} type="number" min="0" step="1" value={v.lead_time_days} onChange={e => set("lead_time_days", e.target.value)} placeholder="e.g. 2" />
         </FormField>
 
@@ -117,7 +144,7 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
         </FormField>
 
         <div className="md:col-span-2">
-          <FormField label="Address" hint="Optional">
+          <FormField label="Address" hint="Optional business/warehouse address">
             <textarea className="input-field resize-none" rows={2} value={v.address} onChange={e => set("address", e.target.value)} placeholder="Add business address..." />
           </FormField>
         </div>

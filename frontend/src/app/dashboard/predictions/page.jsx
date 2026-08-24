@@ -22,10 +22,9 @@ import { insightsApi } from "@/services/api/insights";
 import { formatCurrency } from "@/lib/formatters";
 
 /* -------------------------------------------------------------------------- */
-/*  Plain-language helpers                                                     */
+/*  Plain-language helpers                                                    */
 /* -------------------------------------------------------------------------- */
 
-// Turn model feature keys into words a normal person understands.
 const FEATURE_LABELS = {
   months_active: "Time in business",
   avg_daily_txns: "Daily sales count",
@@ -48,42 +47,57 @@ const humanize = (f) =>
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
 /* -------------------------------------------------------------------------- */
-/*  Score ring (unchanged look, clearer label)                                */
+/*  Redesigned Loan Readiness Gauge                                           */
 /* -------------------------------------------------------------------------- */
 
-function Gauge({ score }) {
+function LoanReadinessGauge({ score }) {
   const pct = Math.min(100, Math.max(0, Number(score) || 0));
   const strokeDashoffset = 251.2 - (251.2 * pct) / 100;
+
+  const strokeColor =
+    pct >= 70 ? "#10b981" : pct >= 40 ? "#f59e0b" : "#f43f5e";
+
   const colorClass =
     pct >= 70 ? "text-emerald-500" : pct >= 40 ? "text-amber-500" : "text-rose-500";
 
   return (
-    <div className="relative flex h-24 w-24 shrink-0 items-center justify-center">
+    <div className="relative flex h-28 w-28 shrink-0 items-center justify-center">
       <svg className="h-full w-full -rotate-90 transform" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="40" className="stroke-slate-100 dark:stroke-slate-800" strokeWidth="10" fill="transparent" />
         <circle
           cx="50"
           cy="50"
           r="40"
-          className={`transition-all duration-1000 ease-out stroke-current ${colorClass}`}
-          strokeWidth="10"
+          className="stroke-slate-200 dark:stroke-slate-800"
+          strokeWidth="8"
+          fill="transparent"
+        />
+        <circle
+          cx="50"
+          cy="50"
+          r="40"
+          stroke={strokeColor}
+          strokeWidth="8"
           strokeDasharray="251.2"
           strokeDashoffset={strokeDashoffset}
           strokeLinecap="round"
           fill="transparent"
+          className="transition-all duration-1000 ease-out"
         />
       </svg>
       <div className="absolute flex flex-col items-center justify-center text-center">
-        <span className={`font-outfit text-xl font-bold ${colorClass}`}>{pct.toFixed(0)}</span>
-        <span className="text-[10px] text-slate-400 font-medium">out of 100</span>
+        <span className={`font-outfit text-2xl font-black ${colorClass}`}>
+          {pct.toFixed(0)}
+        </span>
+        <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+          Score
+        </span>
       </div>
     </div>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/*  "What's affecting this" — real diverging bar chart (recharts)             */
-/*  Green bars push the result up, red bars push it down.                     */
+/*  "What's affecting this" — diverging bar chart                              */
 /* -------------------------------------------------------------------------- */
 
 function InfluenceTooltip({ active, payload }) {
@@ -150,8 +164,7 @@ function InfluenceChart({ explanation }) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Demand trend line — only renders if the API sends demand.history          */
-/*  Expected shape: demand.history = [{ label: "3 wks ago", units: 40 }, ...] */
+/*  Demand trend line                                                         */
 /* -------------------------------------------------------------------------- */
 
 function DemandTrend({ history, prediction }) {
@@ -181,7 +194,7 @@ function DemandTrend({ history, prediction }) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Confidence bar (uses existing procurement.score / any 0-100 value)        */
+/*  Confidence bar                                                            */
 /* -------------------------------------------------------------------------- */
 
 function ConfidenceBar({ score }) {
@@ -211,7 +224,6 @@ const NoData = ({ reason }) => (
   </div>
 );
 
-// Small category chip that replaces the internal "C1 Model" codes.
 const CategoryChip = ({ label, tone }) => {
   const tones = {
     teal: "bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-400",
@@ -223,7 +235,7 @@ const CategoryChip = ({ label, tone }) => {
 };
 
 /* -------------------------------------------------------------------------- */
-/*  Page                                                                      */
+/*  Main PredictionsDashboard Page                                            */
 /* -------------------------------------------------------------------------- */
 
 export default function PredictionsDashboard() {
@@ -285,10 +297,10 @@ export default function PredictionsDashboard() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* LOAN READINESS */}
-        <div className="flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+        {/* REDESIGNED LOAN READINESS CARD */}
+        <div className="flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
           <div>
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <CategoryChip label="Money" tone="teal" />
                 <h3 className="font-outfit text-lg font-semibold text-slate-900 dark:text-slate-100">
@@ -301,42 +313,60 @@ export default function PredictionsDashboard() {
             {!credit.available ? (
               <NoData reason={credit.reason} />
             ) : (
-              <div className="space-y-4">
-                <div className="flex items-center gap-5 rounded-xl bg-slate-50 p-4 dark:bg-slate-800/50">
-                  <Gauge score={credit.score} />
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <span
-                      className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${
-                        credit.prediction === 1
-                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300"
-                          : "bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300"
-                      }`}
-                    >
-                      {credit.prediction === 1 ? "Ready to apply ✓" : "Not ready yet"}
-                    </span>
-                    <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                      In business:{" "}
-                      <b className="text-slate-700 dark:text-slate-200">{credit.features?.months_active} mo</b> ·{" "}
-                      Daily sales:{" "}
-                      <b className="text-slate-700 dark:text-slate-200">{credit.features?.avg_daily_txns}</b> ·{" "}
-                      Profit margin:{" "}
-                      <b className="text-slate-700 dark:text-slate-200">{credit.features?.profit_margin_pct}%</b>
+              <div className="space-y-5">
+                {/* Score & Main Badge */}
+                <div className="flex flex-col sm:flex-row items-center gap-5 rounded-2xl border border-slate-100 bg-slate-50/80 p-5 dark:border-slate-800/80 dark:bg-slate-800/40">
+                  <LoanReadinessGauge score={credit.score} />
+
+                  <div className="flex-1 space-y-3 text-center sm:text-left">
+                    <div>
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold tracking-wide ${
+                          credit.prediction === 1
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-400"
+                            : "bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-400"
+                        }`}
+                      >
+                        {credit.prediction === 1 ? "✓ Ready to Apply" : "⚠️ Needs Improvement"}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {credit.prediction === 1
+                        ? "Your business health meets key lending criteria for loan approvals."
+                        : "Boost daily sales or profit margin to increase your eligibility score."}
                     </p>
                   </div>
                 </div>
+
+                {/* Structured Key Metrics */}
+                <div className="grid grid-cols-3 gap-2 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/30">
+                  <div className="text-center sm:text-left px-2">
+                    <p className="text-[11px] font-medium text-slate-400">In Business</p>
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      {credit.features?.months_active ?? 0} <span className="text-xs font-normal text-slate-400">mos</span>
+                    </p>
+                  </div>
+                  <div className="border-x border-slate-200 text-center sm:text-left px-2 dark:border-slate-700/50">
+                    <p className="text-[11px] font-medium text-slate-400">Daily Sales</p>
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      {credit.features?.avg_daily_txns ?? 0} <span className="text-xs font-normal text-slate-400">/day</span>
+                    </p>
+                  </div>
+                  <div className="text-center sm:text-left px-2">
+                    <p className="text-[11px] font-medium text-slate-400">Profit Margin</p>
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      {credit.features?.profit_margin_pct ?? 0}%
+                    </p>
+                  </div>
+                </div>
+
                 <InfluenceChart explanation={credit.explanation} />
               </div>
             )}
           </div>
 
-          <div className="mt-5 border-t border-slate-100 pt-3 dark:border-slate-800">
-            {/*<Link
-              href="/dashboard/predictions/credit"
-              className="inline-flex items-center text-xs font-semibold text-teal-600 transition hover:text-teal-700 dark:text-teal-400"
-            >
-              Try different scenarios →
-            </Link>*/}
-          </div>
+          <div className="mt-5 border-t border-slate-100 pt-3 dark:border-slate-800" />
         </div>
 
         {/* SALES FORECAST */}
@@ -361,7 +391,6 @@ export default function PredictionsDashboard() {
                     Product: <b className="text-slate-800 dark:text-slate-200">{demand.item}</b>
                   </p>
 
-                  {/* Trend line if history exists, otherwise the headline number */}
                   <DemandTrend history={demand.history} prediction={demand.prediction} />
 
                   <div className="mt-2 flex items-baseline space-x-2">
@@ -378,14 +407,7 @@ export default function PredictionsDashboard() {
             )}
           </div>
 
-          <div className="mt-5 border-t border-slate-100 pt-3 dark:border-slate-800">
-            {/*<Link
-              href="/dashboard/predictions/demand"
-              className="inline-flex items-center text-xs font-semibold text-amber-600 transition hover:underline dark:text-amber-400"
-            >
-              See full forecast →
-            </Link>*/}
-          </div>
+          <div className="mt-5 border-t border-slate-100 pt-3 dark:border-slate-800" />
         </div>
 
         {/* BUY OR WAIT */}
@@ -433,14 +455,7 @@ export default function PredictionsDashboard() {
             )}
           </div>
 
-          <div className="mt-5 border-t border-slate-100 pt-3 dark:border-slate-800">
-            {/*<Link
-              href="/dashboard/predictions/procurement"
-              className="inline-flex items-center text-xs font-semibold text-orange-600 transition hover:underline dark:text-orange-400"
-            >
-              See buying details →
-            </Link>*/}
-          </div>
+          <div className="mt-5 border-t border-slate-100 pt-3 dark:border-slate-800" />
         </div>
 
         {/* ACCOUNT ACTIVITY */}
@@ -487,14 +502,7 @@ export default function PredictionsDashboard() {
             )}
           </div>
 
-          <div className="mt-5 border-t border-slate-100 pt-3 dark:border-slate-800">
-            {/*<Link
-              href="/dashboard/predictions/anomaly"
-              className="inline-flex items-center text-xs font-semibold text-blue-600 transition hover:underline dark:text-blue-400"
-            >
-              Check a transaction →
-            </Link>*/}
-          </div>
+          <div className="mt-5 border-t border-slate-100 pt-3 dark:border-slate-800" />
         </div>
       </div>
     </div>
