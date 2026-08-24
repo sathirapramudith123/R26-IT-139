@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../config/predictions.dart';
 import '../../services/prediction_service.dart';
+import '../predictions/prediction_widgets.dart';
 
 class PredictionScreen extends StatefulWidget {
   final PredictionModel model;
@@ -16,9 +17,14 @@ class _PredictionScreenState extends State<PredictionScreen> {
   Map<String, dynamic>? result;
 
   Future<void> _predict() async {
-    setState(() { loading = true; error = null; result = null; });
+    setState(() {
+      loading = true;
+      error = null;
+      result = null;
+    });
     try {
-      result = await PredictionService.predict(widget.model.component, widget.model.sampleFeatures);
+      result = await PredictionService.predict(
+          widget.model.component, widget.model.sampleFeatures);
       setState(() {});
     } catch (e) {
       setState(() => error = e.toString().replaceFirst("Exception: ", ""));
@@ -31,6 +37,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final teal = isDark ? KadeColors.tealDark : KadeColors.teal;
+    final sub = Theme.of(context).textTheme.bodySmall?.color;
 
     return Scaffold(
       appBar: AppBar(title: Text(widget.model.title)),
@@ -48,29 +55,36 @@ class _PredictionScreenState extends State<PredictionScreen> {
               const SizedBox(width: 14),
               Expanded(
                 child: Text(widget.model.title,
-                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
+                    style: const TextStyle(
+                        color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
               ),
             ]),
           ),
           const SizedBox(height: 16),
-          Text("Runs the model with sample merchant data.",
-              style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color)),
+          Text("Tap below to see a prediction using sample business data.",
+              style: TextStyle(color: sub)),
           const SizedBox(height: 16),
           SizedBox(
             height: 52,
             child: FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: teal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999))),
+              style: FilledButton.styleFrom(
+                  backgroundColor: teal,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999))),
               onPressed: loading ? null : _predict,
               child: loading
-                  ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-                  : const Text("Run Prediction", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
+                  ? const SizedBox(
+                      height: 22, width: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                  : const Text("Show Prediction",
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
             ),
           ),
           const SizedBox(height: 20),
           if (error != null)
             Container(
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: KadeColors.terra.withOpacity(0.12), borderRadius: BorderRadius.circular(16)),
+              decoration: BoxDecoration(
+                  color: KadeColors.terra.withOpacity(0.12), borderRadius: BorderRadius.circular(16)),
               child: Row(children: [
                 const Icon(Icons.error_outline, color: KadeColors.terra, size: 18),
                 const SizedBox(width: 8),
@@ -87,6 +101,8 @@ class _PredictionScreenState extends State<PredictionScreen> {
     final prediction = result!["prediction"];
     final score = result!["score"];
     final hasScore = score is num;
+    final sub = Theme.of(context).textTheme.bodySmall?.color;
+    final explanation = (result!["explanation"] is List) ? result!["explanation"] as List : const [];
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -98,40 +114,43 @@ class _PredictionScreenState extends State<PredictionScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Result", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
+          const Text("What we found",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
           const SizedBox(height: 16),
           if (!hasScore) ...[
-            Text("Predicted value", style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 13)),
+            // Regression-style result: a predicted number.
+            Text("Predicted number", style: TextStyle(color: sub, fontSize: 13)),
             const SizedBox(height: 4),
-            Text("${(prediction as num).toStringAsFixed(1)}",
-                style: TextStyle(fontSize: 34, fontWeight: FontWeight.w800, fontFamily: "Nunito", color: teal)),
+            Text((prediction as num).toStringAsFixed(1),
+                style: TextStyle(
+                    fontSize: 34, fontWeight: FontWeight.w800, fontFamily: "Nunito", color: teal)),
           ] else ...[
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text("Decision", style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  color: (prediction == 1 ? KadeColors.teal : KadeColors.terra).withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(prediction == 1 ? "Yes" : "No",
-                    style: TextStyle(color: prediction == 1 ? teal : KadeColors.terra, fontWeight: FontWeight.w800)),
+            // Classification-style result: yes/no plus a confidence ring.
+            Row(children: [
+              RingGauge(score: (score).toDouble()),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text("Recommendation", style: TextStyle(color: sub, fontSize: 13)),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: (prediction == 1 ? KadeColors.teal : KadeColors.terra).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(prediction == 1 ? "Yes" : "No",
+                        style: TextStyle(
+                            color: prediction == 1 ? teal : KadeColors.terra,
+                            fontWeight: FontWeight.w800, fontSize: 15)),
+                  ),
+                  const SizedBox(height: 6),
+                  Text("How confident we are", style: TextStyle(fontSize: 11, color: sub)),
+                ]),
               ),
             ]),
-            const SizedBox(height: 16),
-            Text("Score: ${(score).toStringAsFixed(1)} / 100",
-                style: const TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(999),
-              child: LinearProgressIndicator(
-                value: (score / 100).clamp(0.0, 1.0),
-                minHeight: 12,
-                color: score >= 70 ? KadeColors.teal : (score >= 40 ? KadeColors.amber : KadeColors.terra),
-                backgroundColor: isDark ? Colors.white10 : const Color(0xFFECE3D5),
-              ),
-            ),
           ],
+          InfluenceBars(explanation: explanation),
         ],
       ),
     );
