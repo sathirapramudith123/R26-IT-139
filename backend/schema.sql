@@ -358,3 +358,26 @@ COMMENT ON COLUMN inventory.item_status IS
 
 COMMENT ON COLUMN procurement.procurement_status IS
 'Lifecycle of the decision. Moving to RECEIVED adds the quantity to inventory; moving away from RECEIVED reverses it.';
+
+
+-- 1. agency_banking Table එකට Anomaly Detection Columns එකතු කිරීම
+ALTER TABLE agency_banking 
+  ADD COLUMN IF NOT EXISTS is_anomaly BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS anomaly_score NUMERIC(5,4) NOT NULL DEFAULT 0.0000,
+  ADD COLUMN IF NOT EXISTS channel VARCHAR(50) NOT NULL DEFAULT 'pos_terminal',
+  ADD COLUMN IF NOT EXISTS tx_hour INT;
+
+-- 2. Performance සඳහා ML index එකක් එකතු කිරීම
+CREATE INDEX IF NOT EXISTS idx_agb_anomaly ON agency_banking(user_id, is_anomaly);
+
+-- 3. PostgREST Schema Cache එක Refresh කිරීම (500 Error එක වැළැක්වීමට)
+NOTIFY pgrst, 'reload schema';
+
+ALTER TABLE inventory 
+ADD COLUMN IF NOT EXISTS category TEXT,
+ADD COLUMN IF NOT EXISTS cost_price NUMERIC DEFAULT 0,
+ADD COLUMN IF NOT EXISTS selling_price NUMERIC DEFAULT 0,
+ADD COLUMN IF NOT EXISTS lead_time_days NUMERIC DEFAULT 1;
+
+ALTER TABLE suppliers 
+ADD COLUMN IF NOT EXISTS lead_time_days NUMERIC DEFAULT 1;

@@ -8,18 +8,43 @@ import { transactionApi } from "@/services/api/transaction";
 import { inventoryApi } from "@/services/api/inventory";
 import { TRANSACTION_TYPES, PAYMENT_METHODS } from "@/lib/constants";
 
+// 1. Config for Transaction Modes
 const TYPE_CONFIG = {
-  sale:     { mode: "items"                                  },
-  purchase: { mode: "items"                                  },
-  expense:  { mode: "simple", category: true,  description: true   },
-  deposit:  { mode: "simple", category: false, description: true   },
-  transfer: { mode: "simple", category: false, description: true   },
+  sale:     { mode: "items" },
+  purchase: { mode: "items" },
+  expense:  { mode: "simple", category: true, description: true },
+  deposit:  { mode: "simple", category: true, description: true },
+  transfer: { mode: "simple", category: true, description: true },
+};
+
+// 2. Standardized Categories for AI & Analytics Models
+const CATEGORIES_BY_TYPE = {
+  expense: [
+    "Utilities (Electricity/Water)",
+    "Rent",
+    "Transport / Fuel",
+    "Labor / Wages",
+    "Loss / Wastage / Damage",
+    "Personal Drawings"
+  ],
+  deposit: [
+    "Agency Banking Cash-In",
+    "Owner Capital Injection",
+    "Loan Disbursement",
+    "Other Income"
+  ],
+  transfer: [
+    "Agency Wallet Top-up",
+    "Supplier Payment",
+    "Inter-Bank Transfer"
+  ]
 };
 
 export default function TransactionForm({ initialData = {}, txId = null }) {
   const router = useRouter();
   const isEdit = !!txId;
   const [saving, setSaving] = useState(false);
+  const [loadingInventory, setLoadingInventory] = useState(true);
   const [serverError, setServerError] = useState(null);
   const [errors, setErrors] = useState({});
   const [items, setItems] = useState([]);
@@ -36,11 +61,17 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
 
   const [cart, setCart] = useState(
     (initialData.items ?? []).map(l => ({
-      item_name: l.item_name, quantity: Number(l.quantity), unit_price: 0, amount: 0,
+      item_name: l.item_name, 
+      quantity: Number(l.quantity), 
+      unit_price: Number(l.unit_price) || 0, 
+      amount: Number(l.amount) || 0,
     }))
   );
 
-  function set(k, val) { setV(p => ({ ...p, [k]: val })); setErrors(p => ({ ...p, [k]: undefined })); }
+  function set(k, val) { 
+    setV(p => ({ ...p, [k]: val })); 
+    setErrors(p => ({ ...p, [k]: undefined })); 
+  }
 
   const type       = v.transaction_type;
   const cfg        = TYPE_CONFIG[type] ?? { mode: "simple", category: true, description: true };
@@ -48,7 +79,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
   const isSale     = type === "sale";
   const isPurchase = type === "purchase";
   const picked     = items.find(i => i.name === v.item_name);
-  const total      = cart.reduce((s, l) => s + l.amount, 0);
+  const total      = cart.reduce((s, l) => s + (l.amount || 0), 0);
 
   function priceOf(item) {
     const p = isPurchase
@@ -62,24 +93,35 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
     set("item_name", "");
     set("quantity", "");
     set("amount", "");
+    set("category", "");
     setCart([]);
   }
 
+  // Fetch inventory items
   useEffect(() => {
-    inventoryApi.list().then(d => setItems(Array.isArray(d) ? d : [])).catch(() => setItems([]));
+    setLoadingInventory(true);
+    inventoryApi.list()
+      .then(d => setItems(Array.isArray(d) ? d : []))
+      .catch(() => setItems([]))
+      .finally(() => setLoadingInventory(false));
   }, []);
 
+  // Update existing cart items prices on load during Edit mode
   useEffect(() => {
     if (!isEdit || !items.length) return;
     setCart(prev => prev.map(l => {
-      if (l.unit_price) return l;
+      if (l.unit_price > 0) return l;
       const inv = items.find(i => i.name === l.item_name);
       const price = inv ? priceOf(inv) : 0;
-      return { ...l, unit_price: price, amount: +(l.quantity * price).toFixed(2) };
+      return { 
+        ...l, 
+        unit_price: price, 
+        amount: +(l.quantity * price).toFixed(2) 
+      };
     }));
   }, [items, isEdit]);
 
-  // Keep Amount (LKR) in sync with the cart total
+  // Sync total to amount field
   useEffect(() => {
     if (usesItems) set("amount", total ? total.toFixed(2) : "");
   }, [total, usesItems]);
@@ -87,12 +129,18 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
   function addLine() {
     if (!picked) return;
     const units = parseFloat(v.quantity);
-    if (!units || units <= 0) { setErrors(p => ({ ...p, quantity: "Enter how many units." })); return; }
+    if (!units || units <= 0) { 
+      setErrors(p => ({ ...p, quantity: "Enter how many units." })); 
+      return; 
+    }
 
     if (isSale) {
       const already = cart.filter(l => l.item_name === picked.name).reduce((s, l) => s + l.quantity, 0);
       if (units + already > Number(picked.quantity)) {
-        setErrors(p => ({ ...p, quantity: `Only ${picked.quantity} in stock${already ? ` (${already} already added)` : ""}.` }));
+        setErrors(p => ({ 
+          ...p, 
+          quantity: `Only ${picked.quantity} in stock${already ? ` (${already} already added)` : ""}.` 
+        }));
         return;
       }
     }
@@ -103,7 +151,11 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
       if (existing) {
         return prev.map(l =>
           l.item_name === picked.name
-            ? { ...l, quantity: l.quantity + units, amount: +((l.quantity + units) * l.unit_price).toFixed(2) }
+            ? { 
+                ...l, 
+                quantity: l.quantity + units, 
+                amount: +((l.quantity + units) * l.unit_price).toFixed(2) 
+              }
             : l
         );
       }
@@ -115,7 +167,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
 
   function removeLine(idx) { setCart(prev => prev.filter((_, i) => i !== idx)); }
 
-  // Inventory tigo update karana logic eka
+  // Inventory Stock Synchronization (Client Side Safety Batching)
   async function updateInventoryStock() {
     if (!usesItems || cart.length === 0) return;
 
@@ -124,8 +176,8 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
       if (invItem) {
         const currentQty = Number(invItem.quantity) || 0;
         const newQty = isSale
-          ? currentQty - line.quantity  // Sale ekedi adu wenawa
-          : currentQty + line.quantity; // Purchase ekedi wadi wenawa
+          ? currentQty - line.quantity
+          : currentQty + line.quantity;
 
         try {
           await inventoryApi.update(invItem.id, {
@@ -144,9 +196,14 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
     const er = {};
     if (usesItems && cart.length === 0) er.amount = "Add at least one item.";
     if (!v.amount || Number(v.amount) <= 0) er.amount = er.amount || "Enter an amount greater than 0.";
+    if (cfg.category && !v.category) er.category = "Please select a category.";
+
     if (Object.keys(er).length) { setErrors(er); return; }
 
-    setSaving(true); setServerError(null);
+    setSaving(true); 
+    setServerError(null);
+
+    // Enhanced Payload with Unit Prices for Historical Analytics Data Integrity
     const payload = usesItems
       ? {
           transaction_type: type,
@@ -154,7 +211,14 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
           amount: Number(v.amount),
           item_name: null,
           quantity: null,
-          items: cart.map(l => ({ item_name: l.item_name, quantity: l.quantity })),
+          category: null,
+          description: v.description || null,
+          items: cart.map(l => ({ 
+            item_name: l.item_name, 
+            quantity: l.quantity,
+            unit_price: l.unit_price,
+            amount: l.amount 
+          })),
         }
       : {
           transaction_type: type,
@@ -211,11 +275,11 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
       {usesItems ? (
         <>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            {/* Left: add items one by one */}
+            {/* Left: Add Items */}
             <div className="space-y-4">
-              <FormField label={itemLabel} hint={items.length === 0 ? "No inventory items yet." : stockHint}>
-                <select className="select-field" value={v.item_name} onChange={e => set("item_name", e.target.value)}>
-                  <option value="">Select an item…</option>
+              <FormField label={itemLabel} hint={loadingInventory ? "Loading items..." : items.length === 0 ? "No inventory items yet." : stockHint}>
+                <select className="select-field" value={v.item_name} onChange={e => set("item_name", e.target.value)} disabled={loadingInventory}>
+                  <option value="">{loadingInventory ? "Loading inventory..." : "Select an item…"}</option>
                   {items.map(i => (
                     <option key={i.id} value={i.name}>{i.name} ({i.quantity} in stock)</option>
                   ))}
@@ -233,6 +297,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
               </Button>
             </div>
 
+            {/* Right: Cart Overview */}
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800">
               <p className="mb-2 text-sm font-semibold text-slate-700">{listLabel}</p>
               {cart.length === 0 ? (
@@ -243,10 +308,10 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
                     <li key={idx} className="flex items-center justify-between py-2 text-sm">
                       <div>
                         <p className="font-medium text-slate-800">{line.item_name}</p>
-                        <p className="text-xs text-slate-500">{line.quantity} × LKR {line.unit_price.toFixed(2)}</p>
+                        <p className="text-xs text-slate-500">{line.quantity} × LKR {(line.unit_price || 0).toFixed(2)}</p>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="font-semibold text-slate-800">LKR {line.amount.toFixed(2)}</span>
+                        <span className="font-semibold text-slate-800">LKR {(line.amount || 0).toFixed(2)}</span>
                         <button type="button" onClick={() => removeLine(idx)}
                           className="text-slate-400 hover:text-red-500" aria-label="Remove item">×</button>
                       </div>
@@ -265,6 +330,10 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
             <input className={cls("amount")} type="number" min="0.01" step="0.01"
               value={v.amount} onChange={e => set("amount", e.target.value)} placeholder="0.00" />
           </FormField>
+          
+          <FormField label="Description / Note" hint="Optional">
+            <input className="input-field" value={v.description} onChange={e => set("description", e.target.value)} placeholder="Add optional note for sale/purchase..." />
+          </FormField>
         </>
       ) : (
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -274,15 +343,20 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
           </FormField>
 
           {cfg.category && (
-            <FormField label="Category" hint="Optional">
-              <input className="input-field" value={v.category} onChange={e => set("category", e.target.value)} placeholder="e.g. utilities, rent" />
+            <FormField label="Category" error={errors.category} required hint="Required for AI Analytics">
+              <select className="select-field" value={v.category} onChange={e => set("category", e.target.value)}>
+                <option value="">Select Category...</option>
+                {(CATEGORIES_BY_TYPE[type] || []).map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
             </FormField>
           )}
 
           {cfg.description && (
             <div className="md:col-span-2">
               <FormField label="Description" hint="Optional">
-                <input className="input-field" value={v.description} onChange={e => set("description", e.target.value)} />
+                <input className="input-field" value={v.description} onChange={e => set("description", e.target.value)} placeholder="Add optional note..." />
               </FormField>
             </div>
           )}
