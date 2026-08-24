@@ -18,8 +18,11 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
   final companyCtrl = TextEditingController();
   final contactCtrl = TextEditingController();
   final emailCtrl = TextEditingController();
+  final addressCtrl = TextEditingController();
   final priceCtrl = TextEditingController();
   final deliveryCtrl = TextEditingController();
+  final leadTimeCtrl = TextEditingController();
+  final qtyCtrl = TextEditingController();
   
   String status = "active";
   bool saving = false;
@@ -36,8 +39,11 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
     companyCtrl.text = it?["company_name"]?.toString() ?? "";
     contactCtrl.text = it?["contact_number"]?.toString() ?? "";
     emailCtrl.text = it?["email"]?.toString() ?? "";
+    addressCtrl.text = it?["address"]?.toString() ?? "";
     priceCtrl.text = it?["unit_price"]?.toString() ?? "";
     deliveryCtrl.text = it?["delivery_cost"]?.toString() ?? "";
+    leadTimeCtrl.text = it?["delivery_lead_time"]?.toString() ?? it?["lead_time"]?.toString() ?? "";
+    qtyCtrl.text = it?["available_quantity"]?.toString() ?? it?["quantity"]?.toString() ?? "";
     status = (it?["status"]?.toString().isNotEmpty ?? false) ? it!["status"].toString() : "active";
   }
 
@@ -47,8 +53,11 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
     companyCtrl.dispose();
     contactCtrl.dispose();
     emailCtrl.dispose();
+    addressCtrl.dispose();
     priceCtrl.dispose();
     deliveryCtrl.dispose();
+    leadTimeCtrl.dispose();
+    qtyCtrl.dispose();
     super.dispose();
   }
 
@@ -91,8 +100,11 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
       "status": status,
       "company_name": companyCtrl.text.trim(),
       "email": email,
+      "address": addressCtrl.text.trim(),
       "unit_price": priceCtrl.text.trim().isNotEmpty ? (num.tryParse(priceCtrl.text.trim()) ?? 0) : 0,
       "delivery_cost": deliveryCtrl.text.trim().isNotEmpty ? (num.tryParse(deliveryCtrl.text.trim()) ?? 0) : 0,
+      "delivery_lead_time": leadTimeCtrl.text.trim().isNotEmpty ? (int.tryParse(leadTimeCtrl.text.trim()) ?? 0) : 0,
+      "available_quantity": qtyCtrl.text.trim().isNotEmpty ? (num.tryParse(qtyCtrl.text.trim()) ?? 0) : 0,
     };
 
     setState(() {
@@ -162,6 +174,36 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
               enabled: !saving,
               keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(hintText: "name@example.com"),
+            ),
+            const SizedBox(height: 16),
+
+            fieldLabel("Address"),
+            TextField(
+              controller: addressCtrl,
+              enabled: !saving,
+              maxLines: 2,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(hintText: "Enter address"),
+            ),
+            const SizedBox(height: 16),
+
+            fieldLabel("Available Quantity"),
+            TextField(
+              controller: qtyCtrl,
+              enabled: !saving,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+              decoration: const InputDecoration(hintText: "0"),
+            ),
+            const SizedBox(height: 16),
+
+            fieldLabel("Delivery Lead Time (Days)"),
+            TextField(
+              controller: leadTimeCtrl,
+              enabled: !saving,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(hintText: "e.g. 3"),
             ),
             const SizedBox(height: 16),
 
