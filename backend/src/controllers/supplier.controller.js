@@ -14,6 +14,7 @@ const toDb = (b) => ({
   unit_price:         num(b.unit_price),
   delivery_cost:      num(b.delivery_cost),
   available_quantity: num(b.available_quantity),
+  lead_time_days:     num(b.lead_time_days ?? 1), // Procurement Optimization සඳහා එකතු කරන ලදී
   supplier_status:    up(b.status || b.supplier_status || "active"),
 });
 

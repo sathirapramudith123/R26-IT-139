@@ -9,16 +9,45 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import TransactionForm from "@/components/forms/TransactionForm";
 import { transactionApi } from "@/services/api/transaction";
 
+function normalize(tx) {
+  if (!tx) return tx;
+  return {
+    ...tx,
+    transaction_type: tx.transaction_type ? String(tx.transaction_type).toLowerCase() : tx.transaction_type,
+    payment_method:   tx.payment_method   ? String(tx.payment_method).toLowerCase()   : tx.payment_method,
+  };
+}
+
 export default function EditTransactionPage() {
   useAuthGuard();
-  const { id } = useParams();
+  const params = useParams();
+  const id = params?.id ?? params?.txId ?? params?.transactionId ?? Object.values(params ?? {})[0];
+
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!id) return;
-    transactionApi.getById(id).then(setItem).catch(e => setError(e.message || "Failed to load")).finally(() => setLoading(false));
+    if (!id) {
+      setError("No transaction id found in the URL. Check the [id] route folder name and the Edit link.");
+      setLoading(false);
+      return;
+    }
+    if (typeof transactionApi.getById !== "function") {
+      setError("transactionApi.getById is not a function — check the method name in services/api/transaction.");
+      setLoading(false);
+      return;
+    }
+
+    let active = true;
+    setLoading(true);
+    setError(null);
+    transactionApi
+      .getById(id)
+      .then(data => { if (active) setItem(normalize(data)); })
+      .catch(e => { if (active) setError(e?.message || "Failed to load transaction."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [id]);
 
   return (
