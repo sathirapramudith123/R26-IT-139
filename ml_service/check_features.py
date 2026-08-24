@@ -2,27 +2,46 @@ import os
 import joblib
 
 FILES = {
-        'credit': 'models/component1_sales_financial_model.pkl',
-        'procurement': 'models/component2_procurement_model.pkl',
-        'demand': 'models/component3_demand_forecast_model.pkl',
-        'anomaly': 'models/component4_banking_anomaly_model.pkl',
+    'credit': 'models/component1_sales_financial_model.pkl',
+    'procurement': 'models/component2_procurement_model.pkl',
+    'demand': 'models/component3_demand_forecast_model.pkl',
+    'anomaly': 'models/component4_banking_anomaly_model.pkl',
 }
 
 
-def expected_columns(model):
-    """Extracts feature column names safely from Estimators, ColumnTransformers, or Pipelines."""
-    # 1. Direct feature_names_in_ check (Most common in modern scikit-learn)
+def extract_expected_columns(model_or_bundle):
+    """Recursively extracts feature column names safely from Estimators, Pipelines, or Bundle Dicts."""
+    # 1. Handle Dictionary Bundles (Joblib saved dicts)
+    if isinstance(model_or_bundle, dict):
+        if 'raw_feature_names' in model_or_bundle:
+            return model_or_bundle['raw_feature_names']
+        if 'feature_names' in model_or_bundle:
+            return model_or_bundle['feature_names']
+        
+        # Check contained estimators inside dict
+        target_estimator = (
+            model_or_bundle.get('classifier_pipeline')
+            or model_or_bundle.get('classifier_model')
+            or model_or_bundle.get('regressor_pipeline')
+            or model_or_bundle.get('regressor_model')
+        )
+        if target_estimator:
+            return extract_expected_columns(target_estimator)
+
+    model = model_or_bundle
+
+    # 2. Direct feature_names_in_ check
     if hasattr(model, "feature_names_in_"):
         return list(model.feature_names_in_)
 
-    # 2. If model is a Pipeline, inspect steps
+    # 3. Inspect steps if model is a Pipeline
     if hasattr(model, "named_steps"):
         for step in model.named_steps.values():
-            cols = expected_columns(step)
+            cols = extract_expected_columns(step)
             if cols:
                 return cols
 
-    # 3. If object is a ColumnTransformer
+    # 4. Inspect ColumnTransformer
     transformers = getattr(model, "transformers_", None) or getattr(model, "transformers", None)
     if transformers:
         out = []
@@ -34,7 +53,6 @@ def expected_columns(model):
             elif isinstance(cols, str):
                 out.append(cols)
         if out:
-            # Deduplicate preserving order
             return list(dict.fromkeys(out))
 
     return None
@@ -51,8 +69,8 @@ for name, path in FILES.items():
         continue
 
     try:
-        model = joblib.load(path)
-        cols = expected_columns(model)
+        model_or_bundle = joblib.load(path)
+        cols = extract_expected_columns(model_or_bundle)
 
         if cols:
             print(f" ✅ Detected {len(cols)} expected feature columns:")

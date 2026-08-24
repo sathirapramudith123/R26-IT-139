@@ -9,22 +9,31 @@ const num = (v) => (v === "" || v == null ? 0 : Number(v));
 const toDb = (b) => {
   const quantity = num(b.quantity);
   const reorder_level = num(b.reorder_level);
+  const cost_price = num(b.cost_price ?? b.unit_price);
+  const selling_price = num(b.selling_price ?? b.unit_price);
+
   return {
-    item_name:     b.name || b.item_name,
-    supplier_name: b.supplier_name || null,
+    item_name:      b.name || b.item_name,
+    category:       b.category || "Other", // AI Demand Forecasting සඳහා
+    supplier_name:  b.supplier_name || null,
     quantity,
     reorder_level,
-    unit:          up(b.unit || "unit"),
-    unit_price:    num(b.unit_price),
-    item_status:   quantity <= 0 ? "OUT_OF_STOCK"
-                 : quantity <= reorder_level ? "RUNNING_OUT"
-                 : "AVAILABLE",
+    unit:           up(b.unit || "unit"),
+    cost_price,                            // Cost price එකතු කළා
+    selling_price,                         // Selling price එකතු කළා
+    unit_price:     selling_price,          // Backward compatibility
+    lead_time_days: num(b.lead_time_days ?? 1), // Dynamic Safety Stock calculation සඳහා
+    item_status:    quantity <= 0 ? "OUT_OF_STOCK"
+                  : quantity <= reorder_level ? "RUNNING_OUT"
+                  : "AVAILABLE",
   };
 };
 
 const shape = (row) => {
   const c = toClient(row, ID);
   c.name = c.item_name;
+  c.cost_price = c.cost_price ?? c.unit_price;
+  c.selling_price = c.selling_price ?? c.unit_price;
   return c;
 };
 

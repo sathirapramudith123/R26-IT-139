@@ -26,6 +26,10 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
   const [suppliers, setSuppliers] = useState([]);
   const [items, setItems] = useState([]);
 
+  // AI Recommendation State (Component 2 Integration)
+  const [aiAdvice, setAiAdvice] = useState(null);
+  const [loadingAi, setLoadingAi] = useState(false);
+
   const [v, setV] = useState({
     item_name:               initialData.item_name               ?? "",
     quantity:                initialData.quantity                ?? "",
@@ -52,18 +56,22 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
       .catch(() => setItems([]));
   }, []);
 
-  // 💡 AUTO-CALCULATION LOGIC FOR C3 OPTIMIZER
-  // Item හෝ Supplier මාරු වන විට Price/Cost ස්වයංක්‍රීයව ගණනය කිරීම
+  // 💡 Auto-fill Selling Price when Item is selected
+  useEffect(() => {
+    if (v.item_name) {
+      const selectedItem = items.find(i => i.name === v.item_name);
+      if (selectedItem && !v.expected_selling_price) {
+        const price = selectedItem.selling_price || selectedItem.unit_price || 0;
+        if (price) set("expected_selling_price", price);
+      }
+    }
+  }, [v.item_name, items]);
+
+  // 💡 AUTO-CALCULATION LOGIC FOR COSTS & PROFITS
   useEffect(() => {
     const qty = Number(v.quantity) || 0;
     const selectedSupplier = suppliers.find(s => s.name === v.selected_supplier_name);
     const selectedItem = items.find(i => i.name === v.item_name);
-
-    // Auto-fill Selling Price if available from inventory
-    if (selectedItem && !v.expected_selling_price) {
-      const price = selectedItem.selling_price || selectedItem.unit_price || 0;
-      if (price) set("expected_selling_price", price);
-    }
 
     if (qty > 0) {
       const unitPrice = selectedSupplier?.unit_price || selectedItem?.cost_price || 0;
@@ -71,16 +79,41 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
       
       // Total Cost = (Unit Price * Quantity) + Delivery Fee
       const computedTotalCost = (unitPrice * qty) + deliveryCost;
-      set("total_cost", computedTotalCost.toFixed(2));
-
-      // Estimated Profit = (Selling Price * Quantity) - Total Cost
+      
+      // Selling Price Calculation
       const sellingPrice = Number(v.expected_selling_price) || selectedItem?.selling_price || 0;
-      if (sellingPrice > 0) {
-        const computedProfit = (sellingPrice * qty) - computedTotalCost;
-        set("estimated_profit", computedProfit.toFixed(2));
-      }
+      const computedProfit = sellingPrice > 0 ? (sellingPrice * qty) - computedTotalCost : 0;
+
+      setV(prev => ({
+        ...prev,
+        total_cost: computedTotalCost > 0 ? computedTotalCost.toFixed(2) : prev.total_cost,
+        estimated_profit: sellingPrice > 0 ? computedProfit.toFixed(2) : prev.estimated_profit
+      }));
     }
-  }, [v.item_name, v.quantity, v.selected_supplier_name, v.expected_selling_price]);
+  }, [v.item_name, v.quantity, v.selected_supplier_name, v.expected_selling_price, suppliers, items]);
+
+  // 🤖 FETCH AI BUY ADVICE FROM COMPONENT 2 BACKEND (Optional AI Feature)
+  useEffect(() => {
+    if (v.item_name && v.quantity > 0) {
+      setLoadingAi(true);
+      // Backend AI Service call (Replace URL with your API Endpoint)
+      fetch("/api/procurement/ai-advice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          item_name: v.item_name,
+          quantity: v.quantity,
+          supplier: v.selected_supplier_name
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.recommendation) setAiAdvice(data);
+      })
+      .catch(() => setAiAdvice(null))
+      .finally(() => setLoadingAi(false));
+    }
+  }, [v.item_name, v.quantity, v.selected_supplier_name]);
 
   function withCurrent(list, current) {
     const names = list.filter(Boolean);
@@ -126,6 +159,26 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
       {serverError && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {serverError}
+        </div>
+      )}
+
+      {/* 🤖 AI Procurement Insight Card */}
+      {aiAdvice && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-800/40 dark:bg-emerald-950/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <span className="text-xl">🤖</span>
+              <h4 className="font-semibold text-emerald-900 dark:text-emerald-200">AI Buy Advice Insight</h4>
+            </div>
+            <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+              aiAdvice.recommendation.includes("BUY") ? "bg-emerald-200 text-emerald-800" : "bg-amber-200 text-amber-800"
+            }`}>
+              {aiAdvice.recommendation}
+            </span>
+          </div>
+          <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-400">
+            AI Confidence: <b>{aiAdvice.ai_confidence_pct}%</b> | Predicted 4-Wk Price: <b>LKR {aiAdvice.predicted_future_price_rs}</b>
+          </p>
         </div>
       )}
 
@@ -215,7 +268,7 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
 
         <FormField label="Total Cost (LKR)" hint="Auto-calculated (Cost + Delivery)">
           <input
-            className="input-field"
+            className="input-field bg-slate-50 dark:bg-slate-900"
             type="number" min="0" step="0.01"
             value={v.total_cost}
             onChange={e => set("total_cost", e.target.value)}
@@ -224,7 +277,7 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
 
         <FormField label="Estimated Profit (LKR)" hint="Auto-calculated (Revenue - Cost)">
           <input
-            className="input-field"
+            className="input-field bg-slate-50 dark:bg-slate-900"
             type="number" step="0.01"
             value={v.estimated_profit}
             onChange={e => set("estimated_profit", e.target.value)}
@@ -249,7 +302,7 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
           <Button variant="secondary" type="button">Cancel</Button>
         </Link>
         <Button type="submit" disabled={saving}>
-          {saving ? "Saving..." : (isEdit ? "Update" : "Save Decision")}
+          {saving ? "Saving..." : (isEdit ? "Update Decision" : "Save Decision")}
         </Button>
       </div>
     </form>

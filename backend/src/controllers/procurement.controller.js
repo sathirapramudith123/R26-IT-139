@@ -14,7 +14,7 @@ const toDb = (b) => ({
   expected_selling_price: num(b.expected_selling_price),
   selected_supplier_name: b.selected_supplier_name || null,
   total_cost:             num(b.total_cost),
-  estimated_profit:       num(b.estimated_profit),
+  estimated_profit:        num(b.estimated_profit),
   procurement_status:     up(b.status || b.procurement_status || "pending"),
 });
 
@@ -64,8 +64,9 @@ export const create = async (req, res, next) => {
       .select().single();
     if (error) throw error;
 
-    if (data.procurement_status === "RECEIVED")
+    if (data.procurement_status === "RECEIVED") {
       await stockReceived(req.user.id, data.item_name, data.quantity);
+    }
 
     res.status(201).json(shape(data));
   } catch (e) { next(e); }
@@ -88,13 +89,23 @@ export const update = async (req, res, next) => {
     const wasReceived = old.procurement_status === "RECEIVED";
     const nowReceived = data.procurement_status === "RECEIVED";
 
-    // pending → received: add stock
-    if (!wasReceived && nowReceived)
+    // Scenario 1: Pending → Received (Add Stock)
+    if (!wasReceived && nowReceived) {
       await stockReceived(req.user.id, data.item_name, data.quantity);
-
-    // received → not received: reverse it
-    if (wasReceived && !nowReceived)
+    }
+    // Scenario 2: Received → Pending/Cancelled (Reverse Stock)
+    else if (wasReceived && !nowReceived) {
       await adjustStock(req.user.id, old.item_name, -Number(old.quantity), "procurement reversed");
+    }
+    // Scenario 3: Received → Received (Quantity or Item changed while still RECEIVED)
+    else if (wasReceived && nowReceived) {
+      if (old.item_name !== data.item_name || Number(old.quantity) !== Number(data.quantity)) {
+        // Reverse old quantity from old item
+        await adjustStock(req.user.id, old.item_name, -Number(old.quantity), "procurement updated (old)");
+        // Add new quantity to new item
+        await stockReceived(req.user.id, data.item_name, data.quantity);
+      }
+    }
 
     res.json(shape(data));
   } catch (e) { next(e); }
@@ -112,8 +123,9 @@ export const remove = async (req, res, next) => {
       .eq(ID, req.params.id).eq("user_id", req.user.id);
     if (error) throw error;
 
-    if (old.procurement_status === "RECEIVED")
+    if (old.procurement_status === "RECEIVED") {
       await adjustStock(req.user.id, old.item_name, -Number(old.quantity), "procurement deleted");
+    }
 
     res.json({ message: "Record deleted" });
   } catch (e) { next(e); }
