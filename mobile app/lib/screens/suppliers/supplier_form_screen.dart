@@ -23,7 +23,7 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
   final deliveryCtrl = TextEditingController();
   final leadTimeCtrl = TextEditingController();
   final qtyCtrl = TextEditingController();
-  
+
   String status = "active";
   bool saving = false;
   String? error;
@@ -67,21 +67,22 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
   }
 
   Future<void> _save() async {
-    FocusScope.of(context).unfocus(); // Close active keyboard
+    FocusScope.of(context).unfocus();
 
-    // Validations
     if (nameCtrl.text.trim().isEmpty) {
       setState(() => error = "Supplier Name is required.");
       return;
     }
-    
+
     final phone = contactCtrl.text.trim();
     if (phone.isEmpty) {
       setState(() => error = "Contact Number is required.");
       return;
     }
-    if (phone.length < 10) {
-      setState(() => error = "Enter a valid 10-digit contact number.");
+    // Accept 9–12 digits (matches the web form: local or +94-prefixed numbers).
+    final digits = phone.replaceAll(RegExp(r'\D'), '');
+    if (digits.length < 9 || digits.length > 12) {
+      setState(() => error = "Enter a valid contact number (e.g. 0771234567).");
       return;
     }
 
@@ -103,7 +104,8 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
       "address": addressCtrl.text.trim(),
       "unit_price": priceCtrl.text.trim().isNotEmpty ? (num.tryParse(priceCtrl.text.trim()) ?? 0) : 0,
       "delivery_cost": deliveryCtrl.text.trim().isNotEmpty ? (num.tryParse(deliveryCtrl.text.trim()) ?? 0) : 0,
-      "delivery_lead_time": leadTimeCtrl.text.trim().isNotEmpty ? (int.tryParse(leadTimeCtrl.text.trim()) ?? 0) : 0,
+      // Default lead time to 1 when blank, like the web form (AI reorder buffer).
+      "delivery_lead_time": leadTimeCtrl.text.trim().isNotEmpty ? (int.tryParse(leadTimeCtrl.text.trim()) ?? 1) : 1,
       "available_quantity": qtyCtrl.text.trim().isNotEmpty ? (num.tryParse(qtyCtrl.text.trim()) ?? 0) : 0,
     };
 
@@ -163,7 +165,7 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
               enabled: !saving,
               keyboardType: TextInputType.phone,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              maxLength: 10,
+              maxLength: 12,
               decoration: const InputDecoration(hintText: "07XXXXXXXX", counterText: ""),
             ),
             const SizedBox(height: 16),
@@ -203,7 +205,7 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
               enabled: !saving,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(hintText: "e.g. 3"),
+              decoration: const InputDecoration(hintText: "e.g. 3 (for AI reorder buffer)"),
             ),
             const SizedBox(height: 16),
 

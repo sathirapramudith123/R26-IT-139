@@ -22,6 +22,7 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
 
   String? itemName, supplierName, deliveryLocation, status = "pending";
   List<String> itemOptions = [];
+  List<Map<String, dynamic>> items = [];
   List<Map<String, dynamic>> suppliers = [];
   bool saving = false;
   bool loadingData = true;
@@ -44,12 +45,12 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
     supplierName = it?["selected_supplier_name"]?.toString();
     deliveryLocation = it?["delivery_location"]?.toString();
     status = (it?["status"]?.toString().isNotEmpty ?? false) ? it!["status"].toString() : "pending";
-    
+
     quantityCtrl.text = it?["quantity"]?.toString() ?? "";
     sellPriceCtrl.text = it?["expected_selling_price"]?.toString() ?? "";
     totalCostCtrl.text = it?["total_cost"]?.toString() ?? "";
     profitCtrl.text = it?["estimated_profit"]?.toString() ?? "";
-    
+
     _loadOptions();
   }
 
@@ -57,15 +58,21 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
     try {
       final inv = await Api.get("/inventory");
       final sup = await Api.get("/suppliers");
-      final names = (inv is List) ? inv.map((e) => "${e["name"] ?? ""}").where((s) => s.isNotEmpty).toList() : <String>[];
-      final supObjs = (sup is List) ? sup.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList() : <Map<String, dynamic>>[];
-      
+      final invObjs = (inv is List)
+          ? inv.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
+          : <Map<String, dynamic>>[];
+      final names = invObjs.map((e) => "${e["name"] ?? ""}").where((s) => s.isNotEmpty).toList();
+      final supObjs = (sup is List)
+          ? sup.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
+          : <Map<String, dynamic>>[];
+
       if (itemName != null && itemName!.isNotEmpty && !names.contains(itemName)) {
         names.insert(0, itemName!);
       }
-      
+
       if (mounted) {
         setState(() {
+          items = invObjs;
           itemOptions = names;
           suppliers = supObjs;
           loadingData = false;
@@ -75,6 +82,7 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
     } catch (_) {
       if (mounted) {
         setState(() {
+          items = [];
           itemOptions = [];
           suppliers = [];
           loadingData = false;
@@ -83,22 +91,43 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
     }
   }
 
-  double get _supplierCost {
-    final s = suppliers.firstWhere((x) => "${x["name"] ?? ""}" == supplierName, orElse: () => {});
-    return double.tryParse("${s["unit_price"] ?? ""}") ?? 0;
+  Map<String, dynamic> get _selectedItem =>
+      items.firstWhere((x) => "${x["name"] ?? ""}" == itemName, orElse: () => {});
+
+  Map<String, dynamic> get _selectedSupplier =>
+      suppliers.firstWhere((x) => "${x["name"] ?? ""}" == supplierName, orElse: () => {});
+
+  // Unit cost = supplier's unit price, falling back to the item's cost price.
+  double get _unitCost {
+    final sup = double.tryParse("${_selectedSupplier["unit_price"] ?? ""}") ?? 0;
+    if (sup > 0) return sup;
+    return double.tryParse("${_selectedItem["cost_price"] ?? ""}") ?? 0;
   }
+
+  // Supplier's fixed delivery fee, added into the total cost (as on web).
+  double get _deliveryCost =>
+      double.tryParse("${_selectedSupplier["delivery_cost"] ?? ""}") ?? 0;
 
   void _recalc() {
     final qty = double.tryParse(quantityCtrl.text.trim()) ?? 0;
     final sell = double.tryParse(sellPriceCtrl.text.trim()) ?? 0;
-    final cost = _supplierCost;
 
-    if (qty > 0 && cost > 0) {
-      totalCostCtrl.text = (qty * cost).toStringAsFixed(2);
+    if (qty > 0) {
+      final total = (_unitCost * qty) + _deliveryCost;
+      if (total > 0) totalCostCtrl.text = total.toStringAsFixed(2);
       if (sell > 0) {
-        profitCtrl.text = ((sell - cost) * qty).toStringAsFixed(2);
+        profitCtrl.text = ((sell * qty) - total).toStringAsFixed(2);
       }
     }
+  }
+
+  // Auto-fill the expected selling price from the chosen item, if still blank.
+  void _autofillSellingPrice() {
+    if (sellPriceCtrl.text.trim().isNotEmpty) return;
+    final it = _selectedItem;
+    if (it.isEmpty) return;
+    final p = double.tryParse("${it["selling_price"] ?? it["unit_price"] ?? ""}") ?? 0;
+    if (p > 0) sellPriceCtrl.text = p.toStringAsFixed(2);
   }
 
   String _capitalize(String str) {
@@ -116,13 +145,13 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
   }
 
   Future<void> _save() async {
-    FocusScope.of(context).unfocus(); // Dismiss keyboard
+    FocusScope.of(context).unfocus();
 
     if (itemName == null || itemName!.isEmpty) {
       setState(() => error = "Item Name is required.");
       return;
     }
-    
+
     final qty = num.tryParse(quantityCtrl.text.trim());
     if (quantityCtrl.text.trim().isEmpty || qty == null || qty <= 0) {
       setState(() => error = "Please enter a valid Quantity.");
@@ -177,7 +206,13 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
               value: itemOptions.contains(itemName) ? itemName : null,
               hint: Text(loadingData ? "Loading..." : (itemOptions.isEmpty ? "No inventory items" : "— Select Item —")),
               items: itemOptions.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
-              onChanged: saving ? null : (v) => setState(() => itemName = v),
+              onChanged: saving
+                  ? null
+                  : (v) => setState(() {
+                        itemName = v;
+                        _autofillSellingPrice();
+                        _recalc();
+                      }),
             ),
             const SizedBox(height: 16),
 
@@ -206,12 +241,12 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
               value: suppliers.any((s) => "${s["name"]}" == supplierName) ? supplierName : null,
               hint: Text(loadingData ? "Loading..." : (suppliers.isEmpty ? "No suppliers available" : "— Select Supplier —")),
               items: suppliers.map((s) => DropdownMenuItem(value: "${s["name"]}", child: Text("${s["name"]}"))).toList(),
-              onChanged: saving ? null : (v) {
-                setState(() {
-                  supplierName = v;
-                  _recalc();
-                });
-              },
+              onChanged: saving
+                  ? null
+                  : (v) => setState(() {
+                        supplierName = v;
+                        _recalc();
+                      }),
             ),
             const SizedBox(height: 16),
 
@@ -221,7 +256,7 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
               enabled: !saving,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-              decoration: const InputDecoration(hintText: "0.00", prefixText: "LKR "),
+              decoration: const InputDecoration(hintText: "Auto-filled from item", prefixText: "LKR "),
               onChanged: (_) => setState(() => _recalc()),
             ),
             const SizedBox(height: 16),
@@ -232,7 +267,7 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
               enabled: !saving,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-              decoration: const InputDecoration(hintText: "Auto-calculated", prefixText: "LKR "),
+              decoration: const InputDecoration(hintText: "Auto (cost + delivery)", prefixText: "LKR "),
             ),
             const SizedBox(height: 16),
 
@@ -242,7 +277,7 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
               enabled: !saving,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-              decoration: const InputDecoration(hintText: "Auto-calculated", prefixText: "LKR "),
+              decoration: const InputDecoration(hintText: "Auto (revenue - cost)", prefixText: "LKR "),
             ),
             const SizedBox(height: 16),
 
