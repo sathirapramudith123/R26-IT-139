@@ -1,8 +1,7 @@
 "use client";
-
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-
+import useAuthGuard from "@/hooks/useAuthGuard";
 import PageHeader from "@/components/common/PageHeader";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
@@ -11,130 +10,82 @@ import StatusBadge from "@/components/common/StatusBadge";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import EmptyState from "@/components/common/EmptyState";
 import useAgencyBanking from "@/hooks/useAgencyBanking";
-import { agencyBankingApi } from "@/services/api/agencyBanking.api";
+import { agencyBankingApi } from "@/services/api/agencyBanking";
+import { formatCurrency, titleCase } from "@/lib/formatters";
+import DetailDialog from "@/components/common/DetailDialog";
 
-const COLUMNS = [
+const COLS = [
   { key: "customer_name", label: "Customer" },
   { key: "transaction_type", label: "Type" },
   { key: "amount", label: "Amount" },
-  { key: "service_fee", label: "Fee" },
   { key: "commission", label: "Commission" },
   { key: "status", label: "Status" },
-  { key: "actions", label: "Actions" },
+  { key: "actions", label: "" },
 ];
 
 export default function AgencyBankingPage() {
+  useAuthGuard();
   const { items, summary, loading, error, fetchAll } = useAgencyBanking();
-
-  useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
+  const [search, setSearch] = useState("");
+  const [viewItem, setViewItem] = useState(null);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
   async function handleDelete(id) {
-    if (!confirm("Delete this agency banking transaction?")) return;
-
-    try {
-      await agencyBankingApi.delete(id);
-      await fetchAll();
-    } catch (err) {
-      alert(err.message || "Failed to delete agency transaction");
-    }
+    if (!confirm("Delete this transaction?")) return;
+    try { await agencyBankingApi.remove(id); await fetchAll(); } catch (e) { alert(e.message || "Failed"); }
   }
 
-  const rows = items.map((item) => ({
+  const filtered = useMemo(() => {
+    const kw = search.toLowerCase().trim();
+    return !kw ? items : items.filter(i => [i.customer_name, i.customer_phone, i.transaction_type].join(" ").toLowerCase().includes(kw));
+  }, [items, search]);
+
+  const rows = filtered.map(item => ({
     ...item,
-    transaction_type: item.transaction_type?.replaceAll("_", " "),
-    amount: `LKR ${Number(item.amount || 0).toLocaleString()}`,
-    service_fee: `LKR ${Number(item.service_fee || 0).toLocaleString()}`,
-    commission: `LKR ${Number(item.commission || 0).toLocaleString()}`,
+    transaction_type: titleCase(item.transaction_type || ""),
+    amount: formatCurrency(item.amount),
+    commission: formatCurrency(item.commission),
     status: <StatusBadge status={item.status} />,
     actions: (
-      <div className="flex flex-wrap items-center gap-2">
-        <Link href={`/dashboard/agency-banking/${item.id}`}>
-          <Button variant="ghost" size="sm">
-            View
-          </Button>
-        </Link>
-
-        <Link href={`/dashboard/agency-banking/${item.id}/edit`}>
-          <Button variant="primary" size="sm">
-            Edit
-          </Button>
-        </Link>
-
-        <Button variant="danger" size="sm" onClick={() => handleDelete(item.id)}>
-          Delete
-        </Button>
+      <div className="flex gap-2">
+        <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => setViewItem(item)}>View</Button>
+        <Link href={`/dashboard/agency-banking/${item.id}/edit`}><Button variant="secondary" size="sm">Edit</Button></Link>
+        <Button variant="danger" size="sm" onClick={() => handleDelete(item.id)}>Delete</Button>
       </div>
     ),
   }));
 
   return (
     <div className="page-container">
-      <PageHeader
-        title="Simulated Agency Banking"
-        description="Prototype workflow for merchant-based banking touchpoints."
-        action={
-          <Link href="/dashboard/agency-banking/create">
-            <Button>+ New Agency Transaction</Button>
-          </Link>
-        }
+      <PageHeader title="Agency Banking" description="Customer banking transactions and commission."
+        action={<Link href="/dashboard/agency-banking/create"><Button>+ New Transaction</Button></Link>} />
+      {summary && (
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          {[
+            ["Transactions", summary.total_transactions, "text-slate-800"],
+            ["Volume", formatCurrency(summary.total_amount), "text-slate-800"],
+            ["Service Fees", formatCurrency(summary.total_service_fees), "text-blue-600"],
+            ["Commission", formatCurrency(summary.total_commission), "text-emerald-600"],
+          ].map(([l, v, c]) => (
+            <Card key={l}><p className="text-xs font-medium text-slate-400">{l}</p><p className={`mt-1 text-xl font-bold ${c}`}>{v}</p></Card>
+          ))}
+        </div>
+      )}
+      <Card className="mb-4">
+        <input type="text" placeholder="Search by customer, phone, type..." value={search} onChange={e => setSearch(e.target.value)} className="input-field" />
+      </Card>
+      {loading ? <LoadingSpinner label="Loading transactions..." /> :
+       error ? <Card><p className="text-sm text-red-600">{error}</p></Card> :
+       items.length === 0 ? <EmptyState icon="🏦" title="No transactions" description="Record a banking transaction." action={<Link href="/dashboard/agency-banking/create"><Button>New Transaction</Button></Link>} /> :
+       <Table columns={COLS} rows={rows} />}
+
+       <DetailDialog
+        open={!!viewItem}
+        title={viewItem?.name || "Agency Banking"}
+        data={viewItem}
+        onClose={() => setViewItem(null)}
       />
 
-      {error && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
-
-      {summary && (
-        <div className="mb-5 grid gap-4 md:grid-cols-4">
-          <Card>
-            <p className="text-sm text-slate-500">Transactions</p>
-            <h3 className="mt-2 text-2xl font-bold text-slate-900">
-              {summary.total_transactions}
-            </h3>
-          </Card>
-
-          <Card>
-            <p className="text-sm text-slate-500">Total Amount</p>
-            <h3 className="mt-2 text-2xl font-bold text-slate-900">
-              LKR {Number(summary.total_amount || 0).toLocaleString()}
-            </h3>
-          </Card>
-
-          <Card>
-            <p className="text-sm text-slate-500">Service Fees</p>
-            <h3 className="mt-2 text-2xl font-bold text-blue-600">
-              LKR {Number(summary.total_service_fees || 0).toLocaleString()}
-            </h3>
-          </Card>
-
-          <Card>
-            <p className="text-sm text-slate-500">Merchant Commission</p>
-            <h3 className="mt-2 text-2xl font-bold text-green-600">
-              LKR {Number(summary.total_commission || 0).toLocaleString()}
-            </h3>
-          </Card>
-        </div>
-      )}
-
-      {loading ? (
-        <LoadingSpinner label="Loading agency banking transactions..." />
-      ) : items.length === 0 ? (
-        <EmptyState
-          icon="🏦"
-          title="No agency banking transactions"
-          description="Create a simulated banking transaction for the merchant."
-          action={
-            <Link href="/dashboard/agency-banking/create">
-              <Button>New Transaction</Button>
-            </Link>
-          }
-        />
-      ) : (
-        <Table columns={COLUMNS} rows={rows} />
-      )}
     </div>
   );
 }

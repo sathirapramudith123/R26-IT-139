@@ -1,57 +1,36 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-
+import useAuthGuard from "@/hooks/useAuthGuard";
 import PageHeader from "@/components/common/PageHeader";
 import Button from "@/components/ui/Button";
 import AgencyBankingForm from "@/components/forms/AgencyBankingForm";
-import { agencyBankingApi } from "@/services/api/agencyBanking.api";
+import { ArrowLeft } from "lucide-react";
 
 export default function CreateAgencyBankingPage() {
-  const router = useRouter();
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  async function handleSubmit(values) {
-    try {
-      setLoading(true);
-      setError("");
-
-      await agencyBankingApi.create(values);
-
-      router.push("/dashboard/agency-banking");
-    } catch (err) {
-      setError(err.message || "Failed to create agency banking transaction");
-    } finally {
-      setLoading(false);
-    }
-  }
+  useAuthGuard();
 
   return (
-    <div className="page-container">
+    <div className="min-h-screen space-y-6 p-6 md:p-8">
+      {/* Header Section */}
       <PageHeader
         title="New Agency Banking Transaction"
-        description="Simulate customer deposit, withdrawal, transfer, or bill payment."
+        description="Record a deposit, withdrawal, or transfer."
         action={
           <Link href="/dashboard/agency-banking">
-            <Button variant="secondary">← Back</Button>
+            <Button
+              variant="secondary"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/80 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-slate-100 transition-all shadow-sm"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
           </Link>
         }
       />
 
-      {error && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
-
-      <AgencyBankingForm
-        onSubmit={handleSubmit}
-        submitLabel={loading ? "Saving..." : "Create Transaction"}
-      />
+      {/* Main Content Area */}
+      <AgencyBankingForm />
     </div>
   );
 }

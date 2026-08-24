@@ -1,7 +1,6 @@
 "use client";
-
 import { useCallback, useState } from "react";
-import { transactionApi } from "@/services/api/transaction.api";
+import { transactionApi } from "@/services/api/transaction";
 
 export default function useTransactions() {
   const [items, setItems] = useState([]);
@@ -9,24 +8,11 @@ export default function useTransactions() {
   const [error, setError] = useState(null);
 
   const fetchAll = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const data = await transactionApi.list();
-      setItems(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError(err.message || "Failed to load transactions");
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true); setError(null);
+    try { const d = await transactionApi.list(); setItems(Array.isArray(d) ? d : []); }
+    catch (e) { setError(e.message || "Failed to load transactions"); setItems([]); }
+    finally { setLoading(false); }
   }, []);
 
-  return {
-    items,
-    loading,
-    error,
-    fetchAll,
-  };
+  return { items, loading, error, fetchAll };
 }

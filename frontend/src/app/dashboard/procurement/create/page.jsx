@@ -1,48 +1,17 @@
 "use client";
-
-import { useState } from "react";
+import Link from "next/link";
+import useAuthGuard from "@/hooks/useAuthGuard";
 import PageHeader from "@/components/common/PageHeader";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
-import ProcurementRecommendationForm from "@/components/forms/ProcurementRecommendationForm";
-import SupplierRecommendationTable from "@/components/procurement/SupplierRecommendationTable";
-import { procurementApi } from "@/services/api/procurement.api";
+import Button from "@/components/ui/Button";
+import ProcurementForm from "@/components/forms/ProcurementForm";
 
 export default function CreateProcurementPage() {
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  async function handleSubmit(values) {
-    setLoading(true);
-    setError(null);
-    setResults([]);
-
-    try {
-      const data = await procurementApi.recommend(values);
-      setResults(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError(err.message || "Failed to fetch recommendations");
-    } finally {
-      setLoading(false);
-    }
-  }
-
+  useAuthGuard();
   return (
     <div className="page-container">
-      <PageHeader
-        title="Smart Procurement"
-        description="Find best suppliers using cost & profit analysis"
-      />
-
-      <ProcurementRecommendationForm onSubmit={handleSubmit} />
-
-      {loading && <LoadingSpinner label="Analyzing suppliers..." />}
-
-      {error && (
-        <p className="text-red-500 mt-3">{error}</p>
-      )}
-
-      <SupplierRecommendationTable items={results} />
+      <PageHeader title="New Procurement Decision" description="Record a procurement decision."
+        action={<Link href="/dashboard/procurement"><Button variant="secondary">← Back</Button></Link>} />
+      <ProcurementForm />
     </div>
   );
 }

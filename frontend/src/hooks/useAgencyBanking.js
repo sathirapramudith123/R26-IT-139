@@ -1,7 +1,6 @@
 "use client";
-
 import { useCallback, useState } from "react";
-import { agencyBankingApi } from "@/services/api/agencyBanking.api";
+import { agencyBankingApi } from "@/services/api/agencyBanking";
 
 export default function useAgencyBanking() {
   const [items, setItems] = useState([]);
@@ -10,31 +9,20 @@ export default function useAgencyBanking() {
   const [error, setError] = useState(null);
 
   const fetchAll = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
+    setLoading(true); setError(null);
     try {
-      const [records, summaryData] = await Promise.all([
-        agencyBankingApi.list(),
-        agencyBankingApi.getSummary(),
-      ]);
-
-      setItems(Array.isArray(records) ? records : []);
-      setSummary(summaryData);
-    } catch (err) {
-      setError(err.message || "Failed to load agency banking records");
-      setItems([]);
-      setSummary(null);
-    } finally {
-      setLoading(false);
-    }
+      const r = await agencyBankingApi.list();
+      const list = Array.isArray(r) ? r : [];
+      setItems(list);
+      setSummary({
+        total_transactions: list.length,
+        total_amount:       list.reduce((s,i)=>s+(Number(i.amount)||0),0),
+        total_service_fees: list.reduce((s,i)=>s+(Number(i.service_fee)||0),0),
+        total_commission:   list.reduce((s,i)=>s+(Number(i.commission)||0),0),
+      });
+    } catch (e) { setError(e.message || "Failed"); setItems([]); setSummary(null); }
+    finally { setLoading(false); }
   }, []);
 
-  return {
-    items,
-    summary,
-    loading,
-    error,
-    fetchAll,
-  };
+  return { items, summary, loading, error, fetchAll };
 }
