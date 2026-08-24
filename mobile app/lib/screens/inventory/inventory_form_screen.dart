@@ -15,10 +15,15 @@ class InventoryFormScreen extends StatefulWidget {
 class _InventoryFormScreenState extends State<InventoryFormScreen> {
   final service = CrudService("/inventory");
   final nameCtrl = TextEditingController();
+  final categoryCtrl = TextEditingController();
   final quantityCtrl = TextEditingController();
+  final initialQtyCtrl = TextEditingController();
   final reorderCtrl = TextEditingController();
-  final priceCtrl = TextEditingController();
-  
+  final priceCtrl = TextEditingController(); // Unit Price / Selling Price
+  final costPriceCtrl = TextEditingController();
+  final sellingPriceCtrl = TextEditingController();
+  final leadTimeCtrl = TextEditingController();
+
   String? supplierName;
   String unit = "unit";
   List<String> supplierOptions = [];
@@ -34,12 +39,21 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
     super.initState();
     final it = widget.item;
     nameCtrl.text = it?["name"]?.toString() ?? "";
+    categoryCtrl.text = it?["category"]?.toString() ?? "";
     quantityCtrl.text = it?["quantity"]?.toString() ?? "";
+    initialQtyCtrl.text = it?["initial_quantity"]?.toString() ?? it?["quantity"]?.toString() ?? "";
     reorderCtrl.text = it?["reorder_level"]?.toString() ?? "";
-    priceCtrl.text = it?["unit_price"]?.toString() ?? "";
+    
+    // Price controls mapping
+    final sellingP = it?["selling_price"]?.toString() ?? it?["unit_price"]?.toString() ?? "";
+    priceCtrl.text = sellingP;
+    sellingPriceCtrl.text = sellingP;
+    costPriceCtrl.text = it?["cost_price"]?.toString() ?? "";
+    
+    leadTimeCtrl.text = it?["delivery_lead_time"]?.toString() ?? it?["lead_time"]?.toString() ?? "";
     supplierName = it?["supplier_name"]?.toString();
     unit = (it?["unit"]?.toString().isNotEmpty ?? false) ? it!["unit"].toString() : "unit";
-    
+
     _loadSuppliers();
   }
 
@@ -49,11 +63,11 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
       final names = (data is List)
           ? data.map((e) => "${e["name"] ?? ""}").where((s) => s.isNotEmpty).toList()
           : <String>[];
-          
+
       if (supplierName != null && supplierName!.isNotEmpty && !names.contains(supplierName)) {
         names.insert(0, supplierName!);
       }
-      
+
       if (mounted) {
         setState(() {
           supplierOptions = names;
@@ -73,9 +87,14 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
   @override
   void dispose() {
     nameCtrl.dispose();
+    categoryCtrl.dispose();
     quantityCtrl.dispose();
+    initialQtyCtrl.dispose();
     reorderCtrl.dispose();
     priceCtrl.dispose();
+    costPriceCtrl.dispose();
+    sellingPriceCtrl.dispose();
+    leadTimeCtrl.dispose();
     super.dispose();
   }
 
@@ -86,21 +105,30 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
       setState(() => error = "Item Name is required.");
       return;
     }
-    
+
     final qty = num.tryParse(quantityCtrl.text.trim());
     if (quantityCtrl.text.trim().isEmpty || qty == null || qty < 0) {
       setState(() => error = "Please enter a valid Quantity.");
       return;
     }
 
+    final sellingPrice = sellingPriceCtrl.text.trim().isNotEmpty
+        ? (num.tryParse(sellingPriceCtrl.text.trim()) ?? 0)
+        : (num.tryParse(priceCtrl.text.trim()) ?? 0);
+
     final payload = <String, dynamic>{
       "name": nameCtrl.text.trim(),
+      "category": categoryCtrl.text.trim(),
       "quantity": qty,
+      "initial_quantity": initialQtyCtrl.text.trim().isNotEmpty ? (num.tryParse(initialQtyCtrl.text.trim()) ?? qty) : qty,
       "unit": unit,
       "reorder_level": reorderCtrl.text.trim().isNotEmpty ? (num.tryParse(reorderCtrl.text.trim()) ?? 0) : 0,
-      "unit_price": priceCtrl.text.trim().isNotEmpty ? (num.tryParse(priceCtrl.text.trim()) ?? 0) : 0,
+      "unit_price": sellingPrice,
+      "selling_price": sellingPrice,
+      "cost_price": costPriceCtrl.text.trim().isNotEmpty ? (num.tryParse(costPriceCtrl.text.trim()) ?? 0) : 0,
+      "delivery_lead_time": leadTimeCtrl.text.trim().isNotEmpty ? (int.tryParse(leadTimeCtrl.text.trim()) ?? 0) : 0,
     };
-    
+
     if (supplierName != null && supplierName!.isNotEmpty) {
       payload["supplier_name"] = supplierName;
     }
@@ -146,6 +174,15 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
             ),
             const SizedBox(height: 16),
 
+            fieldLabel("Category"),
+            TextField(
+              controller: categoryCtrl,
+              enabled: !saving,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(hintText: "e.g. Beverages, Electronics"),
+            ),
+            const SizedBox(height: 16),
+
             fieldLabel("Supplier"),
             DropdownButtonFormField<String>(
               value: supplierOptions.contains(supplierName) ? supplierName : null,
@@ -162,6 +199,16 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
               decoration: const InputDecoration(hintText: "0.00"),
+            ),
+            const SizedBox(height: 16),
+
+            fieldLabel("Initial Quantity"),
+            TextField(
+              controller: initialQtyCtrl,
+              enabled: !saving,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+              decoration: const InputDecoration(hintText: "Initial stock count"),
             ),
             const SizedBox(height: 16),
 
@@ -183,13 +230,33 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Unit Price (LKR)"),
+            fieldLabel("Cost Price per Unit (LKR)"),
             TextField(
-              controller: priceCtrl,
+              controller: costPriceCtrl,
               enabled: !saving,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
               decoration: const InputDecoration(hintText: "0.00", prefixText: "LKR "),
+            ),
+            const SizedBox(height: 16),
+
+            fieldLabel("Selling Price per Unit (LKR) *"),
+            TextField(
+              controller: sellingPriceCtrl,
+              enabled: !saving,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+              decoration: const InputDecoration(hintText: "0.00", prefixText: "LKR "),
+            ),
+            const SizedBox(height: 16),
+
+            fieldLabel("Item Delivery Lead Time (Days)"),
+            TextField(
+              controller: leadTimeCtrl,
+              enabled: !saving,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(hintText: "e.g. 3"),
             ),
             const SizedBox(height: 28),
 
