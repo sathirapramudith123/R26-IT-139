@@ -18,12 +18,37 @@ const List<Map<String, String>> _payMethods = [
   {"value": "digital", "label": "Digital"},
 ];
 
+// expense/deposit/transfer all take a category + description, matching web.
 const Map<String, Map<String, bool>> _typeConfig = {
   "sale": {"items": true},
   "purchase": {"items": true},
   "expense": {"category": true, "description": true},
-  "deposit": {"description": true},
-  "transfer": {"description": true},
+  "deposit": {"category": true, "description": true},
+  "transfer": {"category": true, "description": true},
+};
+
+// Standardized categories (mirror the web CATEGORIES_BY_TYPE) — these feed the
+// AI & analytics models, so they must stay a controlled list per type.
+const Map<String, List<String>> _categoriesByType = {
+  "expense": [
+    "Utilities (Electricity/Water)",
+    "Rent",
+    "Transport / Fuel",
+    "Labor / Wages",
+    "Loss / Wastage / Damage",
+    "Personal Drawings",
+  ],
+  "deposit": [
+    "Agency Banking Cash-In",
+    "Owner Capital Injection",
+    "Loan Disbursement",
+    "Other Income",
+  ],
+  "transfer": [
+    "Agency Wallet Top-up",
+    "Supplier Payment",
+    "Inter-Bank Transfer",
+  ],
 };
 
 class TransactionFormScreen extends StatefulWidget {
@@ -43,9 +68,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   late String paymentMethod;
 
   final amountCtrl = TextEditingController();
-  final categoryCtrl = TextEditingController();
   final descriptionCtrl = TextEditingController();
   final qtyCtrl = TextEditingController();
+
+  String? category;
 
   List<Map<String, dynamic>> inventory = [];
   final List<Map<String, dynamic>> cart = [];
@@ -64,6 +90,15 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   double get cartTotal =>
       cart.fold(0.0, (s, l) => s + (l["amount"] as num).toDouble());
 
+  // Category options for the current type, keeping any existing custom value.
+  List<String> get _categoryOptions {
+    final base = List<String>.from(_categoriesByType[txType] ?? const []);
+    if (category != null && category!.isNotEmpty && !base.contains(category)) {
+      base.insert(0, category!);
+    }
+    return base;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -71,7 +106,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     txType = (it?["transaction_type"] ?? widget.initialType ?? "sale").toString();
     paymentMethod = (it?["payment_method"] ?? "cash").toString();
     amountCtrl.text = it?["amount"]?.toString() ?? "";
-    categoryCtrl.text = it?["category"]?.toString() ?? "";
+    final c = it?["category"]?.toString();
+    category = (c != null && c.isNotEmpty) ? c : null;
     descriptionCtrl.text = it?["description"]?.toString() ?? "";
 
     final saved = it?["items"];
@@ -133,7 +169,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   @override
   void dispose() {
     amountCtrl.dispose();
-    categoryCtrl.dispose();
     descriptionCtrl.dispose();
     qtyCtrl.dispose();
     super.dispose();
@@ -148,6 +183,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       pickItem = null;
       qtyCtrl.clear();
       amountCtrl.clear();
+      category = null;
       error = null;
     });
   }
@@ -156,7 +192,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     FocusScope.of(context).unfocus();
     final name = pickItem;
     final units = double.tryParse(qtyCtrl.text.trim()) ?? 0;
-    
+
     if (name == null || name.isEmpty) {
       setState(() => error = "Select an item first.");
       return;
@@ -208,9 +244,9 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       if (inv.isNotEmpty && inv["id"] != null) {
         final currentQty = double.tryParse("${inv["quantity"] ?? 0}") ?? 0.0;
         final cartQty = (line["quantity"] as num).toDouble();
-        
-        final newQty = isPurchase 
-            ? currentQty + cartQty 
+
+        final newQty = isPurchase
+            ? currentQty + cartQty
             : currentQty - cartQty;
 
         try {
@@ -247,9 +283,14 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         setState(() => error = "Enter an amount greater than 0.");
         return;
       }
+      // Category is required for these types (used by AI & analytics).
+      if (showCategory && (category == null || category!.isEmpty)) {
+        setState(() => error = "Please select a category.");
+        return;
+      }
       payload["amount"] = amt;
-      if (showCategory && categoryCtrl.text.trim().isNotEmpty) {
-        payload["category"] = categoryCtrl.text.trim();
+      if (showCategory && category != null && category!.isNotEmpty) {
+        payload["category"] = category;
       }
       if (showDescription && descriptionCtrl.text.trim().isNotEmpty) {
         payload["description"] = descriptionCtrl.text.trim();
@@ -349,12 +390,12 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       ),
       if (showCategory) ...[
         const SizedBox(height: 16),
-        _label("Category"),
-        TextField(
-          controller: categoryCtrl,
-          enabled: !saving,
-          textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(hintText: "e.g. utilities, rent"),
+        _label("Category *"),
+        DropdownButtonFormField<String>(
+          value: _categoryOptions.contains(category) ? category : null,
+          hint: const Text("Select category…"),
+          items: _categoryOptions.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+          onChanged: saving ? null : (v) => setState(() => category = v),
         ),
       ],
       if (showDescription) ...[
@@ -441,7 +482,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                     ),
                     Text("LKR ${amt.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w700)),
                     IconButton(
-                      icon: const Icon(Icons.close, size: 18), 
+                      icon: const Icon(Icons.close, size: 18),
                       onPressed: saving ? null : () => setState(() => cart.removeAt(i)),
                     ),
                   ]),

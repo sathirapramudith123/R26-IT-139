@@ -4,6 +4,20 @@ import '../../core/theme.dart';
 import '../../core/api.dart';
 import '../../services/crud_service.dart';
 
+// Standardized categories (mirror the web ITEM_CATEGORIES) — used by the
+// AI demand-forecasting model, so this must stay a controlled list.
+const List<String> kItemCategories = [
+  "Rice & Grains",
+  "Beverages",
+  "Dairy & Bakery",
+  "Snacks & Sweets",
+  "Canned & Packaged Food",
+  "Household & Cleaning",
+  "Personal Care",
+  "Spices & Cooking Essentials",
+  "Other",
+];
+
 class InventoryFormScreen extends StatefulWidget {
   final Map<String, dynamic>? item;
   const InventoryFormScreen({super.key, this.item});
@@ -15,7 +29,6 @@ class InventoryFormScreen extends StatefulWidget {
 class _InventoryFormScreenState extends State<InventoryFormScreen> {
   final service = CrudService("/inventory");
   final nameCtrl = TextEditingController();
-  final categoryCtrl = TextEditingController();
   final quantityCtrl = TextEditingController();
   final initialQtyCtrl = TextEditingController();
   final reorderCtrl = TextEditingController();
@@ -24,6 +37,7 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
   final sellingPriceCtrl = TextEditingController();
   final leadTimeCtrl = TextEditingController();
 
+  String? category;
   String? supplierName;
   String unit = "unit";
   List<String> supplierOptions = [];
@@ -39,17 +53,17 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
     super.initState();
     final it = widget.item;
     nameCtrl.text = it?["name"]?.toString() ?? "";
-    categoryCtrl.text = it?["category"]?.toString() ?? "";
+    final c = it?["category"]?.toString();
+    category = (c != null && c.isNotEmpty) ? c : null;
     quantityCtrl.text = it?["quantity"]?.toString() ?? "";
     initialQtyCtrl.text = it?["initial_quantity"]?.toString() ?? it?["quantity"]?.toString() ?? "";
     reorderCtrl.text = it?["reorder_level"]?.toString() ?? "";
-    
-    // Price controls mapping
+
     final sellingP = it?["selling_price"]?.toString() ?? it?["unit_price"]?.toString() ?? "";
     priceCtrl.text = sellingP;
     sellingPriceCtrl.text = sellingP;
     costPriceCtrl.text = it?["cost_price"]?.toString() ?? "";
-    
+
     leadTimeCtrl.text = it?["delivery_lead_time"]?.toString() ?? it?["lead_time"]?.toString() ?? "";
     supplierName = it?["supplier_name"]?.toString();
     unit = (it?["unit"]?.toString().isNotEmpty ?? false) ? it!["unit"].toString() : "unit";
@@ -87,7 +101,6 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
   @override
   void dispose() {
     nameCtrl.dispose();
-    categoryCtrl.dispose();
     quantityCtrl.dispose();
     initialQtyCtrl.dispose();
     reorderCtrl.dispose();
@@ -99,10 +112,16 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
   }
 
   Future<void> _save() async {
-    FocusScope.of(context).unfocus(); // Close Keyboard
+    FocusScope.of(context).unfocus();
 
     if (nameCtrl.text.trim().isEmpty) {
       setState(() => error = "Item Name is required.");
+      return;
+    }
+
+    // Category is required — it feeds the AI demand-forecasting model.
+    if (category == null || category!.isEmpty) {
+      setState(() => error = "Please select a category (needed for AI forecasting).");
       return;
     }
 
@@ -112,21 +131,29 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
       return;
     }
 
+    final costPrice = costPriceCtrl.text.trim().isNotEmpty ? (num.tryParse(costPriceCtrl.text.trim()) ?? 0) : 0;
     final sellingPrice = sellingPriceCtrl.text.trim().isNotEmpty
         ? (num.tryParse(sellingPriceCtrl.text.trim()) ?? 0)
         : (num.tryParse(priceCtrl.text.trim()) ?? 0);
 
+    // Margin check — mirrors the web form.
+    if (sellingPrice < costPrice) {
+      setState(() => error = "Selling price should be higher than the cost price.");
+      return;
+    }
+
     final payload = <String, dynamic>{
       "name": nameCtrl.text.trim(),
-      "category": categoryCtrl.text.trim(),
+      "category": category,
       "quantity": qty,
       "initial_quantity": initialQtyCtrl.text.trim().isNotEmpty ? (num.tryParse(initialQtyCtrl.text.trim()) ?? qty) : qty,
       "unit": unit,
       "reorder_level": reorderCtrl.text.trim().isNotEmpty ? (num.tryParse(reorderCtrl.text.trim()) ?? 0) : 0,
       "unit_price": sellingPrice,
       "selling_price": sellingPrice,
-      "cost_price": costPriceCtrl.text.trim().isNotEmpty ? (num.tryParse(costPriceCtrl.text.trim()) ?? 0) : 0,
-      "delivery_lead_time": leadTimeCtrl.text.trim().isNotEmpty ? (int.tryParse(leadTimeCtrl.text.trim()) ?? 0) : 0,
+      "cost_price": costPrice,
+      // Default lead time to 1 when blank, like the web form.
+      "delivery_lead_time": leadTimeCtrl.text.trim().isNotEmpty ? (int.tryParse(leadTimeCtrl.text.trim()) ?? 1) : 1,
     };
 
     if (supplierName != null && supplierName!.isNotEmpty) {
@@ -153,6 +180,12 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
   Widget build(BuildContext context) {
     final teal = Theme.of(context).brightness == Brightness.dark ? KadeColors.tealDark : KadeColors.teal;
 
+    // Keep any existing (possibly custom) category selectable.
+    final categoryOptions = [...kItemCategories];
+    if (category != null && category!.isNotEmpty && !categoryOptions.contains(category)) {
+      categoryOptions.insert(0, category!);
+    }
+
     return Scaffold(
       appBar: AppBar(title: Text("${isEdit ? "Edit" : "New"} Inventory")),
       body: GestureDetector(
@@ -174,12 +207,17 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Category"),
-            TextField(
-              controller: categoryCtrl,
-              enabled: !saving,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(hintText: "e.g. Beverages, Electronics"),
+            fieldLabel("Category *"),
+            DropdownButtonFormField<String>(
+              value: (category != null && categoryOptions.contains(category)) ? category : null,
+              hint: const Text("Select category…"),
+              items: categoryOptions.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
+              onChanged: saving ? null : (v) => setState(() => category = v),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 6, left: 2),
+              child: Text("Required for AI demand forecasting",
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
             ),
             const SizedBox(height: 16),
 
@@ -218,7 +256,7 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
               enabled: !saving,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-              decoration: const InputDecoration(hintText: "0.00"),
+              decoration: const InputDecoration(hintText: "Leave blank for auto (AI)"),
             ),
             const SizedBox(height: 16),
 
@@ -256,7 +294,7 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
               enabled: !saving,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(hintText: "e.g. 3"),
+              decoration: const InputDecoration(hintText: "e.g. 3 (used for safety stock)"),
             ),
             const SizedBox(height: 28),
 
