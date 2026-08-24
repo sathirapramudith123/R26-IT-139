@@ -330,12 +330,12 @@ export default function PredictionsDashboard() {
           </div>
 
           <div className="mt-5 border-t border-slate-100 pt-3 dark:border-slate-800">
-            <Link
+            {/*<Link
               href="/dashboard/predictions/credit"
               className="inline-flex items-center text-xs font-semibold text-teal-600 transition hover:text-teal-700 dark:text-teal-400"
             >
               Try different scenarios →
-            </Link>
+            </Link>*/}
           </div>
         </div>
 
@@ -379,12 +379,12 @@ export default function PredictionsDashboard() {
           </div>
 
           <div className="mt-5 border-t border-slate-100 pt-3 dark:border-slate-800">
-            <Link
+            {/*<Link
               href="/dashboard/predictions/demand"
               className="inline-flex items-center text-xs font-semibold text-amber-600 transition hover:underline dark:text-amber-400"
             >
               See full forecast →
-            </Link>
+            </Link>*/}
           </div>
         </div>
 
@@ -434,12 +434,12 @@ export default function PredictionsDashboard() {
           </div>
 
           <div className="mt-5 border-t border-slate-100 pt-3 dark:border-slate-800">
-            <Link
+            {/*<Link
               href="/dashboard/predictions/procurement"
               className="inline-flex items-center text-xs font-semibold text-orange-600 transition hover:underline dark:text-orange-400"
             >
               See buying details →
-            </Link>
+            </Link>*/}
           </div>
         </div>
 
@@ -488,12 +488,12 @@ export default function PredictionsDashboard() {
           </div>
 
           <div className="mt-5 border-t border-slate-100 pt-3 dark:border-slate-800">
-            <Link
+            {/*<Link
               href="/dashboard/predictions/anomaly"
               className="inline-flex items-center text-xs font-semibold text-blue-600 transition hover:underline dark:text-blue-400"
             >
               Check a transaction →
-            </Link>
+            </Link>*/}
           </div>
         </div>
       </div>
