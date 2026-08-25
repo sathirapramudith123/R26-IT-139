@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/api.dart';
 import '../../core/theme.dart';
+import '../../core/report_pdf.dart';
 
 class IncomeStatementScreen extends StatefulWidget {
   const IncomeStatementScreen({super.key});
@@ -66,6 +67,13 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
           style: TextStyle(fontFamily: "Nunito", fontWeight: FontWeight.bold),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: "Download PDF",
+            onPressed: (loading || data == null || data!.isEmpty)
+                ? null
+                : () => shareIncomeStatementPdf(data!),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _fetchStatement,
