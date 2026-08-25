@@ -19,7 +19,7 @@ const COLS = [
   { key: "amount", label: "Amount" },
   { key: "payment_method", label: "Payment" },
   { key: "category", label: "Category" },
-  { key: "created_at", label: "Date" }, 
+  { key: "created_at", label: "Date" },
   { key: "actions", label: "" },
 ];
 
@@ -61,7 +61,12 @@ export default function TransactionsPage() {
   return (
     <div className="page-container">
       <PageHeader title="Transactions" description="All financial transactions."
-        action={<Link href="/dashboard/transactions/create"><Button>+ New Transaction</Button></Link>} />
+        action={
+          <div className="flex gap-2">
+            <Link href="/dashboard/reports"><Button variant="secondary">📊 Income Statement</Button></Link>
+            <Link href="/dashboard/transactions/create"><Button>+ New Transaction</Button></Link>
+          </div>
+        } />
       <Card className="mb-4">
         <input type="text" placeholder="Search by type, category, payment..." value={search} onChange={e => setSearch(e.target.value)} className="input-field" />
       </Card>
@@ -72,7 +77,7 @@ export default function TransactionsPage() {
 
        <DetailDialog
                open={!!viewItem}
-               title={viewItem?.name || "Procument"}
+               title={viewItem?.name || "Transaction"}
                data={viewItem}
                onClose={() => setViewItem(null)}
       />
