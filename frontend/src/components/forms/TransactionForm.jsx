@@ -25,12 +25,12 @@ const CATEGORIES_BY_TYPE = {
     "Transport / Fuel",
     "Labor / Wages",
     "Loss / Wastage / Damage",
-    "Personal Drawings"
+    // >>> CHANGED: "Personal Drawings" removed
   ],
   deposit: [
     "Agency Banking Cash-In",
     "Owner Capital Injection",
-    "Loan Disbursement",
+    // >>> CHANGED: "Loan Disbursement" removed
     "Other Income"
   ],
   transfer: [
@@ -81,6 +81,12 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
   const picked     = items.find(i => i.name === v.item_name);
   const total      = cart.reduce((s, l) => s + (l.amount || 0), 0);
 
+  // >>> CHANGED: Transfer can't be Cash; Deposit can ONLY be Cash.
+  const paymentMethodOptions =
+    type === "transfer" ? PAYMENT_METHODS.filter(o => o.value !== "cash") :
+    type === "deposit"  ? PAYMENT_METHODS.filter(o => o.value === "cash") :
+    PAYMENT_METHODS;
+
   function priceOf(item) {
     const p = isPurchase
       ? (item.cost_price ?? item.price ?? item.unit_price)
@@ -95,6 +101,14 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
     set("amount", "");
     set("category", "");
     setCart([]);
+
+    // >>> CHANGED: Deposit -> force Cash. Transfer -> bump off Cash if it was selected.
+    if (val === "deposit") {
+      set("payment_method", "cash");
+    } else if (val === "transfer" && v.payment_method === "cash") {
+      const firstNonCash = PAYMENT_METHODS.find(o => o.value !== "cash");
+      set("payment_method", firstNonCash ? firstNonCash.value : "");
+    }
   }
 
   // Fetch inventory items
@@ -125,6 +139,18 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
   useEffect(() => {
     if (usesItems) set("amount", total ? total.toFixed(2) : "");
   }, [total, usesItems]);
+
+  // >>> CHANGED: safety net — if a record loads (e.g. edit mode / initialData) as
+  // Transfer + Cash, correct it once items/type are known on mount.
+  useEffect(() => {
+    if (type === "deposit" && v.payment_method !== "cash") {
+      set("payment_method", "cash");
+    } else if (type === "transfer" && v.payment_method === "cash") {
+      const firstNonCash = PAYMENT_METHODS.find(o => o.value !== "cash");
+      set("payment_method", firstNonCash ? firstNonCash.value : "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function addLine() {
     if (!picked) return;
@@ -198,6 +224,13 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
     if (!v.amount || Number(v.amount) <= 0) er.amount = er.amount || "Enter an amount greater than 0.";
     if (cfg.category && !v.category) er.category = "Please select a category.";
 
+    // >>> CHANGED: hard guard in case something slipped through (e.g. stale state).
+    if (type === "transfer" && v.payment_method === "cash") {
+      er.payment_method = "Cash isn't allowed for Transfer transactions.";
+    } else if (type === "deposit" && v.payment_method !== "cash") {
+      er.payment_method = "Deposit must be paid via Cash.";
+    }
+
     if (Object.keys(er).length) { setErrors(er); return; }
 
     setSaving(true); 
@@ -265,9 +298,17 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
           </select>
         </FormField>
 
-        <FormField label="Payment Method" required>
-          <select className="select-field" value={v.payment_method} onChange={e => set("payment_method", e.target.value)}>
-            {PAYMENT_METHODS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        {/* >>> CHANGED: use filtered paymentMethodOptions; deposit is locked to Cash only */}
+        <FormField label="Payment Method" required error={errors.payment_method}
+          hint={
+            type === "transfer" ? "Cash isn't available for transfers" :
+            type === "deposit"  ? "Deposits are always Cash" :
+            undefined
+          }>
+          <select className="select-field" value={v.payment_method}
+            onChange={e => set("payment_method", e.target.value)}
+            disabled={type === "deposit"}>
+            {paymentMethodOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </FormField>
       </div>
