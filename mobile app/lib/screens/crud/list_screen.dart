@@ -81,9 +81,9 @@ class _ListScreenState extends State<ListScreen> {
   ];
   static const _dateFields = ["created_at", "updated_at", "read_at"];
   static const _moneyFields = [
-    "amount", "unit_price", "delivery_cost", "total_cost",
-    "estimated_profit", "expected_selling_price", "service_fee", "commission",
-  ];
+  "amount", "unit_price", "cost_price", "delivery_cost", "total_cost",
+  "estimated_profit", "expected_selling_price", "service_fee", "commission",
+];
   static const _months = [
     "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"
   ];

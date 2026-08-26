@@ -4,8 +4,7 @@ import '../../core/theme.dart';
 import '../../core/api.dart';
 import '../../services/crud_service.dart';
 
-// Standardized categories (mirror the web ITEM_CATEGORIES) — used by the
-// AI demand-forecasting model, so this must stay a controlled list.
+// Standardized categories (mirror web ITEM_CATEGORIES) — feed the AI model.
 const List<String> kItemCategories = [
   "Rice & Grains",
   "Beverages",
@@ -30,11 +29,8 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
   final service = CrudService("/inventory");
   final nameCtrl = TextEditingController();
   final quantityCtrl = TextEditingController();
-  final initialQtyCtrl = TextEditingController();
   final reorderCtrl = TextEditingController();
-  final priceCtrl = TextEditingController(); // Unit Price / Selling Price
-  final costPriceCtrl = TextEditingController();
-  final sellingPriceCtrl = TextEditingController();
+  final costPriceCtrl = TextEditingController(); // Unit Cost (selling price අයින්)
   final leadTimeCtrl = TextEditingController();
 
   String? category;
@@ -48,6 +44,13 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
   static const units = ["kg", "g", "l", "ml", "unit", "box", "carton"];
   bool get isEdit => widget.item != null;
 
+  // Total Cost = Unit Cost × Quantity (live)
+  double get _totalCost {
+    final c = double.tryParse(costPriceCtrl.text.trim()) ?? 0;
+    final q = double.tryParse(quantityCtrl.text.trim()) ?? 0;
+    return c * q;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -56,20 +59,20 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
     final c = it?["category"]?.toString();
     category = (c != null && c.isNotEmpty) ? c : null;
     quantityCtrl.text = it?["quantity"]?.toString() ?? "";
-    initialQtyCtrl.text = it?["initial_quantity"]?.toString() ?? it?["quantity"]?.toString() ?? "";
     reorderCtrl.text = it?["reorder_level"]?.toString() ?? "";
-
-    final sellingP = it?["selling_price"]?.toString() ?? it?["unit_price"]?.toString() ?? "";
-    priceCtrl.text = sellingP;
-    sellingPriceCtrl.text = sellingP;
-    costPriceCtrl.text = it?["cost_price"]?.toString() ?? "";
-
+    costPriceCtrl.text = it?["cost_price"]?.toString() ?? it?["unit_price"]?.toString() ?? "";
     leadTimeCtrl.text = it?["delivery_lead_time"]?.toString() ?? it?["lead_time"]?.toString() ?? "";
     supplierName = it?["supplier_name"]?.toString();
     unit = (it?["unit"]?.toString().isNotEmpty ?? false) ? it!["unit"].toString() : "unit";
 
+    // Total Cost live update කරන්න listeners
+    costPriceCtrl.addListener(_recalc);
+    quantityCtrl.addListener(_recalc);
+
     _loadSuppliers();
   }
+
+  void _recalc() => setState(() {});
 
   Future<void> _loadSuppliers() async {
     try {
@@ -77,11 +80,9 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
       final names = (data is List)
           ? data.map((e) => "${e["name"] ?? ""}").where((s) => s.isNotEmpty).toList()
           : <String>[];
-
       if (supplierName != null && supplierName!.isNotEmpty && !names.contains(supplierName)) {
         names.insert(0, supplierName!);
       }
-
       if (mounted) {
         setState(() {
           supplierOptions = names;
@@ -100,13 +101,12 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
 
   @override
   void dispose() {
+    costPriceCtrl.removeListener(_recalc);
+    quantityCtrl.removeListener(_recalc);
     nameCtrl.dispose();
     quantityCtrl.dispose();
-    initialQtyCtrl.dispose();
     reorderCtrl.dispose();
-    priceCtrl.dispose();
     costPriceCtrl.dispose();
-    sellingPriceCtrl.dispose();
     leadTimeCtrl.dispose();
     super.dispose();
   }
@@ -118,13 +118,10 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
       setState(() => error = "Item Name is required.");
       return;
     }
-
-    // Category is required — it feeds the AI demand-forecasting model.
     if (category == null || category!.isEmpty) {
       setState(() => error = "Please select a category (needed for AI forecasting).");
       return;
     }
-
     final qty = num.tryParse(quantityCtrl.text.trim());
     if (quantityCtrl.text.trim().isEmpty || qty == null || qty < 0) {
       setState(() => error = "Please enter a valid Quantity.");
@@ -132,27 +129,14 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
     }
 
     final costPrice = costPriceCtrl.text.trim().isNotEmpty ? (num.tryParse(costPriceCtrl.text.trim()) ?? 0) : 0;
-    final sellingPrice = sellingPriceCtrl.text.trim().isNotEmpty
-        ? (num.tryParse(sellingPriceCtrl.text.trim()) ?? 0)
-        : (num.tryParse(priceCtrl.text.trim()) ?? 0);
-
-    // Margin check — mirrors the web form.
-    if (sellingPrice < costPrice) {
-      setState(() => error = "Selling price should be higher than the cost price.");
-      return;
-    }
 
     final payload = <String, dynamic>{
       "name": nameCtrl.text.trim(),
       "category": category,
       "quantity": qty,
-      "initial_quantity": initialQtyCtrl.text.trim().isNotEmpty ? (num.tryParse(initialQtyCtrl.text.trim()) ?? qty) : qty,
       "unit": unit,
       "reorder_level": reorderCtrl.text.trim().isNotEmpty ? (num.tryParse(reorderCtrl.text.trim()) ?? 0) : 0,
-      "unit_price": sellingPrice,
-      "selling_price": sellingPrice,
-      "cost_price": costPrice,
-      // Default lead time to 1 when blank, like the web form.
+      "cost_price": costPrice,   // selling price අයින් — cost විතරයි (backend: unit_price = cost)
       "delivery_lead_time": leadTimeCtrl.text.trim().isNotEmpty ? (int.tryParse(leadTimeCtrl.text.trim()) ?? 1) : 1,
     };
 
@@ -179,8 +163,8 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
   @override
   Widget build(BuildContext context) {
     final teal = Theme.of(context).brightness == Brightness.dark ? KadeColors.tealDark : KadeColors.teal;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Keep any existing (possibly custom) category selectable.
     final categoryOptions = [...kItemCategories];
     if (category != null && category!.isNotEmpty && !categoryOptions.contains(category)) {
       categoryOptions.insert(0, category!);
@@ -240,16 +224,6 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Initial Quantity"),
-            TextField(
-              controller: initialQtyCtrl,
-              enabled: !saving,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-              decoration: const InputDecoration(hintText: "Initial stock count"),
-            ),
-            const SizedBox(height: 16),
-
             fieldLabel("Reorder Level"),
             TextField(
               controller: reorderCtrl,
@@ -268,7 +242,7 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Cost Price per Unit (LKR)"),
+            fieldLabel("Unit Cost per Unit (LKR)"),
             TextField(
               controller: costPriceCtrl,
               enabled: !saving,
@@ -278,13 +252,26 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Selling Price per Unit (LKR) *"),
-            TextField(
-              controller: sellingPriceCtrl,
-              enabled: !saving,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-              decoration: const InputDecoration(hintText: "0.00", prefixText: "LKR "),
+            // NEW: Total Cost (read-only, auto-calculated) — selling price වෙනුවට
+            fieldLabel("Total Cost (LKR)"),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white10 : const Color(0xFFF3ECE0),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                "LKR ${_totalCost.toStringAsFixed(2)}",
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 6, left: 2),
+              child: Text(
+                "Unit Cost × Quantity  =  ${(double.tryParse(costPriceCtrl.text.trim()) ?? 0).toStringAsFixed(2)} × ${(double.tryParse(quantityCtrl.text.trim()) ?? 0).toStringAsFixed(0)}",
+                style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
+              ),
             ),
             const SizedBox(height: 16),
 
@@ -306,7 +293,7 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
   }
 }
 
-// ── Shared Helper Widgets ──
+// ── Shared Helper Widgets (supplier_form_screen මේවා import කරනවා) ──
 Widget fieldLabel(String t) => Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Text(t, style: const TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito")),

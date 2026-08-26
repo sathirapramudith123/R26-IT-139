@@ -18,7 +18,6 @@ const List<Map<String, String>> _payMethods = [
   {"value": "digital", "label": "Digital"},
 ];
 
-// expense/deposit/transfer all take a category + description, matching web.
 const Map<String, Map<String, bool>> _typeConfig = {
   "sale": {"items": true},
   "purchase": {"items": true},
@@ -27,8 +26,7 @@ const Map<String, Map<String, bool>> _typeConfig = {
   "transfer": {"category": true, "description": true},
 };
 
-// Standardized categories (mirror the web CATEGORIES_BY_TYPE) — these feed the
-// AI & analytics models, so they must stay a controlled list per type.
+// Web CATEGORIES_BY_TYPE — "Personal Drawings" සහ "Loan Disbursement" අයින් කළා.
 const Map<String, List<String>> _categoriesByType = {
   "expense": [
     "Utilities (Electricity/Water)",
@@ -36,12 +34,10 @@ const Map<String, List<String>> _categoriesByType = {
     "Transport / Fuel",
     "Labor / Wages",
     "Loss / Wastage / Damage",
-    "Personal Drawings",
   ],
   "deposit": [
     "Agency Banking Cash-In",
     "Owner Capital Injection",
-    "Loan Disbursement",
     "Other Income",
   ],
   "transfer": [
@@ -62,7 +58,6 @@ class TransactionFormScreen extends StatefulWidget {
 
 class _TransactionFormScreenState extends State<TransactionFormScreen> {
   final CrudService service = CrudService("/transactions");
-  final CrudService inventoryService = CrudService("/inventory");
 
   late String txType;
   late String paymentMethod;
@@ -70,6 +65,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   final amountCtrl = TextEditingController();
   final descriptionCtrl = TextEditingController();
   final qtyCtrl = TextEditingController();
+  final priceCtrl = TextEditingController(); // NEW: per-unit price (typed)
 
   String? category;
 
@@ -90,7 +86,13 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   double get cartTotal =>
       cart.fold(0.0, (s, l) => s + (l["amount"] as num).toDouble());
 
-  // Category options for the current type, keeping any existing custom value.
+  // Payment method options: transfer -> cash නෑ | deposit -> cash විතරයි
+  List<Map<String, String>> get _payOptions {
+    if (txType == "transfer") return _payMethods.where((m) => m["value"] != "cash").toList();
+    if (txType == "deposit") return _payMethods.where((m) => m["value"] == "cash").toList();
+    return _payMethods;
+  }
+
   List<String> get _categoryOptions {
     final base = List<String>.from(_categoriesByType[txType] ?? const []);
     if (category != null && category!.isNotEmpty && !base.contains(category)) {
@@ -114,24 +116,25 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     if (saved is List) {
       for (final l in saved) {
         if (l is Map) {
+          final q = num.tryParse("${l["quantity"]}") ?? 0;
+          final up = num.tryParse("${l["unit_price"]}") ?? 0;
           cart.add({
             "item_name": l["item_name"],
-            "quantity": num.tryParse("${l["quantity"]}") ?? 0,
-            "unit_price": 0,
-            "amount": 0,
+            "quantity": q,
+            "unit_price": up,
+            "cost_price": num.tryParse("${l["cost_price"]}") ?? 0,
+            "amount": num.tryParse("${l["amount"]}") ?? (q * up),
           });
         }
       }
     }
+    _enforcePayment();
     _loadInventory();
   }
 
-  double _getPrice(Map<String, dynamic> inv) {
-    final raw = isPurchase
-        ? (inv["cost_price"] ?? inv["price"] ?? inv["unit_price"])
-        : (inv["selling_price"] ?? inv["price"] ?? inv["unit_price"]);
-    return double.tryParse("$raw") ?? 0.0;
-  }
+  // inventory එකේ current cost (batch weighted avg) — purchase pre-fill / cost snapshot
+  double _invCost(Map inv) =>
+      double.tryParse("${inv["cost_price"] ?? inv["unit_price"] ?? inv["price"] ?? 0}") ?? 0.0;
 
   Future<void> _loadInventory() async {
     try {
@@ -143,15 +146,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       setState(() {
         inventory = objs;
         loadingInventory = false;
-        for (final l in cart) {
-          if ((l["unit_price"] as num) == 0) {
-            final inv = _findItem("${l["item_name"]}");
-            final price = _getPrice(inv);
-            final q = (l["quantity"] as num).toDouble();
-            l["unit_price"] = price;
-            l["amount"] = double.parse((q * price).toStringAsFixed(2));
-          }
-        }
       });
     } catch (_) {
       if (mounted) {
@@ -171,7 +165,17 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     amountCtrl.dispose();
     descriptionCtrl.dispose();
     qtyCtrl.dispose();
+    priceCtrl.dispose();
     super.dispose();
+  }
+
+  // Payment method rules
+  void _enforcePayment() {
+    if (txType == "deposit") {
+      paymentMethod = "cash";
+    } else if (txType == "transfer" && paymentMethod == "cash") {
+      paymentMethod = _payMethods.firstWhere((m) => m["value"] != "cash")["value"]!;
+    }
   }
 
   void _changeType(String? val) {
@@ -182,9 +186,23 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       cart.clear();
       pickItem = null;
       qtyCtrl.clear();
+      priceCtrl.clear();
       amountCtrl.clear();
       category = null;
       error = null;
+      _enforcePayment();
+    });
+  }
+
+  // Item pick කරද්දි: purchase -> inventory cost pre-fill | sale -> හිස්
+  void _onPickItem(String? val) {
+    setState(() {
+      pickItem = val;
+      if (val != null && isPurchase) {
+        priceCtrl.text = _invCost(_findItem(val)).toStringAsFixed(2);
+      } else {
+        priceCtrl.clear();
+      }
     });
   }
 
@@ -192,6 +210,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     FocusScope.of(context).unfocus();
     final name = pickItem;
     final units = double.tryParse(qtyCtrl.text.trim()) ?? 0;
+    final price = double.tryParse(priceCtrl.text.trim()) ?? 0;
 
     if (name == null || name.isEmpty) {
       setState(() => error = "Select an item first.");
@@ -199,6 +218,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     }
     if (units <= 0) {
       setState(() => error = "Enter a valid quantity.");
+      return;
+    }
+    if (price <= 0) {
+      setState(() => error = isPurchase ? "Enter the cost price per unit." : "Enter the selling price per unit.");
       return;
     }
 
@@ -215,53 +238,42 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       }
     }
 
-    final price = _getPrice(inv);
+    final costSnap = isPurchase ? price : _invCost(inv); // COGS snapshot
     setState(() {
       error = null;
       final idx = cart.indexWhere((l) => l["item_name"] == name);
       if (idx >= 0) {
         final q = (cart[idx]["quantity"] as num).toDouble() + units;
+        final up = (cart[idx]["unit_price"] as num).toDouble();
         cart[idx]["quantity"] = q;
-        cart[idx]["amount"] = double.parse((q * price).toStringAsFixed(2));
+        cart[idx]["amount"] = double.parse((q * up).toStringAsFixed(2));
       } else {
         cart.add({
           "item_name": name,
           "quantity": units,
-          "unit_price": price,
+          "unit_price": price,       // sale: selling | purchase: cost
+          "cost_price": costSnap,    // COGS snapshot
           "amount": double.parse((units * price).toStringAsFixed(2)),
         });
       }
       pickItem = null;
       qtyCtrl.clear();
+      priceCtrl.clear();
     });
-  }
-
-  Future<void> _updateInventoryStock() async {
-    if (!usesItems || cart.isEmpty) return;
-
-    for (final line in cart) {
-      final inv = _findItem("${line["item_name"]}");
-      if (inv.isNotEmpty && inv["id"] != null) {
-        final currentQty = double.tryParse("${inv["quantity"] ?? 0}") ?? 0.0;
-        final cartQty = (line["quantity"] as num).toDouble();
-
-        final newQty = isPurchase
-            ? currentQty + cartQty
-            : currentQty - cartQty;
-
-        try {
-          final updatedData = Map<String, dynamic>.from(inv);
-          updatedData["quantity"] = newQty < 0 ? 0 : newQty;
-          await inventoryService.update("${inv["id"]}", updatedData);
-        } catch (e) {
-          debugPrint("Failed to update stock for ${line["item_name"]}: $e");
-        }
-      }
-    }
   }
 
   Future<void> _save() async {
     FocusScope.of(context).unfocus();
+
+    // Payment method guard (web එකට ගැලපෙන්න)
+    if (txType == "transfer" && paymentMethod == "cash") {
+      setState(() => error = "Cash isn't allowed for Transfer transactions.");
+      return;
+    }
+    if (txType == "deposit" && paymentMethod != "cash") {
+      setState(() => error = "Deposit must be paid via Cash.");
+      return;
+    }
 
     final Map<String, dynamic> payload = {
       "transaction_type": txType,
@@ -274,7 +286,13 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         return;
       }
       payload["items"] = cart
-          .map((l) => {"item_name": l["item_name"], "quantity": l["quantity"]})
+          .map((l) => {
+                "item_name": l["item_name"],
+                "quantity": l["quantity"],
+                "unit_price": l["unit_price"],
+                "cost_price": l["cost_price"],
+                "amount": l["amount"],
+              })
           .toList();
       payload["amount"] = cartTotal;
     } else {
@@ -283,7 +301,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         setState(() => error = "Enter an amount greater than 0.");
         return;
       }
-      // Category is required for these types (used by AI & analytics).
       if (showCategory && (category == null || category!.isEmpty)) {
         setState(() => error = "Please select a category.");
         return;
@@ -299,11 +316,11 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
     setState(() { saving = true; error = null; });
     try {
+      // Stock movement දැන් server FIFO එකෙන් — client-side update අයින් කළා
       if (isEdit) {
         await service.update("${widget.item!["id"]}", payload);
       } else {
         await service.create(payload);
-        await _updateInventoryStock();
       }
       if (!mounted) return;
       Navigator.pop(context, true);
@@ -318,6 +335,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final teal = isDark ? KadeColors.tealDark : KadeColors.teal;
+    final payOpts = _payOptions;
+    final payValue = payOpts.any((m) => m["value"] == paymentMethod) ? paymentMethod : payOpts.first["value"];
 
     return Scaffold(
       appBar: AppBar(title: Text("${isEdit ? "Edit" : "New"} Transaction")),
@@ -348,10 +367,18 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
             _label("Payment Method *"),
             DropdownButtonFormField<String>(
-              value: _payMethods.any((m) => m["value"] == paymentMethod) ? paymentMethod : _payMethods.first["value"],
-              items: _payMethods.map((m) => DropdownMenuItem(value: m["value"], child: Text(m["label"]!))).toList(),
-              onChanged: saving ? null : (val) => setState(() => paymentMethod = val ?? "cash"),
+              value: payValue,
+              items: payOpts.map((m) => DropdownMenuItem(value: m["value"], child: Text(m["label"]!))).toList(),
+              onChanged: (saving || txType == "deposit") ? null : (val) => setState(() => paymentMethod = val ?? "cash"),
             ),
+            if (txType == "transfer" || txType == "deposit")
+              Padding(
+                padding: const EdgeInsets.only(top: 6, left: 2),
+                child: Text(
+                  txType == "transfer" ? "Cash isn't available for transfers" : "Deposits are always Cash",
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
+                ),
+              ),
             const SizedBox(height: 16),
 
             if (usesItems) ..._cartSection() else ..._simpleSection(),
@@ -415,6 +442,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     final names = inventory.map((i) => "${i["name"] ?? ""}").where((s) => s.isNotEmpty).toList();
     final itemLabel = isPurchase ? "Item Purchased *" : "Item Sold *";
     final unitsLabel = isPurchase ? "Units bought" : "Units sold";
+    final priceLabel = isPurchase ? "Cost Price per Unit (LKR)" : "Selling Price per Unit (LKR)";
+    final priceHint = isPurchase ? "Auto-filled from inventory cost — editable" : "Enter your selling price per unit";
 
     return [
       _label(itemLabel),
@@ -425,25 +454,38 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           final inv = _findItem(o);
           return DropdownMenuItem(value: o, child: Text("$o (${inv["quantity"] ?? 0} in stock)"));
         }).toList(),
-        onChanged: saving ? null : (val) => setState(() => pickItem = val),
+        onChanged: saving ? null : _onPickItem,
       ),
       const SizedBox(height: 10),
-      Row(children: [
-        Expanded(
-          child: TextField(
-            controller: qtyCtrl,
-            enabled: !saving,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-            decoration: InputDecoration(hintText: unitsLabel),
-          ),
-        ),
-        const SizedBox(width: 10),
-        FilledButton.tonal(
+
+      _label(unitsLabel),
+      TextField(
+        controller: qtyCtrl,
+        enabled: !saving,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+        decoration: InputDecoration(hintText: unitsLabel),
+      ),
+      const SizedBox(height: 10),
+
+      // NEW: per-unit price — purchase එකට cost, sale එකට selling price
+      _label(priceLabel),
+      TextField(
+        controller: priceCtrl,
+        enabled: !saving,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+        decoration: InputDecoration(hintText: "0.00", prefixText: "LKR ", helperText: priceHint),
+      ),
+      const SizedBox(height: 10),
+
+      Align(
+        alignment: Alignment.centerRight,
+        child: FilledButton.tonal(
           onPressed: (pickItem == null || saving) ? null : _addToCart,
-          child: const Text("Add"),
+          child: const Text("+ Add item"),
         ),
-      ]),
+      ),
       const SizedBox(height: 14),
 
       Container(

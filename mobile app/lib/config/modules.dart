@@ -11,40 +11,56 @@ const modules = <ModuleConfig>[
       FieldConfig("payment_method", "Payment Method", type: "select", required: true,
           options: ["cash", "bank", "digital"]),
       FieldConfig("amount", "Amount (LKR)", type: "number", required: true),
-      // sale of a tracked item → stock is deducted automatically
-      FieldConfig("item_name", "Item Sold (deducts stock)",
+      // sale → stock deducts (FIFO) | purchase → stock adds as a batch
+      FieldConfig("item_name", "Item (sale deducts / purchase adds stock)",
           type: "select", optionsSource: "/inventory", optionsLabelKey: "name"),
-      FieldConfig("quantity", "Units Sold", type: "number"),
+      FieldConfig("quantity", "Units", type: "number"),
+      // PURCHASE එකකදි batch cost එකට. (SALE එකකදි හිස්ව තියන්න — COGS FIFO වලින්.)
+      FieldConfig("unit_price", "Cost / Selling Price per Unit (LKR)", type: "number"),
       FieldConfig("category", "Category"),
       FieldConfig("description", "Description"),
     ],
   ),
   ModuleConfig(
     title: "Inventory", path: "/inventory", icon: "📦",
-    listColumns: ["name", "quantity", "unit_price"],
+    // unit_price -> cost_price (weighted average cost පෙන්නන්න)
+    listColumns: ["name", "quantity", "cost_price"],
     fields: [
       FieldConfig("name", "Item Name", required: true),
+      // AI Demand Forecasting සඳහා category එකතු කළා (web එකට ගැලපෙන්න)
+      FieldConfig("category", "Category", type: "select", required: true, options: [
+        "Rice & Grains", "Beverages", "Dairy & Bakery", "Snacks & Sweets",
+        "Canned & Packaged Food", "Household & Cleaning", "Personal Care",
+        "Spices & Cooking Essentials", "Other",
+      ]),
       FieldConfig("supplier_name", "Supplier",
           type: "select", optionsSource: "/suppliers", optionsLabelKey: "name"),
       FieldConfig("quantity", "Quantity", type: "number", required: true),
       FieldConfig("reorder_level", "Reorder Level", type: "number"),
       FieldConfig("unit", "Unit", type: "select",
           options: ["kg", "g", "l", "ml", "unit", "box", "carton"]),
-      FieldConfig("unit_price", "Unit Price (LKR)", type: "number"),
+      // selling price අයින් — දැන් cost එක විතරයි
+      FieldConfig("cost_price", "Unit Cost (LKR)", type: "number"),
     ],
   ),
   ModuleConfig(
     title: "Suppliers", path: "/suppliers", icon: "🤝",
-    listColumns: ["name", "contact_number", "unit_price"],
+    // unit_price -> delivery_location (list එකේ පෙන්නන්න)
+    listColumns: ["name", "contact_number", "delivery_location"],
     fields: [
       FieldConfig("name", "Supplier Name", required: true),
       FieldConfig("company_name", "Company"),
       FieldConfig("contact_number", "Contact Number", required: true),
       FieldConfig("email", "Email"),
-      FieldConfig("unit_price", "Unit Price (LKR)", type: "number"),
+      // unit_price + status අයින් — delivery_location dropdown එකතු කළා
+      FieldConfig("delivery_location", "Delivery Location", type: "select", options: [
+        "Colombo", "Gampaha", "Kalutara", "Kandy", "Matale", "Nuwara Eliya",
+        "Galle", "Matara", "Hambantota", "Jaffna", "Kilinochchi", "Mannar",
+        "Vavuniya", "Mullaitivu", "Batticaloa", "Ampara", "Trincomalee",
+        "Kurunegala", "Puttalam", "Anuradhapura", "Polonnaruwa", "Badulla",
+        "Monaragala", "Ratnapura", "Kegalle",
+      ]),
       FieldConfig("delivery_cost", "Delivery Cost (LKR)", type: "number"),
-      FieldConfig("status", "Status", type: "select",
-          options: ["active", "pending", "inactive"]),
     ],
   ),
   ModuleConfig(
@@ -66,7 +82,7 @@ const modules = <ModuleConfig>[
           type: "select", optionsSource: "/suppliers", optionsLabelKey: "name"),
       FieldConfig("total_cost", "Total Cost (LKR)", type: "number"),
       FieldConfig("estimated_profit", "Estimated Profit (LKR)", type: "number"),
-      // marking this RECEIVED adds the quantity to inventory
+      // marking this RECEIVED adds the quantity to inventory (නියම cost එකට batch)
       FieldConfig("status", "Status", type: "select",
           options: ["pending", "ordered", "received", "cancelled"]),
     ],

@@ -56,7 +56,7 @@ export default function IncomeStatement({ data }) {
           <tbody>
             <Row label="Total Revenue / Sales" value={formatCurrency(revenue)} />
             <Row
-              label="Cost of Goods Sold (Purchases)"
+              label="Cost of Goods Sold"
               value={`(${formatCurrency(cogs)})`}
               muted
             />
