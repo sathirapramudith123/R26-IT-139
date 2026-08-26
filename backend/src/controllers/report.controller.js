@@ -1,33 +1,61 @@
 import { supabase } from "../config/supabase.js";
 
+const num = (v) => Number(v) || 0;
+
+// SALE එකක item list එක ලබා ගැනීම (items JSONB array එක හෝ පරණ single item_name/quantity)
+const saleLines = (t) => {
+  if (Array.isArray(t.items) && t.items.length) return t.items;
+  if (t.item_name && t.quantity) return [{ item_name: t.item_name, quantity: t.quantity }];
+  return [];
+};
+
 export const getIncomeStatement = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    
-    const { data: transactions, error } = await supabase
-      .from("transactions")
-      .select("*")
-      .eq("user_id", userId);
+    // Transactions සහ Inventory දෙකම එකවර ලබා ගැනීම
+    // (COGS එකට inventory එකේ cost_price එක ඕන — sale line එකේ snapshot එකක් නැති අවස්ථා වලට)
+    const [{ data: transactions, error: txErr }, { data: inventory, error: invErr }] =
+      await Promise.all([
+        supabase.from("transactions").select("*").eq("user_id", userId),
+        supabase.from("inventory").select("item_name, cost_price, unit_price").eq("user_id", userId),
+      ]);
 
-    if (error) throw error;
+    if (txErr) throw txErr;
+    if (invErr) throw invErr;
+
+    // item_name -> unit cost map (fallback)
+    const costMap = {};
+    (inventory || []).forEach((i) => {
+      costMap[i.item_name] = num(i.cost_price ?? i.unit_price);
+    });
 
     let totalRevenue = 0;
     let costOfGoodsSold = 0;
     let operatingExpenses = 0;
 
-    // ගනුදෙනු වර්ගය අනුව මුදල් වෙන්කර ගණනය කිරීම
     (transactions || []).forEach((t) => {
-      const amount = Number(t.amount) || 0;
+      const amount = num(t.amount);
       const type = `${t.transaction_type}`.toLowerCase();
 
-      if (type === "sale" || type === "deposit") {
+      if (type === "sale") {
+        // Revenue = විකුණපු මුදල (selling price)
         totalRevenue += amount;
-      } else if (type === "purchase") {
-        costOfGoodsSold += amount;
+
+        // COGS = විකුණපු භාණ්ඩ වල cost එක විතරයි
+        saleLines(t).forEach((line) => {
+          const qty = num(line.quantity);
+          // sale line එකේ cost snapshot එකක් තියෙනවා නම් ඒක, නැත්නම් current inventory cost එක
+          const unitCost = line.cost_price != null
+            ? num(line.cost_price)
+            : (costMap[line.item_name] || 0);
+          costOfGoodsSold += unitCost * qty;
+        });
       } else if (type === "expense") {
         operatingExpenses += amount;
       }
+      // PURCHASE -> cash→stock asset swap. P&L එකට බලපාන්නෙ නෑ.
+      // DEPOSIT / TRANSFER -> financing / pass-through. Income නෙවෙයි.
     });
 
     const grossProfit = totalRevenue - costOfGoodsSold;

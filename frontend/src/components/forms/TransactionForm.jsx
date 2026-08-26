@@ -25,12 +25,10 @@ const CATEGORIES_BY_TYPE = {
     "Transport / Fuel",
     "Labor / Wages",
     "Loss / Wastage / Damage",
-    // >>> CHANGED: "Personal Drawings" removed
   ],
   deposit: [
     "Agency Banking Cash-In",
     "Owner Capital Injection",
-    // >>> CHANGED: "Loan Disbursement" removed
     "Other Income"
   ],
   transfer: [
@@ -55,22 +53,24 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
     amount:           initialData.amount           ?? "",
     item_name:        "", // picker only
     quantity:         "", // picker only
+    unit_price:       "", // picker only  >>> NEW: typed at add time
     category:         initialData.category         ?? "",
     description:      initialData.description      ?? "",
   });
 
   const [cart, setCart] = useState(
     (initialData.items ?? []).map(l => ({
-      item_name: l.item_name, 
-      quantity: Number(l.quantity), 
-      unit_price: Number(l.unit_price) || 0, 
+      item_name: l.item_name,
+      quantity: Number(l.quantity),
+      unit_price: Number(l.unit_price) || 0,
+      cost_price: Number(l.cost_price) || 0,   // COGS snapshot
       amount: Number(l.amount) || 0,
     }))
   );
 
-  function set(k, val) { 
-    setV(p => ({ ...p, [k]: val })); 
-    setErrors(p => ({ ...p, [k]: undefined })); 
+  function set(k, val) {
+    setV(p => ({ ...p, [k]: val }));
+    setErrors(p => ({ ...p, [k]: undefined }));
   }
 
   const type       = v.transaction_type;
@@ -81,28 +81,39 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
   const picked     = items.find(i => i.name === v.item_name);
   const total      = cart.reduce((s, l) => s + (l.amount || 0), 0);
 
-  // >>> CHANGED: Transfer can't be Cash; Deposit can ONLY be Cash.
+  // >>> Price field labels/hints depend on the mode
+  const priceLabel = isPurchase ? "Cost Price per Unit (LKR)" : "Selling Price per Unit (LKR)";
+  const priceHint  = isPurchase
+    ? "Auto-filled from inventory cost — editable"
+    : "Enter your selling price per unit";
+
+  // Transfer can't be Cash; Deposit can ONLY be Cash.
   const paymentMethodOptions =
     type === "transfer" ? PAYMENT_METHODS.filter(o => o.value !== "cash") :
     type === "deposit"  ? PAYMENT_METHODS.filter(o => o.value === "cash") :
     PAYMENT_METHODS;
 
-  function priceOf(item) {
-    const p = isPurchase
-      ? (item.cost_price ?? item.price ?? item.unit_price)
-      : (item.selling_price ?? item.price ?? item.unit_price);
-    return parseFloat(p) || 0;
+  // >>> Only the COST comes from inventory now (selling price is typed for sales)
+  function costOf(item) {
+    return parseFloat(item?.cost_price ?? item?.unit_price ?? item?.price) || 0;
+  }
+
+  // >>> Picking an item: purchase pre-fills the cost, sale leaves price empty for typing
+  function pickItem(name) {
+    set("item_name", name);
+    const inv = items.find(i => i.name === name);
+    set("unit_price", isPurchase && inv ? String(costOf(inv)) : "");
   }
 
   function changeType(val) {
     set("transaction_type", val);
     set("item_name", "");
     set("quantity", "");
+    set("unit_price", "");
     set("amount", "");
     set("category", "");
     setCart([]);
 
-    // >>> CHANGED: Deposit -> force Cash. Transfer -> bump off Cash if it was selected.
     if (val === "deposit") {
       set("payment_method", "cash");
     } else if (val === "transfer" && v.payment_method === "cash") {
@@ -120,28 +131,25 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
       .finally(() => setLoadingInventory(false));
   }, []);
 
-  // Update existing cart items prices on load during Edit mode
+  // Edit mode: backfill only PURCHASE line costs from inventory when missing.
+  // (Sale lines already carry the typed selling price, so we never overwrite them.)
   useEffect(() => {
-    if (!isEdit || !items.length) return;
+    if (!isEdit || !items.length || !isPurchase) return;
     setCart(prev => prev.map(l => {
       if (l.unit_price > 0) return l;
       const inv = items.find(i => i.name === l.item_name);
-      const price = inv ? priceOf(inv) : 0;
-      return { 
-        ...l, 
-        unit_price: price, 
-        amount: +(l.quantity * price).toFixed(2) 
-      };
+      const price = inv ? costOf(inv) : 0;
+      return { ...l, unit_price: price, amount: +(l.quantity * price).toFixed(2) };
     }));
-  }, [items, isEdit]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, isEdit, isPurchase]);
 
   // Sync total to amount field
   useEffect(() => {
     if (usesItems) set("amount", total ? total.toFixed(2) : "");
   }, [total, usesItems]);
 
-  // >>> CHANGED: safety net — if a record loads (e.g. edit mode / initialData) as
-  // Transfer + Cash, correct it once items/type are known on mount.
+  // safety net for payment method on mount (edit mode / initialData)
   useEffect(() => {
     if (type === "deposit" && v.payment_method !== "cash") {
       set("payment_method", "cash");
@@ -154,68 +162,63 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
 
   function addLine() {
     if (!picked) return;
+
     const units = parseFloat(v.quantity);
-    if (!units || units <= 0) { 
-      setErrors(p => ({ ...p, quantity: "Enter how many units." })); 
-      return; 
+    if (!units || units <= 0) {
+      setErrors(p => ({ ...p, quantity: "Enter how many units." }));
+      return;
+    }
+
+    // >>> price must be typed (sale) / present (purchase)
+    const price = parseFloat(v.unit_price);
+    if (!price || price <= 0) {
+      setErrors(p => ({
+        ...p,
+        unit_price: isPurchase ? "Enter the cost price per unit." : "Enter the selling price per unit.",
+      }));
+      return;
     }
 
     if (isSale) {
       const already = cart.filter(l => l.item_name === picked.name).reduce((s, l) => s + l.quantity, 0);
       if (units + already > Number(picked.quantity)) {
-        setErrors(p => ({ 
-          ...p, 
-          quantity: `Only ${picked.quantity} in stock${already ? ` (${already} already added)` : ""}.` 
+        setErrors(p => ({
+          ...p,
+          quantity: `Only ${picked.quantity} in stock${already ? ` (${already} already added)` : ""}.`
         }));
         return;
       }
     }
 
-    const price = priceOf(picked);
     setCart(prev => {
       const existing = prev.find(l => l.item_name === picked.name);
       if (existing) {
+        // merge: keep the existing line's unit price, just add the units
         return prev.map(l =>
           l.item_name === picked.name
-            ? { 
-                ...l, 
-                quantity: l.quantity + units, 
-                amount: +((l.quantity + units) * l.unit_price).toFixed(2) 
+            ? {
+                ...l,
+                quantity: l.quantity + units,
+                amount: +((l.quantity + units) * l.unit_price).toFixed(2)
               }
             : l
         );
       }
-      return [...prev, { item_name: picked.name, quantity: units, unit_price: price, amount: +(units * price).toFixed(2) }];
+      return [...prev, {
+        item_name: picked.name,
+        quantity: units,
+        unit_price: price,              // sale: selling price | purchase: cost price
+        cost_price: costOf(picked),     // snapshot of unit cost for accurate COGS
+        amount: +(units * price).toFixed(2)
+      }];
     });
+
     set("item_name", "");
     set("quantity", "");
+    set("unit_price", "");
   }
 
   function removeLine(idx) { setCart(prev => prev.filter((_, i) => i !== idx)); }
-
-  // Inventory Stock Synchronization (Client Side Safety Batching)
-  async function updateInventoryStock() {
-    if (!usesItems || cart.length === 0) return;
-
-    for (const line of cart) {
-      const invItem = items.find(i => i.name === line.item_name);
-      if (invItem) {
-        const currentQty = Number(invItem.quantity) || 0;
-        const newQty = isSale
-          ? currentQty - line.quantity
-          : currentQty + line.quantity;
-
-        try {
-          await inventoryApi.update(invItem.id, {
-            ...invItem,
-            quantity: Math.max(0, newQty),
-          });
-        } catch (e) {
-          console.error(`Failed to update stock for ${line.item_name}:`, e);
-        }
-      }
-    }
-  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -224,7 +227,6 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
     if (!v.amount || Number(v.amount) <= 0) er.amount = er.amount || "Enter an amount greater than 0.";
     if (cfg.category && !v.category) er.category = "Please select a category.";
 
-    // >>> CHANGED: hard guard in case something slipped through (e.g. stale state).
     if (type === "transfer" && v.payment_method === "cash") {
       er.payment_method = "Cash isn't allowed for Transfer transactions.";
     } else if (type === "deposit" && v.payment_method !== "cash") {
@@ -233,7 +235,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
 
     if (Object.keys(er).length) { setErrors(er); return; }
 
-    setSaving(true); 
+    setSaving(true);
     setServerError(null);
 
     // Enhanced Payload with Unit Prices for Historical Analytics Data Integrity
@@ -246,11 +248,12 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
           quantity: null,
           category: null,
           description: v.description || null,
-          items: cart.map(l => ({ 
-            item_name: l.item_name, 
+          items: cart.map(l => ({
+            item_name: l.item_name,
             quantity: l.quantity,
-            unit_price: l.unit_price,
-            amount: l.amount 
+            unit_price: l.unit_price,   // sale -> selling price | purchase -> cost price
+            cost_price: l.cost_price ?? 0,   // cost snapshot for accurate COGS
+            amount: l.amount
           })),
         }
       : {
@@ -268,7 +271,6 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
         await transactionApi.update(txId, payload);
       } else {
         await transactionApi.create(payload);
-        await updateInventoryStock();
       }
       router.push("/dashboard/transactions");
     } catch (err) {
@@ -298,7 +300,6 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
           </select>
         </FormField>
 
-        {/* >>> CHANGED: use filtered paymentMethodOptions; deposit is locked to Cash only */}
         <FormField label="Payment Method" required error={errors.payment_method}
           hint={
             type === "transfer" ? "Cash isn't available for transfers" :
@@ -319,7 +320,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
             {/* Left: Add Items */}
             <div className="space-y-4">
               <FormField label={itemLabel} hint={loadingInventory ? "Loading items..." : items.length === 0 ? "No inventory items yet." : stockHint}>
-                <select className="select-field" value={v.item_name} onChange={e => set("item_name", e.target.value)} disabled={loadingInventory}>
+                <select className="select-field" value={v.item_name} onChange={e => pickItem(e.target.value)} disabled={loadingInventory}>
                   <option value="">{loadingInventory ? "Loading inventory..." : "Select an item…"}</option>
                   {items.map(i => (
                     <option key={i.id} value={i.name}>{i.name} ({i.quantity} in stock)</option>
@@ -333,7 +334,15 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
                   value={v.quantity} onChange={e => set("quantity", e.target.value)} disabled={!v.item_name} />
               </FormField>
 
-              <Button type="button" variant="secondary" onClick={addLine} disabled={!v.item_name || !v.quantity}>
+              {/* >>> NEW: price per unit — typed for sales, auto-filled for purchases */}
+              <FormField label={priceLabel} error={errors.unit_price} hint={priceHint}>
+                <input className={cls("unit_price")} type="number" min="0.01" step="0.01"
+                  value={v.unit_price} onChange={e => set("unit_price", e.target.value)}
+                  disabled={!v.item_name} placeholder="0.00" />
+              </FormField>
+
+              <Button type="button" variant="secondary" onClick={addLine}
+                disabled={!v.item_name || !v.quantity || !v.unit_price}>
                 + Add item
               </Button>
             </div>
@@ -371,7 +380,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
             <input className={cls("amount")} type="number" min="0.01" step="0.01"
               value={v.amount} onChange={e => set("amount", e.target.value)} placeholder="0.00" />
           </FormField>
-          
+
           <FormField label="Description / Note" hint="Optional">
             <input className="input-field" value={v.description} onChange={e => set("description", e.target.value)} placeholder="Add optional note for sale/purchase..." />
           </FormField>

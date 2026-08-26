@@ -4,6 +4,15 @@ import '../../core/theme.dart';
 import '../../services/crud_service.dart';
 import '../inventory/inventory_form_screen.dart' show fieldLabel, errorBox, saveButton;
 
+// Sri Lankan districts — Delivery Location dropdown (web එකට ගැලපෙන්න)
+const List<String> kDeliveryLocations = [
+  "Colombo", "Gampaha", "Kalutara", "Kandy", "Matale", "Nuwara Eliya",
+  "Galle", "Matara", "Hambantota", "Jaffna", "Kilinochchi", "Mannar",
+  "Vavuniya", "Mullaitivu", "Batticaloa", "Ampara", "Trincomalee",
+  "Kurunegala", "Puttalam", "Anuradhapura", "Polonnaruwa", "Badulla",
+  "Monaragala", "Ratnapura", "Kegalle",
+];
+
 class SupplierFormScreen extends StatefulWidget {
   final Map<String, dynamic>? item;
   const SupplierFormScreen({super.key, this.item});
@@ -19,16 +28,14 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
   final contactCtrl = TextEditingController();
   final emailCtrl = TextEditingController();
   final addressCtrl = TextEditingController();
-  final priceCtrl = TextEditingController();
   final deliveryCtrl = TextEditingController();
   final leadTimeCtrl = TextEditingController();
   final qtyCtrl = TextEditingController();
 
-  String status = "active";
+  String? deliveryLocation; // unit_price + status අයින් — delivery location එකතු
   bool saving = false;
   String? error;
 
-  static const statuses = ["active", "pending", "inactive"];
   bool get isEdit => widget.item != null;
 
   @override
@@ -40,11 +47,11 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
     contactCtrl.text = it?["contact_number"]?.toString() ?? "";
     emailCtrl.text = it?["email"]?.toString() ?? "";
     addressCtrl.text = it?["address"]?.toString() ?? "";
-    priceCtrl.text = it?["unit_price"]?.toString() ?? "";
     deliveryCtrl.text = it?["delivery_cost"]?.toString() ?? "";
     leadTimeCtrl.text = it?["delivery_lead_time"]?.toString() ?? it?["lead_time"]?.toString() ?? "";
     qtyCtrl.text = it?["available_quantity"]?.toString() ?? it?["quantity"]?.toString() ?? "";
-    status = (it?["status"]?.toString().isNotEmpty ?? false) ? it!["status"].toString() : "active";
+    final dl = it?["delivery_location"]?.toString();
+    deliveryLocation = (dl != null && dl.isNotEmpty) ? dl : null;
   }
 
   @override
@@ -54,16 +61,10 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
     contactCtrl.dispose();
     emailCtrl.dispose();
     addressCtrl.dispose();
-    priceCtrl.dispose();
     deliveryCtrl.dispose();
     leadTimeCtrl.dispose();
     qtyCtrl.dispose();
     super.dispose();
-  }
-
-  String _capitalize(String str) {
-    if (str.isEmpty) return "";
-    return str[0].toUpperCase() + str.substring(1);
   }
 
   Future<void> _save() async {
@@ -79,7 +80,6 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
       setState(() => error = "Contact Number is required.");
       return;
     }
-    // Accept 9–12 digits (matches the web form: local or +94-prefixed numbers).
     final digits = phone.replaceAll(RegExp(r'\D'), '');
     if (digits.length < 9 || digits.length > 12) {
       setState(() => error = "Enter a valid contact number (e.g. 0771234567).");
@@ -98,15 +98,14 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
     final payload = <String, dynamic>{
       "name": nameCtrl.text.trim(),
       "contact_number": phone,
-      "status": status,
       "company_name": companyCtrl.text.trim(),
       "email": email,
       "address": addressCtrl.text.trim(),
-      "unit_price": priceCtrl.text.trim().isNotEmpty ? (num.tryParse(priceCtrl.text.trim()) ?? 0) : 0,
+      "delivery_location": deliveryLocation, // NEW
       "delivery_cost": deliveryCtrl.text.trim().isNotEmpty ? (num.tryParse(deliveryCtrl.text.trim()) ?? 0) : 0,
-      // Default lead time to 1 when blank, like the web form (AI reorder buffer).
       "delivery_lead_time": leadTimeCtrl.text.trim().isNotEmpty ? (int.tryParse(leadTimeCtrl.text.trim()) ?? 1) : 1,
       "available_quantity": qtyCtrl.text.trim().isNotEmpty ? (num.tryParse(qtyCtrl.text.trim()) ?? 0) : 0,
+      // unit_price + status form එකෙන් තව යවන්නෙ නෑ (backend defaults)
     };
 
     setState(() {
@@ -189,6 +188,16 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
             ),
             const SizedBox(height: 16),
 
+            // NEW: Delivery Location dropdown
+            fieldLabel("Delivery Location"),
+            DropdownButtonFormField<String>(
+              value: kDeliveryLocations.contains(deliveryLocation) ? deliveryLocation : null,
+              hint: const Text("Select delivery location…"),
+              items: kDeliveryLocations.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
+              onChanged: saving ? null : (v) => setState(() => deliveryLocation = v),
+            ),
+            const SizedBox(height: 16),
+
             fieldLabel("Available Quantity"),
             TextField(
               controller: qtyCtrl,
@@ -209,16 +218,6 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Unit Price (LKR)"),
-            TextField(
-              controller: priceCtrl,
-              enabled: !saving,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-              decoration: const InputDecoration(hintText: "0.00", prefixText: "LKR "),
-            ),
-            const SizedBox(height: 16),
-
             fieldLabel("Delivery Cost (LKR)"),
             TextField(
               controller: deliveryCtrl,
@@ -226,14 +225,6 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
               decoration: const InputDecoration(hintText: "0.00", prefixText: "LKR "),
-            ),
-            const SizedBox(height: 16),
-
-            fieldLabel("Status"),
-            DropdownButtonFormField<String>(
-              value: statuses.contains(status) ? status : "active",
-              items: statuses.map((o) => DropdownMenuItem(value: o, child: Text(_capitalize(o)))).toList(),
-              onChanged: saving ? null : (v) => setState(() => status = v ?? "active"),
             ),
             const SizedBox(height: 28),
 

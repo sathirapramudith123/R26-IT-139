@@ -29,20 +29,19 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
   const [suppliers, setSuppliers] = useState([]);
 
   const [v, setV] = useState({
-    name:          initialData.name          ?? "",
-    category:      initialData.category      ?? "",
-    supplier_name: initialData.supplier_name ?? "",
-    quantity:      initialData.quantity      ?? "",
-    reorder_level: initialData.reorder_level ?? "",
-    unit:          initialData.unit          ?? "unit",
-    cost_price:    initialData.cost_price    ?? initialData.unit_price ?? "",
-    selling_price: initialData.selling_price ?? initialData.unit_price ?? "",
-    lead_time_days: initialData.lead_time_days ?? "1", // AI Safety Stock එක සඳහා එකතු කරන ලදී
+    name:           initialData.name          ?? "",
+    category:       initialData.category      ?? "",
+    supplier_name:  initialData.supplier_name ?? "",
+    quantity:       initialData.quantity      ?? "",
+    reorder_level:  initialData.reorder_level ?? "",
+    unit:           initialData.unit          ?? "unit",
+    cost_price:     initialData.cost_price    ?? initialData.unit_price ?? "",
+    lead_time_days: initialData.lead_time_days ?? "1", // AI Safety Stock එක සඳහා
   });
 
-  function set(k, val) { 
-    setV(p => ({ ...p, [k]: val })); 
-    setErrors(p => ({ ...p, [k]: undefined })); 
+  function set(k, val) {
+    setV(p => ({ ...p, [k]: val }));
+    setErrors(p => ({ ...p, [k]: undefined }));
   }
 
   useEffect(() => {
@@ -63,6 +62,11 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
     categoryOptions.unshift(v.category);
   }
 
+  // >>> Total Cost = Unit Cost × Quantity (live calculate — DB එකේ save වෙන්නෙ නෑ)
+  const unitCost  = Number(v.cost_price) || 0;
+  const qty       = Number(v.quantity)   || 0;
+  const totalCost = unitCost * qty;
+
   async function handleSubmit(e) {
     e.preventDefault();
     const er = {};
@@ -70,15 +74,9 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
     if (!v.category) er.category = "Please select a category for AI forecasting.";
     if (v.quantity === "" || Number(v.quantity) < 0) er.quantity = "Enter a valid quantity (0 or more).";
     if (v.cost_price !== "" && Number(v.cost_price) < 0) er.cost_price = "Cost price cannot be negative.";
-    if (v.selling_price !== "" && Number(v.selling_price) < 0) er.selling_price = "Selling price cannot be negative.";
-    
-    // Margin Warning/Validation
-    if (Number(v.selling_price) < Number(v.cost_price)) {
-      er.selling_price = "Selling price should be higher than cost price.";
-    }
 
     if (Object.keys(er).length) { setErrors(er); return; }
-    
+
     setSaving(true); setServerError(null);
 
     const payload = {
@@ -86,8 +84,6 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
       quantity: Number(v.quantity),
       reorder_level: v.reorder_level === "" ? 0 : Number(v.reorder_level),
       cost_price: v.cost_price === "" ? 0 : Number(v.cost_price),
-      selling_price: v.selling_price === "" ? 0 : Number(v.selling_price),
-      unit_price: v.selling_price === "" ? 0 : Number(v.selling_price),
       lead_time_days: v.lead_time_days === "" ? 1 : Number(v.lead_time_days),
     };
 
@@ -95,10 +91,10 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
       if (isEdit) await inventoryApi.update(itemId, payload);
       else await inventoryApi.create(payload);
       router.push("/dashboard/inventory");
-    } catch (err) { 
-      setServerError(err.message || "Save failed."); 
-    } finally { 
-      setSaving(false); 
+    } catch (err) {
+      setServerError(err.message || "Save failed.");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -165,12 +161,22 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
           <input className="input-field" type="number" min="0" step="0.01" value={v.reorder_level} onChange={e => set("reorder_level", e.target.value)} placeholder="Default: Auto AI" />
         </FormField>
 
-        <FormField label="Cost Price per Unit (LKR)" error={errors.cost_price} hint="Buying price">
+        <FormField label="Unit Cost per Unit (LKR)" error={errors.cost_price} hint="Buying price per unit">
           <input className={cls("cost_price")} type="number" min="0" step="0.01" value={v.cost_price} onChange={e => set("cost_price", e.target.value)} placeholder="e.g. 1100.00" />
         </FormField>
 
-        <FormField label="Selling Price per Unit (LKR)" error={errors.selling_price} hint="Selling price">
-          <input className={cls("selling_price")} type="number" min="0" step="0.01" value={v.selling_price} onChange={e => set("selling_price", e.target.value)} placeholder="e.g. 1252.50" />
+        {/* >>> Selling Price ain kala. Ee wenuwata Total Cost (read-only) */}
+        <FormField
+          label="Total Cost (LKR)"
+          hint={`Unit Cost × Quantity  =  ${unitCost.toFixed(2)} × ${qty}`}
+        >
+          <input
+            className="input-field bg-slate-100 font-semibold text-slate-700 cursor-not-allowed dark:bg-slate-800"
+            type="text"
+            value={totalCost.toLocaleString("en-LK", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            readOnly
+            tabIndex={-1}
+          />
         </FormField>
 
         <FormField label="Item Delivery Lead Time (Days)" error={errors.lead_time_days} hint="Expected delivery time (Used for Dynamic Safety Stock)">

@@ -185,7 +185,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
 
                               _buildSummaryRow("Total Revenue / Sales", rev, Colors.green),
                               const SizedBox(height: 12),
-                              _buildSummaryRow("Cost of Goods Sold (Purchases)", -cogs, Colors.orange),
+                              _buildSummaryRow("Cost of Goods Sold", -cogs, Colors.orange),
                               const Divider(height: 24),
                               _buildSummaryRow("Gross Profit", grossProfit, Colors.blue, isBold: true),
                               const SizedBox(height: 12),
