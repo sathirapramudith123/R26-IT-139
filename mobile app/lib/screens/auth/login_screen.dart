@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
-import '../dashboard_screen.dart';
+import '../../widgets/main_navigation.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -20,7 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await AuthService.login(email.text.trim(), password.text);
       if (!mounted) return;
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DashboardScreen()));
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainNavigation()));
     } catch (e) {
       setState(() => error = e.toString().replaceFirst("Exception: ", ""));
     } finally {

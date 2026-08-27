@@ -18,7 +18,7 @@ const COLS = [
   { key: "supplier_name", label: "Supplier" },
   { key: "quantity", label: "Qty" },
   { key: "reorder_level", label: "Reorder" },
-  { key: "unit_price", label: "Unit Price" },
+  { key: "cost_price", label: "Unit Cost" },   // selling price අයින් — දැන් cost එක
   { key: "actions", label: "" },
 ];
 
@@ -40,10 +40,25 @@ export default function InventoryPage() {
     return !kw ? items : items.filter(i => [i.name, i.supplier_name].join(" ").toLowerCase().includes(kw));
   }, [items, search]);
 
+  // Cost cell: weighted average එක, batches කිහිපයක් නම් range එකත් පෙන්නනවා
+  const costCell = (item) => {
+    const avg = formatCurrency(item.cost_price);
+    const multi = Number(item.batch_count) > 1 && Number(item.cost_min) !== Number(item.cost_max);
+    if (!multi) return avg;
+    return (
+      <div className="leading-tight">
+        <div>{avg}</div>
+        <div className="text-xs text-slate-400">
+          {formatCurrency(item.cost_min)}–{formatCurrency(item.cost_max)} · {item.batch_count} batches
+        </div>
+      </div>
+    );
+  };
+
   const rows = filtered.map(item => ({
     ...item,
     supplier_name: item.supplier_name ?? "—",
-    unit_price: formatCurrency(item.unit_price),
+    cost_price: costCell(item),
     quantity: Number(item.quantity) <= Number(item.reorder_level)
       ? <span className="font-semibold text-red-600">{item.quantity}</span> : item.quantity,
     actions: (

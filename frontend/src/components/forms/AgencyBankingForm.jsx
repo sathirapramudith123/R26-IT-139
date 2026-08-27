@@ -9,7 +9,7 @@ import { agencyBankingApi } from "@/services/api/agencyBanking";
 import { AGENCY_TRANSACTION_TYPES, CBSL_LIMITS } from "@/lib/constants";
 import { isValidPhone } from "@/lib/validators";
 import { formatCurrency } from "@/lib/formatters";
-import { User, Phone, DollarSign, AlertCircle, Loader2, Building2 } from "lucide-react";
+import { User, Phone, AlertCircle, Loader2 } from "lucide-react";
 
 const STATUSES = ["completed", "pending", "failed"];
 
@@ -37,7 +37,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
     setErrors(p => ({ ...p, [k]: undefined }));
   }
 
-  // ✅ Amount එක වෙනස් වන විට පමණක් Auto-Calculate වන ක්‍රමය
+  // Amount එක වෙනස් වන විට පමණක් Auto-Calculate වන ක්‍රමය
   function handleAmountChange(val) {
     const amt = Number(val);
     let fee = v.service_fee;
@@ -167,7 +167,9 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
           required
         >
           <div className="relative">
-            <DollarSign className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 select-none">
+              Rs.
+            </span>
             <input
               className={getInputClass("amount")}
               type="number"
@@ -183,7 +185,9 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
         {/* Service Fee */}
         <FormField label="Service Fee (LKR)" hint="Charge for customer">
           <div className="relative">
-            <DollarSign className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 select-none">
+              Rs.
+            </span>
             <input
               className={getInputClass("service_fee")}
               type="number"
@@ -191,6 +195,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
               step="0.01"
               value={v.service_fee}
               onChange={e => set("service_fee", e.target.value)}
+              placeholder="0.00"
             />
           </div>
         </FormField>
@@ -198,7 +203,9 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
         {/* Commission */}
         <FormField label="Commission (LKR)" hint="Bank agent payout">
           <div className="relative">
-            <DollarSign className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 select-none">
+              Rs.
+            </span>
             <input
               className={getInputClass("commission")}
               type="number"
@@ -206,6 +213,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
               step="0.01"
               value={v.commission}
               onChange={e => set("commission", e.target.value)}
+              placeholder="0.00"
             />
           </div>
         </FormField>

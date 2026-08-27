@@ -14,7 +14,7 @@ const toDb = (b) => ({
   expected_selling_price: num(b.expected_selling_price),
   selected_supplier_name: b.selected_supplier_name || null,
   total_cost:             num(b.total_cost),
-  estimated_profit:        num(b.estimated_profit),
+  estimated_profit:       num(b.estimated_profit),
   procurement_status:     up(b.status || b.procurement_status || "pending"),
 });
 
@@ -24,8 +24,11 @@ const shape = (row) => {
   return c;
 };
 
-async function stockReceived(userId, item_name, quantity) {
-  await adjustStock(userId, item_name, Number(quantity), "procurement received");
+// RECEIVED කරද්දි — total_cost ÷ quantity = unit cost එකට batch එකක් receive කරනවා
+async function stockReceived(userId, item_name, quantity, totalCost) {
+  const qty = Number(quantity) || 0;
+  const unitCost = qty > 0 ? num(totalCost) / qty : 0;   // landed cost per unit
+  await adjustStock(userId, item_name, qty, "procurement received", unitCost);
   await notify(userId, {
     title: "Stock received",
     message: `${quantity} of ${item_name} added to your inventory.`,
@@ -65,7 +68,7 @@ export const create = async (req, res, next) => {
     if (error) throw error;
 
     if (data.procurement_status === "RECEIVED") {
-      await stockReceived(req.user.id, data.item_name, data.quantity);
+      await stockReceived(req.user.id, data.item_name, data.quantity, data.total_cost);
     }
 
     res.status(201).json(shape(data));
@@ -91,19 +94,19 @@ export const update = async (req, res, next) => {
 
     // Scenario 1: Pending → Received (Add Stock)
     if (!wasReceived && nowReceived) {
-      await stockReceived(req.user.id, data.item_name, data.quantity);
+      await stockReceived(req.user.id, data.item_name, data.quantity, data.total_cost);
     }
-    // Scenario 2: Received → Pending/Cancelled (Reverse Stock)
+    // Scenario 2: Received → Pending/Cancelled (Reverse Stock — FIFO)
     else if (wasReceived && !nowReceived) {
       await adjustStock(req.user.id, old.item_name, -Number(old.quantity), "procurement reversed");
     }
     // Scenario 3: Received → Received (Quantity or Item changed while still RECEIVED)
     else if (wasReceived && nowReceived) {
       if (old.item_name !== data.item_name || Number(old.quantity) !== Number(data.quantity)) {
-        // Reverse old quantity from old item
+        // පරණ quantity එක reverse (FIFO)
         await adjustStock(req.user.id, old.item_name, -Number(old.quantity), "procurement updated (old)");
-        // Add new quantity to new item
-        await stockReceived(req.user.id, data.item_name, data.quantity);
+        // නව quantity එක නියම cost එකට add
+        await stockReceived(req.user.id, data.item_name, data.quantity, data.total_cost);
       }
     }
 
