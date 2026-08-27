@@ -5,6 +5,7 @@ import '../../core/api.dart';
 import '../../services/crud_service.dart';
 import '../inventory/inventory_form_screen.dart' show fieldLabel, errorBox, saveButton;
 import '../suppliers/supplier_form_screen.dart' show kDeliveryLocations;
+import '../common/location_picker_map.dart';   // <-- path එක ඔයාගෙ folder එකට හදාගන්න
 
 const List<String> _units = ["kg", "g", "l", "ml", "unit", "box", "carton"];
 const List<Map<String, String>> _statuses = [
@@ -14,7 +15,6 @@ const List<Map<String, String>> _statuses = [
   {"value": "cancelled", "label": "Cancelled"},
 ];
 
-String _today() => DateTime.now().toIso8601String().substring(0, 10);
 String _genPrNo() => "PR-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}";
 
 class ProcurementFormScreen extends StatefulWidget {
@@ -33,6 +33,8 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
   DateTime? orderDate;
   DateTime? arrivalDate;
   String? deliveryLocation;
+  double? _lat;   // map coords
+  double? _lng;
   final noteCtrl = TextEditingController();
   String status = "pending";
 
@@ -68,6 +70,13 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
     deliveryLocation = (dl != null && dl.isNotEmpty) ? dl : null;
     noteCtrl.text = it?["special_note"]?.toString() ?? "";
     status = (it?["status"]?.toString().isNotEmpty ?? false) ? it!["status"].toString() : "pending";
+
+    // saved coords
+    final coords = it?["coords"];
+    if (coords is Map) {
+      _lat = (coords["lat"] as num?)?.toDouble();
+      _lng = (coords["lng"] as num?)?.toDouble();
+    }
 
     final saved = it?["items"];
     if (saved is List) {
@@ -177,6 +186,7 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
       "procurement_no": prNo,
       "date": orderDate?.toIso8601String().substring(0, 10),
       "delivery_location": deliveryLocation,
+      "coords": (_lat != null && _lng != null) ? {"lat": _lat, "lng": _lng} : null,
       "arrival_date": arrivalDate?.toIso8601String().substring(0, 10),
       "special_note": noteCtrl.text.trim(),
       "items": items,          // [{item_name, unit, quantity, unit_cost}]
@@ -332,13 +342,21 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
             ),
             const SizedBox(height: 16),
 
-            // ── Delivery + arrival + note ──
+            // ── Delivery location (dropdown) ──
             fieldLabel("Delivery Location *"),
             DropdownButtonFormField<String>(
               value: kDeliveryLocations.contains(deliveryLocation) ? deliveryLocation : null,
               hint: const Text("Select delivery location…"),
               items: kDeliveryLocations.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
               onChanged: saving ? null : (v) => setState(() => deliveryLocation = v),
+            ),
+            const SizedBox(height: 12),
+
+            // ── Map picker (exact point — optional) ──
+            LocationPickerMap(
+              initialLat: _lat,
+              initialLng: _lng,
+              onPick: (lat, lng) => setState(() { _lat = lat; _lng = lng; }),
             ),
             const SizedBox(height: 16),
 
