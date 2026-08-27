@@ -360,17 +360,14 @@ COMMENT ON COLUMN procurement.procurement_status IS
 'Lifecycle of the decision. Moving to RECEIVED adds the quantity to inventory; moving away from RECEIVED reverses it.';
 
 
--- 1. agency_banking Table එකට Anomaly Detection Columns එකතු කිරීම
 ALTER TABLE agency_banking 
   ADD COLUMN IF NOT EXISTS is_anomaly BOOLEAN NOT NULL DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS anomaly_score NUMERIC(5,4) NOT NULL DEFAULT 0.0000,
   ADD COLUMN IF NOT EXISTS channel VARCHAR(50) NOT NULL DEFAULT 'pos_terminal',
   ADD COLUMN IF NOT EXISTS tx_hour INT;
 
--- 2. Performance සඳහා ML index එකක් එකතු කිරීම
 CREATE INDEX IF NOT EXISTS idx_agb_anomaly ON agency_banking(user_id, is_anomaly);
 
--- 3. PostgREST Schema Cache එක Refresh කිරීම (500 Error එක වැළැක්වීමට)
 NOTIFY pgrst, 'reload schema';
 
 ALTER TABLE inventory 
@@ -382,45 +379,27 @@ ADD COLUMN IF NOT EXISTS lead_time_days NUMERIC DEFAULT 1;
 ALTER TABLE suppliers 
 ADD COLUMN IF NOT EXISTS lead_time_days NUMERIC DEFAULT 1;
 
--- ============================================================================
---  MIGRATION: suppliers table එකට delivery_location column එක එකතු කිරීම
---  procurement.delivery_location එකට ගැලපෙන්න VARCHAR(150) පාවිච්චි කරනවා
--- ============================================================================
-
--- 1. Delivery Location column එක එකතු කිරීම
 ALTER TABLE suppliers
 ADD COLUMN IF NOT EXISTS delivery_location VARCHAR(150);
 
--- 2. Location එකෙන් filter කරන query වේගවත් කිරීමට index එකක් (optional)
 CREATE INDEX IF NOT EXISTS idx_sup_delivery_location
   ON suppliers(user_id, delivery_location);
 
--- 3. PostgREST Schema Cache Refresh (500 / PGRST204 Error වැළැක්වීමට — අනිවාර්යයි)
 NOTIFY pgrst, 'reload schema';
 
 
--- ============================================================================
---  MIGRATION: Batch / Lot Inventory Tracking
---  එකම item එකට cost එක වෙනස් නම් වෙන වෙනම batch rows.
---  ⚠️ මේක run කරන්න කලින් / එක්කම stock engine (stock.js) එක FIFO ට update කරන්න,
---     නැත්නම් item_name එකෙන් single row බලාපොරොත්තු වෙන lookups break වෙනවා.
--- ============================================================================
-
--- 1. එකම item_name එකට rows කිහිපයක් (batches) allow කරන්න unique constraint එක අයින් කිරීම
 ALTER TABLE inventory DROP CONSTRAINT IF EXISTS uq_inventory_user_item;
 
--- 2. Batch identify කරන්න සහ FIFO order එකට fields එකතු කිරීම
 ALTER TABLE inventory
   ADD COLUMN IF NOT EXISTS batch_no VARCHAR(24)
       DEFAULT ('BATCH-' || UPPER(SUBSTRING(REPLACE(gen_random_uuid()::text, '-', ''), 1, 8))),
   ADD COLUMN IF NOT EXISTS received_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
--- 3. FIFO query (item_name + received_at අනුව පරණ batch මුලින්) වේගවත් කරන්න index
+
 CREATE INDEX IF NOT EXISTS idx_inv_fifo
   ON inventory(user_id, item_name, received_at);
 
--- 4. දැනට තියෙන rows වලට received_at = created_at විදිහට set කිරීම (FIFO පිළිවෙළ හරි වෙන්න)
+
 UPDATE inventory SET received_at = created_at WHERE received_at IS NULL;
 
--- 5. PostgREST Schema Cache Refresh (500 / PGRST204 වැළැක්වීමට)
 NOTIFY pgrst, 'reload schema';
