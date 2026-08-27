@@ -424,3 +424,27 @@ UPDATE inventory SET received_at = created_at WHERE received_at IS NULL;
 
 -- 5. PostgREST Schema Cache Refresh (500 / PGRST204 වැළැක්වීමට)
 NOTIFY pgrst, 'reload schema';
+
+
+-- ============================================================================
+--  MIGRATION: Agency Banking — Tiered KYC support
+--  customer ගේ KYC tier එක අනුව daily limits වෙනස් වෙනවා
+-- ============================================================================
+
+-- 1. KYC tier enum
+DO $$ BEGIN
+  CREATE TYPE kyc_tier_enum AS ENUM ('BASIC', 'VERIFIED', 'FULL');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- 2. agency_banking table එකට kyc_tier column එක
+ALTER TABLE agency_banking
+  ADD COLUMN IF NOT EXISTS kyc_tier kyc_tier_enum NOT NULL DEFAULT 'BASIC';
+
+-- 3. Cumulative daily query වේගවත් කරන්න index
+--    (customer_phone + transaction_type + created_at අනුව එකතුව)
+CREATE INDEX IF NOT EXISTS idx_agb_daily_sum
+  ON agency_banking(user_id, customer_phone, transaction_type, created_at);
+
+-- 4. PostgREST cache refresh
+NOTIFY pgrst, 'reload schema';

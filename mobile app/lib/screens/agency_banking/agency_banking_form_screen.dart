@@ -4,18 +4,34 @@ import '../../core/theme.dart';
 import '../../services/crud_service.dart';
 import '../inventory/inventory_form_screen.dart' show fieldLabel, errorBox, saveButton;
 
-/// CBSL transaction limits in LKR.
-///
-/// IMPORTANT: keep these values identical to the web app's `CBSL_LIMITS`
-/// (imported there from `@/lib/constants`). A `null` / missing entry means
-/// "no limit for this transaction type". The example numbers below are
-/// placeholders — replace them with your real, backend-agreed limits.
-const Map<String, num?> kCbslLimits = {
-  "cash_deposit": 500000,
-  "cash_withdrawal": 100000,
-  "fund_transfer": 500000,
-  "balance_inquiry": null,
+/// Tiered CBSL daily limits (LKR) — keep identical to the backend
+/// agencyBanking.controller.js TIER_LIMITS. `null` = no limit.
+const Map<String, Map<String, num?>> kTierLimits = {
+  "basic": {
+    "cash_deposit": 50000,
+    "cash_withdrawal": 25000,
+    "fund_transfer": 50000,
+    "balance_inquiry": null,
+  },
+  "verified": {
+    "cash_deposit": 200000,
+    "cash_withdrawal": 100000,
+    "fund_transfer": 300000,
+    "balance_inquiry": null,
+  },
+  "full": {
+    "cash_deposit": 500000,
+    "cash_withdrawal": 200000,
+    "fund_transfer": 1000000,
+    "balance_inquiry": null,
+  },
 };
+
+const List<Map<String, String>> kKycTiers = [
+  {"value": "basic", "label": "Basic (Unverified)"},
+  {"value": "verified", "label": "Verified"},
+  {"value": "full", "label": "Full (Biometric KYC)"},
+];
 
 class AgencyBankingFormScreen extends StatefulWidget {
   final Map<String, dynamic>? item;
@@ -36,6 +52,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
   final commissionCtrl = TextEditingController();
 
   String txType = "cash_deposit";
+  String kycTier = "basic"; // NEW
   String status = "completed";
   bool saving = false;
   String? error;
@@ -45,6 +62,9 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
 
   bool get isEdit => widget.item != null;
   bool get needsAmount => txType != "balance_inquiry";
+
+  num? get _limit => kTierLimits[kycTier]?[txType];
+  String get _tierLabel => kKycTiers.firstWhere((t) => t["value"] == kycTier)["label"]!;
 
   @override
   void initState() {
@@ -58,6 +78,8 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
     txType = (it?["transaction_type"]?.toString().isNotEmpty ?? false)
         ? it!["transaction_type"].toString()
         : "cash_deposit";
+    final kt = it?["kyc_tier"]?.toString().toLowerCase();
+    kycTier = (kt != null && kTierLimits.containsKey(kt)) ? kt : "basic";
     status = (it?["status"]?.toString().isNotEmpty ?? false)
         ? it!["status"].toString()
         : "completed";
@@ -80,20 +102,13 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
     }).join(' ');
   }
 
-  // Thousands-separated LKR value for hints/messages, e.g. 100000 -> "100,000".
   String _money(num n) {
     final fixed = n == n.roundToDouble() ? n.toStringAsFixed(0) : n.toStringAsFixed(2);
     final parts = fixed.split('.');
-    final intPart = parts[0].replaceAllMapped(
-      RegExp(r'\B(?=(\d{3})+(?!\d))'),
-      (m) => ',',
-    );
+    final intPart = parts[0].replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',');
     return parts.length > 1 ? "$intPart.${parts[1]}" : intPart;
   }
 
-  // Mirrors the web form: auto-fill fee & commission from the amount, but
-  // only when creating a new transaction (never when editing an existing one).
-  // The values stay editable — the agent can override them afterwards.
   void _onAmountChanged(String val) {
     if (isEdit) return;
     final amt = num.tryParse(val.trim()) ?? 0;
@@ -106,8 +121,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
 
   Widget _hint(String text) => Padding(
         padding: const EdgeInsets.only(top: 6, left: 2),
-        child: Text(text,
-            style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
+        child: Text(text, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
       );
 
   Future<void> _save() async {
@@ -132,9 +146,10 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
         setState(() => error = "Please enter a valid amount.");
         return;
       }
-      final limit = kCbslLimits[txType];
-      if (limit != null && amt > limit) {
-        setState(() => error = "Amount exceeds the CBSL limit of LKR ${_money(limit)}.");
+      // Per-transaction tier cap (cumulative daily එක backend එකෙන්)
+      final lim = _limit;
+      if (lim != null && amt > lim) {
+        setState(() => error = "Amount exceeds the $_tierLabel daily limit of LKR ${_money(lim)}.");
         return;
       }
     }
@@ -145,14 +160,14 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
       "customer_name": customerCtrl.text.trim(),
       "customer_phone": phoneCtrl.text.trim(),
       "transaction_type": txType,
+      "kyc_tier": kycTier, // NEW
       "amount": needsAmount ? parseNum(amountCtrl.text) : 0,
       "service_fee": parseNum(feeCtrl.text),
       "commission": parseNum(commissionCtrl.text),
       "status": status,
-      // ---- Fields the ML models expect (not user-facing) ----
-      "channel": "pos_terminal", // matches the web default the model was trained on
+      "channel": "pos_terminal",
       "created_offline": false,
-      "tx_hour": DateTime.now().hour, // real-time hour for anomaly detection
+      "tx_hour": DateTime.now().hour,
     };
 
     setState(() {
@@ -161,9 +176,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
     });
 
     try {
-      isEdit
-          ? await service.update("${widget.item!["id"]}", payload)
-          : await service.create(payload);
+      isEdit ? await service.update("${widget.item!["id"]}", payload) : await service.create(payload);
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {
@@ -176,7 +189,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
   @override
   Widget build(BuildContext context) {
     final teal = Theme.of(context).brightness == Brightness.dark ? KadeColors.tealDark : KadeColors.teal;
-    final limit = kCbslLimits[txType];
+    final lim = _limit;
 
     return Scaffold(
       appBar: AppBar(title: Text("${isEdit ? "Edit" : "New"} Agency Banking")),
@@ -216,9 +229,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
               DropdownButtonFormField<String>(
                 value: types.contains(txType) ? txType : types.first,
                 decoration: const InputDecoration(),
-                items: types
-                    .map((o) => DropdownMenuItem(value: o, child: Text(_formatType(o))))
-                    .toList(),
+                items: types.map((o) => DropdownMenuItem(value: o, child: Text(_formatType(o)))).toList(),
                 onChanged: saving
                     ? null
                     : (val) {
@@ -230,6 +241,19 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
                         }
                       },
               ),
+              const SizedBox(height: 16),
+
+              // NEW: KYC Tier
+              fieldLabel("Customer KYC Tier *"),
+              DropdownButtonFormField<String>(
+                value: kycTier,
+                decoration: const InputDecoration(),
+                items: kKycTiers
+                    .map((o) => DropdownMenuItem(value: o["value"], child: Text(o["label"]!)))
+                    .toList(),
+                onChanged: saving ? null : (val) => setState(() => kycTier = val ?? "basic"),
+              ),
+              _hint("Higher tiers allow higher daily limits"),
 
               if (needsAmount) ...[
                 const SizedBox(height: 16),
@@ -242,7 +266,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
                   decoration: const InputDecoration(hintText: "0.00", prefixText: "LKR "),
                   onChanged: _onAmountChanged,
                 ),
-                if (limit != null) _hint("CBSL limit: LKR ${_money(limit)}"),
+                if (lim != null) _hint("$_tierLabel daily limit: LKR ${_money(lim)}"),
               ],
 
               const SizedBox(height: 16),
@@ -267,8 +291,6 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
               ),
               _hint(isEdit ? "Your payout as agent" : "Auto-filled from amount — you can change it"),
 
-              // Status is editable only when editing an existing transaction,
-              // exactly like the web form.
               if (isEdit) ...[
                 const SizedBox(height: 16),
                 fieldLabel("Status"),
@@ -276,8 +298,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
                   value: statuses.contains(status) ? status : statuses.first,
                   decoration: const InputDecoration(),
                   items: statuses
-                      .map((s) => DropdownMenuItem(
-                          value: s, child: Text(s[0].toUpperCase() + s.substring(1))))
+                      .map((s) => DropdownMenuItem(value: s, child: Text(s[0].toUpperCase() + s.substring(1))))
                       .toList(),
                   onChanged: saving ? null : (val) => setState(() => status = val ?? status),
                 ),

@@ -7,18 +7,41 @@ const TABLE = "agency_banking";
 const ID = "agency_banking_id";
 const num = (v) => (v === "" || v == null ? 0 : Number(v));
 
-const LIMITS = {
-  CASH_DEPOSIT: 500000,
-  CASH_WITHDRAWAL: 200000,
-  FUND_TRANSFER: 1000000,
-  BALANCE_INQUIRY: null,
+// ── CBSL Tiered KYC Daily Limits ─────────────────────────────────────────
+// tier එකට අනුව එක් දවසකට එම customer ට කරන්න පුළුවන් උපරිම එකතුව (per type).
+// (BALANCE_INQUIRY -> limit නෑ. null = unlimited.)
+const TIER_LIMITS = {
+  BASIC: {
+    CASH_DEPOSIT:    50000,
+    CASH_WITHDRAWAL: 25000,
+    FUND_TRANSFER:   50000,
+    BALANCE_INQUIRY: null,
+  },
+  VERIFIED: {
+    CASH_DEPOSIT:    200000,
+    CASH_WITHDRAWAL: 100000,
+    FUND_TRANSFER:   300000,
+    BALANCE_INQUIRY: null,
+  },
+  FULL: {
+    CASH_DEPOSIT:    500000,
+    CASH_WITHDRAWAL: 200000,
+    FUND_TRANSFER:   1000000,
+    BALANCE_INQUIRY: null,
+  },
 };
 
-// 1. Database එකට යන Field සකස් කිරීම (ML Data ද ඇතුළුව)
+const VALID_TIERS = ["BASIC", "VERIFIED", "FULL"];
+const tierOf = (v) => {
+  const t = up(v || "BASIC");
+  return VALID_TIERS.includes(t) ? t : "BASIC";
+};
+
 const toDb = (b) => ({
   customer_name:    b.customer_name,
   customer_phone:   b.customer_phone,
   transaction_type: up(b.transaction_type),
+  kyc_tier:         tierOf(b.kyc_tier),
   amount:           Number(b.amount),
   service_fee:      num(b.service_fee),
   commission:       num(b.commission),
@@ -34,13 +57,75 @@ const shape = (row) => {
   return c;
 };
 
-function checkLimit(payload) {
-  const limit = LIMITS[payload.transaction_type];
-  if (limit && payload.amount > limit) {
-    const formattedType = payload.transaction_type.replace(/_/g, " ").toLowerCase();
-    return `Amount exceeds the CBSL limit of LKR ${limit.toLocaleString()} for ${formattedType}.`;
+// අද දවසේ (00:00 සිට) එම customer ගේ එම වර්ගයේ transactions වල එකතුව
+// (excludeId — update එකකදි එම record එකම ගණන් නොගන්න)
+async function todaysTotal(userId, phone, type, excludeId = null) {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+
+  let q = supabase
+    .from(TABLE)
+    .select("agency_banking_id, amount")
+    .eq("user_id", userId)
+    .eq("customer_phone", phone)
+    .eq("transaction_type", type)
+    .gte("created_at", start.toISOString());
+
+  const { data, error } = await q;
+  if (error) throw error;
+
+  return (data || [])
+    .filter((r) => r.agency_banking_id !== excludeId)
+    .reduce((s, r) => s + num(r.amount), 0);
+}
+
+// Tiered + cumulative daily limit check
+async function checkLimit(userId, payload, excludeId = null) {
+  const tier = tierOf(payload.kyc_tier);
+  const limit = TIER_LIMITS[tier]?.[payload.transaction_type];
+  if (!limit) return null; // unlimited (e.g. balance inquiry)
+
+  const type = payload.transaction_type;
+
+  // 1. එක transaction එකම limit එක ඉක්මවනවද?
+  if (payload.amount > limit) {
+    const t = type.replace(/_/g, " ").toLowerCase();
+    return `Amount exceeds the ${tier} KYC daily limit of LKR ${limit.toLocaleString()} for ${t}.`;
   }
+
+  // 2. අද දවසේ එකතුව + අලුත් amount එක limit එක ඉක්මවනවද? (cumulative)
+  const already = await todaysTotal(userId, payload.customer_phone, type, excludeId);
+  if (already + payload.amount > limit) {
+    const remaining = Math.max(0, limit - already);
+    const t = type.replace(/_/g, " ").toLowerCase();
+    return `Daily ${tier} KYC limit for ${t} is LKR ${limit.toLocaleString()}. ` +
+           `Already used today: LKR ${already.toLocaleString()}. ` +
+           `Remaining: LKR ${remaining.toLocaleString()}.`;
+  }
+
   return null;
+}
+
+// ML anomaly prediction (fail වුණත් transaction නතර නොවෙන්න)
+async function runAnomaly(payload) {
+  let result = { is_anomaly: false, anomaly_score: 0 };
+  try {
+    const r = await predict("anomaly", {
+      amount: payload.amount,
+      service_fee: payload.service_fee,
+      commission: payload.commission,
+      tx_hour: payload.tx_hour,
+      channel: payload.channel,
+      transaction_type: payload.transaction_type,
+    });
+    result = {
+      is_anomaly: r.is_anomaly || r.prediction === -1,
+      anomaly_score: r.anomaly_score || 0,
+    };
+  } catch (mlErr) {
+    console.error("ML Prediction Failed, proceeding with defaults:", mlErr.message);
+  }
+  return result;
 }
 
 export const getAll = async (req, res, next) => {
@@ -65,53 +150,33 @@ export const getOne = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-// 2. Real-time ML Prediction එක එකතු කළ Create Controller එක
 export const create = async (req, res, next) => {
   try {
     const payload = toDb(req.body);
-    const err = checkLimit(payload);
+
+    // Tiered + cumulative daily limit check
+    const err = await checkLimit(req.user.id, payload);
     if (err) return res.status(400).json({ error: err });
 
-    // ML Anomaly Detection Call එක (Failුවත් Transaction එක නතර නොවීමට try-catch භාවිත කර ඇත)
-    let mlResult = { is_anomaly: false, anomaly_score: 0 };
-    try {
-      const mlResponse = await predict("anomaly", {
-        amount: payload.amount,
-        service_fee: payload.service_fee,
-        commission: payload.commission,
-        tx_hour: payload.tx_hour,
-        channel: payload.channel,
-        transaction_type: payload.transaction_type
-      });
-      
-      mlResult = {
-        is_anomaly: mlResponse.is_anomaly || mlResponse.prediction === -1,
-        anomaly_score: mlResponse.anomaly_score || 0
-      };
-    } catch (mlErr) {
-      console.error("ML Prediction Failed, proceeding with default values:", mlErr.message);
-    }
+    const mlResult = await runAnomaly(payload);
 
-    // DB එකේ Save කිරීම
     const { data, error } = await supabase
       .from(TABLE)
-      .insert([{ 
-        user_id: req.user.id, 
+      .insert([{
+        user_id: req.user.id,
         ...payload,
         is_anomaly: mlResult.is_anomaly,
-        anomaly_score: mlResult.anomaly_score
+        anomaly_score: mlResult.anomaly_score,
       }])
       .select().single();
-      
     if (error) throw error;
 
-    // Anomaly එකක් නම් Alert එක Notification එකක් ලෙස යැවීම
     const notifyType = mlResult.is_anomaly ? "WARNING" : "SUCCESS";
     const notifyTitle = mlResult.is_anomaly ? "Suspicious Transaction Alert" : "Banking transaction posted";
 
     await notify(req.user.id, {
       title: notifyTitle,
-      message: `${String(data.transaction_type).replace(/_/g, " ").toLowerCase()} of LKR ${data.amount} for ${data.customer_name}. Ref: ${data.reference_code || 'N/A'}`,
+      message: `${String(data.transaction_type).replace(/_/g, " ").toLowerCase()} of LKR ${data.amount} for ${data.customer_name}. Ref: ${data.reference_code || "N/A"}`,
       type: notifyType,
       category: "BANKING",
       link: "/dashboard/agency-banking",
@@ -124,12 +189,22 @@ export const create = async (req, res, next) => {
 export const update = async (req, res, next) => {
   try {
     const payload = toDb(req.body);
-    const err = checkLimit(payload);
+
+    // update එකකදි එම record එකම cumulative එකෙන් අයින් කරලා check කරනවා
+    const err = await checkLimit(req.user.id, payload, req.params.id);
     if (err) return res.status(400).json({ error: err });
+
+    // ML re-check (edit කරාමත් anomaly යාවත්කාලීන වෙන්න)
+    const mlResult = await runAnomaly(payload);
 
     const { data, error } = await supabase
       .from(TABLE)
-      .update({ ...payload, updated_at: new Date().toISOString() })
+      .update({
+        ...payload,
+        is_anomaly: mlResult.is_anomaly,
+        anomaly_score: mlResult.anomaly_score,
+        updated_at: new Date().toISOString(),
+      })
       .eq(ID, req.params.id).eq("user_id", req.user.id)
       .select().maybeSingle();
     if (error) throw error;

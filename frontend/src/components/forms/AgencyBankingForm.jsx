@@ -6,12 +6,26 @@ import Link from "next/link";
 import FormField from "./FormField";
 import Button from "@/components/ui/Button";
 import { agencyBankingApi } from "@/services/api/agencyBanking";
-import { AGENCY_TRANSACTION_TYPES, CBSL_LIMITS } from "@/lib/constants";
+import { AGENCY_TRANSACTION_TYPES } from "@/lib/constants";
 import { isValidPhone } from "@/lib/validators";
 import { formatCurrency } from "@/lib/formatters";
 import { User, Phone, AlertCircle, Loader2 } from "lucide-react";
 
 const STATUSES = ["completed", "pending", "failed"];
+
+// KYC tiers (backend TIER_LIMITS එකට ගැලපෙන්න)
+const KYC_TIERS = [
+  { value: "basic",    label: "Basic (Unverified)" },
+  { value: "verified", label: "Verified" },
+  { value: "full",     label: "Full (Biometric KYC)" },
+];
+
+// Tiered CBSL daily limits — backend agencyBanking.controller.js TIER_LIMITS එකම
+const TIER_LIMITS = {
+  basic:    { cash_deposit: 50000,  cash_withdrawal: 25000,  fund_transfer: 50000,   balance_inquiry: null },
+  verified: { cash_deposit: 200000, cash_withdrawal: 100000, fund_transfer: 300000,  balance_inquiry: null },
+  full:     { cash_deposit: 500000, cash_withdrawal: 200000, fund_transfer: 1000000, balance_inquiry: null },
+};
 
 export default function AgencyBankingForm({ initialData = {}, agencyId = null }) {
   const router = useRouter();
@@ -24,6 +38,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
     customer_name:    initialData.customer_name    ?? "",
     customer_phone:   initialData.customer_phone   ?? "",
     transaction_type: initialData.transaction_type ?? "cash_deposit",
+    kyc_tier:         initialData.kyc_tier         ?? "basic", // NEW
     amount:           initialData.amount           ?? "",
     service_fee:      initialData.service_fee      ?? "",
     commission:       initialData.commission       ?? "",
@@ -37,7 +52,6 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
     setErrors(p => ({ ...p, [k]: undefined }));
   }
 
-  // Amount එක වෙනස් වන විට පමණක් Auto-Calculate වන ක්‍රමය
   function handleAmountChange(val) {
     const amt = Number(val);
     let fee = v.service_fee;
@@ -48,14 +62,11 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
       comm = (amt * 0.005).toFixed(2);
     }
 
-    setV(p => ({
-      ...p,
-      amount: val,
-      service_fee: fee,
-      commission: comm
-    }));
+    setV(p => ({ ...p, amount: val, service_fee: fee, commission: comm }));
     setErrors(p => ({ ...p, amount: undefined }));
   }
+
+  const limit = TIER_LIMITS[v.kyc_tier]?.[v.transaction_type];
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -64,8 +75,10 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
     if (!isValidPhone(v.customer_phone)) er.customer_phone = "Enter a valid Sri Lankan number.";
     if (!v.amount || Number(v.amount) <= 0) er.amount = "Enter an amount greater than 0.";
 
-    const limit = CBSL_LIMITS[v.transaction_type];
-    if (limit && Number(v.amount) > limit) er.amount = `CBSL limit is ${formatCurrency(limit)}.`;
+    // Per-transaction tier cap (cumulative daily එක backend එකෙන් enforce වෙනවා)
+    if (limit && Number(v.amount) > limit) {
+      er.amount = `${KYC_TIERS.find(t => t.value === v.kyc_tier)?.label} limit is ${formatCurrency(limit)}.`;
+    }
 
     if (Object.keys(er).length) { setErrors(er); return; }
 
@@ -78,7 +91,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
       amount: Number(v.amount),
       service_fee: num(v.service_fee),
       commission: num(v.commission),
-      tx_hour: new Date().getHours(), // ML Model (Anomaly Detection) එකට Real-time Hour එක ලබාදෙයි
+      tx_hour: new Date().getHours(), // ML Anomaly Detection real-time hour
     };
 
     try {
@@ -102,8 +115,6 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
   const selectClass =
     "w-full rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-2.5 text-sm text-slate-100 focus:border-teal-500/50 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all";
 
-  const limit = CBSL_LIMITS[v.transaction_type];
-
   return (
     <form
       onSubmit={handleSubmit}
@@ -118,114 +129,71 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
       )}
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        {/* Customer Name */}
         <FormField label="Customer Name" error={errors.customer_name} required>
           <div className="relative">
             <User className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-            <input
-              className={getInputClass("customer_name")}
-              value={v.customer_name}
-              onChange={e => set("customer_name", e.target.value)}
-              placeholder="e.g. Nimal Perera"
-            />
+            <input className={getInputClass("customer_name")} value={v.customer_name}
+              onChange={e => set("customer_name", e.target.value)} placeholder="e.g. Nimal Perera" />
           </div>
         </FormField>
 
-        {/* Customer Phone */}
         <FormField label="Customer Phone" error={errors.customer_phone} required>
           <div className="relative">
             <Phone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-            <input
-              className={getInputClass("customer_phone")}
-              value={v.customer_phone}
-              onChange={e => set("customer_phone", e.target.value)}
-              placeholder="0771234567"
-            />
+            <input className={getInputClass("customer_phone")} value={v.customer_phone}
+              onChange={e => set("customer_phone", e.target.value)} placeholder="0771234567" />
           </div>
         </FormField>
 
-        {/* Transaction Type */}
         <FormField label="Transaction Type" required>
-          <select
-            className={selectClass}
-            value={v.transaction_type}
-            onChange={e => set("transaction_type", e.target.value)}
-          >
+          <select className={selectClass} value={v.transaction_type}
+            onChange={e => set("transaction_type", e.target.value)}>
             {AGENCY_TRANSACTION_TYPES.map(o => (
-              <option key={o.value} value={o.value} className="bg-slate-900 text-slate-100">
-                {o.label}
-              </option>
+              <option key={o.value} value={o.value} className="bg-slate-900 text-slate-100">{o.label}</option>
             ))}
           </select>
         </FormField>
 
-        {/* Amount */}
-        <FormField
-          label="Amount (LKR)"
-          error={errors.amount}
-          hint={limit ? `CBSL limit: ${formatCurrency(limit)}` : undefined}
-          required
-        >
+        {/* NEW: KYC Tier */}
+        <FormField label="Customer KYC Tier" required
+          hint="Higher tiers allow higher daily limits">
+          <select className={selectClass} value={v.kyc_tier}
+            onChange={e => set("kyc_tier", e.target.value)}>
+            {KYC_TIERS.map(o => (
+              <option key={o.value} value={o.value} className="bg-slate-900 text-slate-100">{o.label}</option>
+            ))}
+          </select>
+        </FormField>
+
+        <FormField label="Amount (LKR)" error={errors.amount}
+          hint={limit ? `${KYC_TIERS.find(t => t.value === v.kyc_tier)?.label} daily limit: ${formatCurrency(limit)}` : undefined}
+          required>
           <div className="relative">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 select-none">
-              Rs.
-            </span>
-            <input
-              className={getInputClass("amount")}
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={v.amount}
-              onChange={e => handleAmountChange(e.target.value)}
-              placeholder="0.00"
-            />
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 select-none">Rs.</span>
+            <input className={getInputClass("amount")} type="number" min="0.01" step="0.01"
+              value={v.amount} onChange={e => handleAmountChange(e.target.value)} placeholder="0.00" />
           </div>
         </FormField>
 
-        {/* Service Fee */}
         <FormField label="Service Fee (LKR)" hint="Charge for customer">
           <div className="relative">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 select-none">
-              Rs.
-            </span>
-            <input
-              className={getInputClass("service_fee")}
-              type="number"
-              min="0"
-              step="0.01"
-              value={v.service_fee}
-              onChange={e => set("service_fee", e.target.value)}
-              placeholder="0.00"
-            />
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 select-none">Rs.</span>
+            <input className={getInputClass("service_fee")} type="number" min="0" step="0.01"
+              value={v.service_fee} onChange={e => set("service_fee", e.target.value)} placeholder="0.00" />
           </div>
         </FormField>
 
-        {/* Commission */}
         <FormField label="Commission (LKR)" hint="Bank agent payout">
           <div className="relative">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 select-none">
-              Rs.
-            </span>
-            <input
-              className={getInputClass("commission")}
-              type="number"
-              min="0"
-              step="0.01"
-              value={v.commission}
-              onChange={e => set("commission", e.target.value)}
-              placeholder="0.00"
-            />
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 select-none">Rs.</span>
+            <input className={getInputClass("commission")} type="number" min="0" step="0.01"
+              value={v.commission} onChange={e => set("commission", e.target.value)} placeholder="0.00" />
           </div>
         </FormField>
 
-        {/* Status (Edit Mode Only) */}
         {isEdit && (
           <FormField label="Status">
-            <select
-              className={selectClass}
-              value={v.status}
-              onChange={e => set("status", e.target.value)}
-            >
+            <select className={selectClass} value={v.status} onChange={e => set("status", e.target.value)}>
               {STATUSES.map(s => (
                 <option key={s} value={s} className="bg-slate-900 text-slate-100">
                   {s.charAt(0).toUpperCase() + s.slice(1)}
@@ -236,32 +204,17 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
         )}
       </div>
 
-      {/* Form Action Buttons */}
       <div className="flex items-center justify-end gap-3 border-t border-slate-800/80 pt-6">
         <Link href="/dashboard/agency-banking">
-          <Button
-            variant="secondary"
-            type="button"
-            className="rounded-xl border border-slate-800 bg-slate-950/50 px-5 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-slate-100 transition-all"
-          >
+          <Button variant="secondary" type="button"
+            className="rounded-xl border border-slate-800 bg-slate-950/50 px-5 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-slate-100 transition-all">
             Cancel
           </Button>
         </Link>
-        <Button
-          type="submit"
-          disabled={saving}
-          className="inline-flex items-center justify-center rounded-xl bg-teal-600 hover:bg-teal-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-600/20 transition-all disabled:opacity-50"
-        >
-          {saving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : isEdit ? (
-            "Update Transaction"
-          ) : (
-            "Post Transaction"
-          )}
+        <Button type="submit" disabled={saving}
+          className="inline-flex items-center justify-center rounded-xl bg-teal-600 hover:bg-teal-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-600/20 transition-all disabled:opacity-50">
+          {saving ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</>)
+            : isEdit ? "Update Transaction" : "Post Transaction"}
         </Button>
       </div>
     </form>
