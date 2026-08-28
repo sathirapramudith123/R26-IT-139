@@ -7,9 +7,11 @@ import 'auth/login_screen.dart';
 import 'crud/list_screen.dart';
 import 'notifications_screen.dart';
 import 'predictions/predictions_hub_screen.dart';
+import 'reports/income_statement_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
@@ -21,7 +23,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int unread = 0;
 
   @override
-  void initState() { super.initState(); _loadMetrics(); }
+  void initState() {
+    super.initState();
+    _loadMetrics();
+  }
 
   Future<void> _loadMetrics() async {
     setState(() => loading = true);
@@ -65,6 +70,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   String _money(double v) {
     return "LKR ${v.toStringAsFixed(0)}";
+  }
+
+  void _openIncomeStatement() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const IncomeStatementScreen()),
+    );
   }
 
   @override
@@ -191,6 +203,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       label: "Net Profit",
                       value: loading ? "…" : _money(income - expense),
                       gradient: const [Color(0xFF059669), Color(0xFF0D7566)],
+                      onTap: _openIncomeStatement,
                     ),
                     _metricCard(
                       label: "Low Stock Items",
@@ -222,6 +235,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ListScreen(module: m))),
                         )),
                     _Tile(
+                      icon: "📊", title: "Financial Statement", isDark: isDark, teal: teal,
+                      onTap: _openIncomeStatement,
+                    ),
+                    _Tile(
                       icon: "🤖", title: "Predictions", isDark: isDark, teal: teal, highlight: true,
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PredictionsHubScreen())),
                     ),
@@ -239,46 +256,61 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required String label,
     required String value,
     required List<Color> gradient,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: gradient,
-        ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: gradient.first.withOpacity(0.35),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.white.withOpacity(0.9),
-              fontWeight: FontWeight.w600,
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: gradient,
             ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: gradient.first.withOpacity(0.35),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              fontFamily: "Nunito",
-              color: Colors.white,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.white.withOpacity(0.9),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (onTap != null)
+                    const Icon(Icons.arrow_forward_ios, size: 12, color: Colors.white70),
+                ],
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  fontFamily: "Nunito",
+                  color: Colors.white,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
