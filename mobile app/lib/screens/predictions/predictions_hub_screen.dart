@@ -124,8 +124,12 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
           tag: "MONEY", title: "Loan Readiness", icon: "💳",
           tint: KadeColors.teal, isDark: isDark, child: _unavailable(m));
     }
-    final score = (m["score"] is num) ? (m["score"] as num).toDouble() : 0.0;
-    final ready = m["prediction"] == 1;
+    // API returns credit_score + status (not score / prediction)
+    final score = (m["credit_score"] is num)
+        ? (m["credit_score"] as num).toDouble()
+        : ((m["score"] is num) ? (m["score"] as num).toDouble() : 0.0);
+    final ready = "${m["status"] ?? ""}".startsWith("APPROVED");
+    final maxLoan = (m["max_loan_limit_lkr"] is num) ? (m["max_loan_limit_lkr"] as num) : 0;
     final features = (m["features"] is Map) ? m["features"] as Map : null;
     final sub = Theme.of(context).textTheme.bodySmall?.color;
 
@@ -140,6 +144,12 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               _pill(ready ? "Ready to apply" : "Not ready yet",
                   ready ? KadeColors.teal : KadeColors.amber),
+              if (ready && maxLoan > 0) ...[
+                const SizedBox(height: 6),
+                Text("Eligible up to LKR ${maxLoan.toStringAsFixed(0)}",
+                    style: const TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w700, color: KadeColors.teal)),
+              ],
               if (features != null) ...[
                 const SizedBox(height: 8),
                 Text(
@@ -218,8 +228,12 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
           tag: "PURCHASING", title: "Buy or Wait", icon: "🛒",
           tint: KadeColors.terra, isDark: isDark, child: _unavailable(m));
     }
-    final buy = m["prediction"] == 1;
-    final score = (m["score"] is num) ? (m["score"] as num).toDouble() : null;
+    // API returns recommended_action + buy_confidence_score (not prediction / score)
+    final action = "${m["recommended_action"] ?? ""}";
+    final buy = action == "BULK_BUY_NOW" || action == "MODERATE_BUY";
+    final score = (m["buy_confidence_score"] is num)
+        ? (m["buy_confidence_score"] as num).toDouble()
+        : ((m["score"] is num) ? (m["score"] as num).toDouble() : null);
     final sub = Theme.of(context).textTheme.bodySmall?.color;
 
     return _shell(
