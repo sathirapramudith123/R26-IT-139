@@ -21,9 +21,7 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { insightsApi } from "@/services/api/insights";
 import { formatCurrency } from "@/lib/formatters";
 
-/* -------------------------------------------------------------------------- */
-/*  Plain-language helpers                                                    */
-/* -------------------------------------------------------------------------- */
+
 
 const FEATURE_LABELS = {
   months_active: "Time in business",
@@ -46,9 +44,7 @@ const humanize = (f) =>
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
-/* -------------------------------------------------------------------------- */
-/*  Redesigned Loan Readiness Gauge                                           */
-/* -------------------------------------------------------------------------- */
+
 
 function LoanReadinessGauge({ score }) {
   const pct = Math.min(100, Math.max(0, Number(score) || 0));
@@ -96,9 +92,7 @@ function LoanReadinessGauge({ score }) {
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*  "What's affecting this" — diverging bar chart                              */
-/* -------------------------------------------------------------------------- */
+
 
 function InfluenceTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
@@ -163,9 +157,7 @@ function InfluenceChart({ explanation }) {
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Demand trend line                                                         */
-/* -------------------------------------------------------------------------- */
+
 
 function DemandTrend({ history, prediction }) {
   if (!history?.length) return null;
@@ -193,9 +185,7 @@ function DemandTrend({ history, prediction }) {
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Confidence bar                                                            */
-/* -------------------------------------------------------------------------- */
+
 
 function ConfidenceBar({ score }) {
   if (typeof score !== "number") return null;
@@ -234,9 +224,7 @@ const CategoryChip = ({ label, tone }) => {
   return <span className={`rounded-md px-2 py-1 text-xs font-bold ${tones[tone]}`}>{label}</span>;
 };
 
-/* -------------------------------------------------------------------------- */
-/*  Main PredictionsDashboard Page                                            */
-/* -------------------------------------------------------------------------- */
+
 
 export default function PredictionsDashboard() {
   useAuthGuard();
@@ -261,6 +249,14 @@ export default function PredictionsDashboard() {
 
   const { credit = {}, demand = {}, procurement = {}, anomaly = {} } = data;
 
+
+  const creditScore = Number(credit.credit_score ?? credit.score ?? 0);
+  const creditApproved = String(credit.status || "").startsWith("APPROVED");
+
+  // procurement: API returns buy_confidence_score + recommended_action
+  const procureScore = Number(procurement.buy_confidence_score ?? procurement.score ?? 0);
+  const procureBuy = ["BULK_BUY_NOW", "MODERATE_BUY"].includes(procurement.recommended_action);
+
   return (
     <div className="page-container space-y-6">
       <PageHeader
@@ -273,7 +269,7 @@ export default function PredictionsDashboard() {
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <p className="text-xs font-medium text-slate-500">Loan readiness</p>
           <p className="mt-1 text-lg font-bold text-slate-800 dark:text-slate-100">
-            {credit.prediction === 1 ? "✅ Ready" : "⚠️ Needs work"}
+            {creditApproved ? "✅ Ready" : "⚠️ Needs work"}
           </p>
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -285,7 +281,7 @@ export default function PredictionsDashboard() {
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <p className="text-xs font-medium text-slate-500">Buying advice</p>
           <p className="mt-1 text-lg font-bold text-slate-800 dark:text-slate-100">
-            {procurement.prediction === 1 ? "🛒 Buy now" : "⏳ Wait"}
+            {procureBuy ? "🛒 Buy now" : "⏳ Wait"}
           </p>
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -316,24 +312,28 @@ export default function PredictionsDashboard() {
               <div className="space-y-5">
                 {/* Score & Main Badge */}
                 <div className="flex flex-col sm:flex-row items-center gap-5 rounded-2xl border border-slate-100 bg-slate-50/80 p-5 dark:border-slate-800/80 dark:bg-slate-800/40">
-                  <LoanReadinessGauge score={credit.score} />
+                  <LoanReadinessGauge score={creditScore} />
 
                   <div className="flex-1 space-y-3 text-center sm:text-left">
                     <div>
                       <span
                         className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold tracking-wide ${
-                          credit.prediction === 1
+                          creditApproved
                             ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-400"
                             : "bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-400"
                         }`}
                       >
-                        {credit.prediction === 1 ? "✓ Ready to Apply" : "⚠️ Needs Improvement"}
+                        {creditApproved ? "✓ Ready to Apply" : "⚠️ Needs Improvement"}
                       </span>
                     </div>
 
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {credit.prediction === 1
-                        ? "Your business health meets key lending criteria for loan approvals."
+                      {creditApproved
+                        ? `Your business health meets key lending criteria${
+                            credit.max_loan_limit_lkr
+                              ? ` — up to ${formatCurrency(credit.max_loan_limit_lkr)}.`
+                              : " for loan approvals."
+                          }`
                         : "Boost daily sales or profit margin to increase your eligibility score."}
                     </p>
                   </div>
@@ -435,17 +435,17 @@ export default function PredictionsDashboard() {
                     </div>
                     <span
                       className={`font-outfit rounded-xl px-4 py-2 text-base font-bold ${
-                        procurement.prediction === 1
+                        procureBuy
                           ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
                           : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
                       }`}
                     >
-                      {procurement.prediction === 1 ? "Buy now" : "Wait"}
+                      {procureBuy ? "Buy now" : "Wait"}
                     </span>
                   </div>
-                  <ConfidenceBar score={procurement.score} />
+                  <ConfidenceBar score={procureScore} />
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {procurement.prediction === 1
+                    {procureBuy
                       ? "Prices look favourable right now — a good moment to restock."
                       : "Prices may improve soon — holding off could save you money."}
                   </p>

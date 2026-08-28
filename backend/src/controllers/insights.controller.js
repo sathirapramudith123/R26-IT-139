@@ -25,11 +25,12 @@ export const getInsights = async (req, res) => {
   const userId = req.user.id;
   const out = {};
 
-  const [{ data: inv }, { data: bank }, { data: sup }] = await Promise.all([
+  // suppliers.unit_price අයින් කළ නිසා ඒක තව query කරන්නෙ නෑ.
+  // Procurement price එක දැන් inventory cost_price එකෙන් ගන්නවා (target item එකෙන්ම).
+  const [{ data: inv }, { data: bank }] = await Promise.all([
     supabase.from("inventory").select("*").eq("user_id", userId),
     supabase.from("agency_banking").select("*").eq("user_id", userId)
       .order("created_at", { ascending: false }).limit(50),
-    supabase.from("suppliers").select("unit_price").eq("user_id", userId).limit(1),
   ]);
 
   const items = inv || [];
@@ -55,9 +56,10 @@ export const getInsights = async (req, res) => {
   }
 
   // C3 — buy now or wait, for that same item
+  //      price එක target item එකේ cost_price එකෙන් (suppliers.unit_price අයින් කළා)
   if (lowStock.length > 0) {
     const target = lowStock[0];
-    const price = sup?.[0]?.unit_price;
+    const price = Number(target.cost_price) || Number(target.unit_price) || 0;
     const r = await safePredict("procurement", buildProcurementFeatures(target, price));
     out.procurement = { ...r, item: target.item_name };
   } else {

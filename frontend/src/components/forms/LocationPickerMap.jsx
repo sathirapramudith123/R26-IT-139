@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useId } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -13,8 +13,7 @@ const markerIcon = new L.Icon({
   iconAnchor: [12, 41],
 });
 
-// Invisible helper component: listens for map clicks and reports lat/lng
-// back to the parent via onPick(lat, lng).
+// Invisible helper: listens for map clicks and reports lat/lng to the parent.
 function ClickHandler({ onPick }) {
   useMapEvents({
     click(e) {
@@ -27,40 +26,35 @@ function ClickHandler({ onPick }) {
 export default function LocationPickerMap({ coords, onPick }) {
   const center = coords ? [coords.lat, coords.lng] : [6.9147, 79.9727]; // Malabe default
 
-  // We keep the real Leaflet map instance in a plain ref that WE control.
-  // If we pass this ref straight to <MapContainer ref={...}>, React itself
-  // nulls it out during Strict Mode's simulated unmount ("disappear" phase)
-  // *before* our own useEffect cleanup runs — so by the time cleanup fires,
-  // mapRef.current is already null and .remove() never gets called, leaving
-  // Leaflet's internal _leaflet_id stuck on the DOM node.
-  //
-  // Using our own callback ref instead lets us ignore React's null-detach
-  // call and only clear the ref ourselves, after we've actually called
-  // .remove() on the instance.
-  const mapRef = useRef(null);
-
-  function handleMapRef(mapInstance) {
-    if (mapInstance) {
-      mapRef.current = mapInstance;
-    }
-  }
+  // "Map container is being reused" fix:
+  // React Strict Mode (dev) mounts -> unmounts -> remounts. Leaflet keeps an
+  // internal _leaflet_id on the DOM node, so the 2nd mount hits the same node
+  // and throws. We only render <MapContainer> AFTER the component has settled
+  // on the client, and give it a unique key so each mount gets a fresh node.
+  const uid = useId();
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-    };
+    setReady(true);
+    return () => setReady(false);
   }, []);
+
+  if (!ready) {
+    // placeholder while the map initialises (keeps layout stable)
+    return (
+      <div className="flex h-72 w-full items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-400 dark:border-slate-800 dark:bg-slate-800/40">
+        Loading map…
+      </div>
+    );
+  }
 
   return (
     <MapContainer
+      key={uid}                    /* fresh container per mount -> no reuse */
       center={center}
       zoom={coords ? 15 : 13}
-      className="h-72 w-full"
+      className="h-72 w-full rounded-xl"
       scrollWheelZoom={true}
-      ref={handleMapRef}
     >
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
