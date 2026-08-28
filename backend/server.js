@@ -15,6 +15,8 @@ import agencyBankingRoutes from "./src/routes/agencyBanking.routes.js";
 import notificationRoutes from "./src/routes/notification.routes.js";
 import predictionRoutes from "./src/routes/prediction.routes.js";
 import insightsRoutes from "./src/routes/insights.routes.js";
+import reportRoutes from "./src/routes/report.routes.js"; 
+import agentBankRoutes from "./src/routes/agentBank.routes.js";
 
 dotenv.config();
 
@@ -37,6 +39,8 @@ app.use(`${API}/agency-banking`, agencyBankingRoutes);
 app.use(`${API}/notifications`, notificationRoutes);
 app.use(`${API}/predict`, predictionRoutes);
 app.use(`${API}/insights`, insightsRoutes);
+app.use(`${API}/reports`, reportRoutes); 
+app.use(`${API}/agent-banks`, agentBankRoutes);
 
 app.use((req, res) => res.status(404).json({ error: "Route not found" }));
 app.use(errorHandler);

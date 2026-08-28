@@ -1,22 +1,48 @@
 import { supabase } from "../config/supabase.js";
 import { toClient, up } from "../utils/mappers.js";
 import { notify } from "./notification.controller.js";
-import { adjustStock } from "../utils/stock.js";
+import { receiveStock, consumeStock } from "../utils/stock.js";
 
 const TABLE = "procurement";
 const ID = "procurement_id";
 const num = (v) => (v === "" || v == null ? 0 : Number(v));
 
-const toDb = (b) => ({
-  item_name:              b.item_name,
-  quantity:               Number(b.quantity),
-  delivery_location:      b.delivery_location || null,
-  expected_selling_price: num(b.expected_selling_price),
-  selected_supplier_name: b.selected_supplier_name || null,
-  total_cost:             num(b.total_cost),
-  estimated_profit:        num(b.estimated_profit),
-  procurement_status:     up(b.status || b.procurement_status || "pending"),
-});
+// items[] එකෙන් හෝ legacy single item එකෙන් line list එකක්
+const getItemList = (record) => {
+  if (Array.isArray(record.items) && record.items.length) return record.items;
+  if (record.item_name && record.quantity) {
+    const qty = num(record.quantity);
+    const unitCost = qty > 0 ? num(record.total_cost) / qty : 0;
+    return [{ item_name: record.item_name, quantity: qty, unit_cost: unitCost }];
+  }
+  return [];
+};
+
+const lineCost = (l) => num(l.unit_cost ?? l.cost_price);
+
+const toDb = (b) => {
+  const items = Array.isArray(b.items) ? b.items : null;
+  const total = items
+    ? items.reduce((s, it) => s + num(it.quantity) * lineCost(it), 0)
+    : num(b.total_cost);
+
+  return {
+    procurement_no:         b.procurement_no || null,
+    order_date:             b.date || b.order_date || null,
+    item_name:              b.item_name || null,          // legacy (nullable)
+    quantity:               b.quantity != null && b.quantity !== "" ? Number(b.quantity) : null,
+    items,                                                // JSONB multi-item
+    delivery_location:      b.delivery_location || null,
+    coords:                 b.coords || null,
+    arrival_date:           b.arrival_date || null,
+    special_note:           b.special_note || null,
+    expected_selling_price: num(b.expected_selling_price),
+    selected_supplier_name: b.selected_supplier_name || b.supplier_name || null,
+    total_cost:             total,
+    estimated_profit:       num(b.estimated_profit),
+    procurement_status:     up(b.status || b.procurement_status || "pending"),
+  };
+};
 
 const shape = (row) => {
   const c = toClient(row, ID);
@@ -24,15 +50,32 @@ const shape = (row) => {
   return c;
 };
 
-async function stockReceived(userId, item_name, quantity) {
-  await adjustStock(userId, item_name, Number(quantity), "procurement received");
-  await notify(userId, {
-    title: "Stock received",
-    message: `${quantity} of ${item_name} added to your inventory.`,
-    type: "SUCCESS",
-    category: "PROCUREMENT",
-    link: "/dashboard/inventory",
-  });
+// RECEIVED → item එකින් එක නියම cost එකට batch එකක් receive කිරීම (FIFO system)
+async function receiveAll(userId, record, reason) {
+  const lines = getItemList(record);
+  for (const line of lines) {
+    const qty = num(line.quantity);
+    if (qty <= 0) continue;
+    await receiveStock(userId, line.item_name, qty, lineCost(line), reason);
+  }
+  if (lines.length) {
+    await notify(userId, {
+      title: "Stock received",
+      message: `${lines.length} item(s) added to your inventory from procurement.`,
+      type: "SUCCESS",
+      category: "PROCUREMENT",
+      link: "/dashboard/inventory",
+    });
+  }
+}
+
+// RECEIVED එකක් revert (pending/cancelled ට හෝ delete) → FIFO consume
+async function revertAll(userId, record, reason) {
+  for (const line of getItemList(record)) {
+    const qty = num(line.quantity);
+    if (qty <= 0) continue;
+    await consumeStock(userId, line.item_name, qty, reason);
+  }
 }
 
 export const getAll = async (req, res, next) => {
@@ -65,7 +108,7 @@ export const create = async (req, res, next) => {
     if (error) throw error;
 
     if (data.procurement_status === "RECEIVED") {
-      await stockReceived(req.user.id, data.item_name, data.quantity);
+      await receiveAll(req.user.id, data, "procurement received");
     }
 
     res.status(201).json(shape(data));
@@ -89,21 +132,20 @@ export const update = async (req, res, next) => {
     const wasReceived = old.procurement_status === "RECEIVED";
     const nowReceived = data.procurement_status === "RECEIVED";
 
-    // Scenario 1: Pending → Received (Add Stock)
+    // 1. Pending → Received : batches receive
     if (!wasReceived && nowReceived) {
-      await stockReceived(req.user.id, data.item_name, data.quantity);
+      await receiveAll(req.user.id, data, "procurement received");
     }
-    // Scenario 2: Received → Pending/Cancelled (Reverse Stock)
+    // 2. Received → Pending/Cancelled : revert (FIFO consume)
     else if (wasReceived && !nowReceived) {
-      await adjustStock(req.user.id, old.item_name, -Number(old.quantity), "procurement reversed");
+      await revertAll(req.user.id, old, "procurement reversed");
     }
-    // Scenario 3: Received → Received (Quantity or Item changed while still RECEIVED)
+    // 3. Received → Received & items වෙනස් : පරණ revert + නව receive
     else if (wasReceived && nowReceived) {
-      if (old.item_name !== data.item_name || Number(old.quantity) !== Number(data.quantity)) {
-        // Reverse old quantity from old item
-        await adjustStock(req.user.id, old.item_name, -Number(old.quantity), "procurement updated (old)");
-        // Add new quantity to new item
-        await stockReceived(req.user.id, data.item_name, data.quantity);
+      const changed = JSON.stringify(getItemList(old)) !== JSON.stringify(getItemList(data));
+      if (changed) {
+        await revertAll(req.user.id, old, "procurement updated (revert)");
+        await receiveAll(req.user.id, data, "procurement updated (apply)");
       }
     }
 
@@ -124,7 +166,7 @@ export const remove = async (req, res, next) => {
     if (error) throw error;
 
     if (old.procurement_status === "RECEIVED") {
-      await adjustStock(req.user.id, old.item_name, -Number(old.quantity), "procurement deleted");
+      await revertAll(req.user.id, old, "procurement deleted");
     }
 
     res.json({ message: "Record deleted" });

@@ -360,17 +360,17 @@ COMMENT ON COLUMN procurement.procurement_status IS
 'Lifecycle of the decision. Moving to RECEIVED adds the quantity to inventory; moving away from RECEIVED reverses it.';
 
 
--- 1. agency_banking Table එකට Anomaly Detection Columns එකතු කිරීම
+
 ALTER TABLE agency_banking 
   ADD COLUMN IF NOT EXISTS is_anomaly BOOLEAN NOT NULL DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS anomaly_score NUMERIC(5,4) NOT NULL DEFAULT 0.0000,
   ADD COLUMN IF NOT EXISTS channel VARCHAR(50) NOT NULL DEFAULT 'pos_terminal',
   ADD COLUMN IF NOT EXISTS tx_hour INT;
 
--- 2. Performance සඳහා ML index එකක් එකතු කිරීම
+
 CREATE INDEX IF NOT EXISTS idx_agb_anomaly ON agency_banking(user_id, is_anomaly);
 
--- 3. PostgREST Schema Cache එක Refresh කිරීම (500 Error එක වැළැක්වීමට)
+
 NOTIFY pgrst, 'reload schema';
 
 ALTER TABLE inventory 
@@ -381,3 +381,61 @@ ADD COLUMN IF NOT EXISTS lead_time_days NUMERIC DEFAULT 1;
 
 ALTER TABLE suppliers 
 ADD COLUMN IF NOT EXISTS lead_time_days NUMERIC DEFAULT 1;
+
+
+ALTER TABLE suppliers
+ADD COLUMN IF NOT EXISTS delivery_location VARCHAR(150);
+
+
+CREATE INDEX IF NOT EXISTS idx_sup_delivery_location
+  ON suppliers(user_id, delivery_location);
+
+
+NOTIFY pgrst, 'reload schema';
+
+
+
+ALTER TABLE inventory DROP CONSTRAINT IF EXISTS uq_inventory_user_item;
+
+ALTER TABLE inventory
+  ADD COLUMN IF NOT EXISTS batch_no VARCHAR(24)
+      DEFAULT ('BATCH-' || UPPER(SUBSTRING(REPLACE(gen_random_uuid()::text, '-', ''), 1, 8))),
+  ADD COLUMN IF NOT EXISTS received_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+CREATE INDEX IF NOT EXISTS idx_inv_fifo
+  ON inventory(user_id, item_name, received_at);
+
+UPDATE inventory SET received_at = created_at WHERE received_at IS NULL;
+
+NOTIFY pgrst, 'reload schema';
+
+
+
+DO $$ BEGIN
+  CREATE TYPE kyc_tier_enum AS ENUM ('BASIC', 'VERIFIED', 'FULL');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+
+ALTER TABLE agency_banking
+  ADD COLUMN IF NOT EXISTS kyc_tier kyc_tier_enum NOT NULL DEFAULT 'BASIC';
+
+CREATE INDEX IF NOT EXISTS idx_agb_daily_sum
+  ON agency_banking(user_id, customer_phone, transaction_type, created_at);
+
+NOTIFY pgrst, 'reload schema';
+
+
+ALTER TABLE procurement ALTER COLUMN item_name DROP NOT NULL;
+ALTER TABLE procurement ALTER COLUMN quantity  DROP NOT NULL;
+
+
+ALTER TABLE procurement
+  ADD COLUMN IF NOT EXISTS items          JSONB,          
+  ADD COLUMN IF NOT EXISTS procurement_no VARCHAR(30),
+  ADD COLUMN IF NOT EXISTS order_date     DATE,
+  ADD COLUMN IF NOT EXISTS arrival_date   DATE,
+  ADD COLUMN IF NOT EXISTS special_note   TEXT,
+  ADD COLUMN IF NOT EXISTS coords         JSONB;          
+
+NOTIFY pgrst, 'reload schema';

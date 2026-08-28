@@ -11,11 +11,12 @@ const toDb = (b) => ({
   contact_number:     b.contact_number,
   email:              b.email || null,
   address:            b.address || null,
-  unit_price:         num(b.unit_price),
+  delivery_location:  b.delivery_location || null,        // ✅ අලුතින් එකතු කළා
   delivery_cost:      num(b.delivery_cost),
   available_quantity: num(b.available_quantity),
-  lead_time_days:     num(b.lead_time_days ?? 1), // Procurement Optimization සඳහා එකතු කරන ලදී
-  supplier_status:    up(b.status || b.supplier_status || "active"),
+  lead_time_days:     num(b.lead_time_days ?? 1),         // Procurement Optimization සඳහා
+  // unit_price සහ supplier_status form එකෙන් තව එන්නෙ නෑ.
+  // DB එකේ column දෙකම තාම තියෙනවා නම්, ඒවා default (0 / 'ACTIVE') විදිහට save වෙනවා.
 });
 
 const shape = (row) => {
