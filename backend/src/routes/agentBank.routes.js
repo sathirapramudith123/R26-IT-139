@@ -11,6 +11,7 @@ router.get("/", ctrl.getAll);
 router.get("/:id", validateId, ctrl.getOne);
 router.put("/:id", validateId, ctrl.update);
 router.delete("/:id", validateId, ctrl.remove);
-router.post("/:id/topup", validateId, ctrl.topup);   // float top-up
+router.post("/:id/topup", validateId, ctrl.topup);   
+router.get("/:id/ledger", validateId, ctrl.ledger);  
 
 export default router;

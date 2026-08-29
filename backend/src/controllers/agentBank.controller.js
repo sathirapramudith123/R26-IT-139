@@ -96,8 +96,56 @@ export const topup = async (req, res, next) => {
     const bank = await getBank(req.user.id, req.params.id);
     if (!bank) return res.status(404).json({ error: "Bank not found" });
 
-    const floatAfter = await topUpFloat(req.user.id, bank, amount);
+    const result = await topUpFloat(req.user.id, bank, amount);
+    if (result.block) return res.status(400).json({ error: result.reason });
+
     const updated = await getBank(req.user.id, req.params.id);
-    res.json({ ...shape(updated), topped_up: amount, float_after: floatAfter });
+    res.json({ ...shape(updated), topped_up: amount, float_after: result.floatAfter });
+  } catch (e) { next(e); }
+};
+
+// GET /agent-banks/:id/ledger
+// Float account statement — credit/debit history (top-ups, deposits, withdrawals).
+export const ledger = async (req, res, next) => {
+  try {
+    const bank = await getBank(req.user.id, req.params.id);
+    if (!bank) return res.status(404).json({ error: "Bank not found" });
+
+    const { data, error } = await supabase
+      .from("agent_float_ledger")
+      .select("*")
+      .eq("agent_bank_id", req.params.id)
+      .eq("user_id", req.user.id)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw error;
+
+    // Show only the "Agent Float" leg of each journal (the float account's own statement).
+    // Note: DR/CR here is proper double-entry and does NOT map cleanly to up/down, so we
+    // derive the float effect from the event type instead:
+    //   DEPOSIT   -> float DOWN (agent funds customer's deposit)     => "out"
+    //   WITHDRAWAL-> float UP   (bank credits agent float)           => "in"
+    //   TOPUP     -> float UP   (agent moves cash into float)        => "in"
+    const rows = (data || [])
+      .filter((r) => r.gl_account === "Agent Float")
+      .map((r) => {
+        const inflow = r.event_type === "WITHDRAWAL" || r.event_type === "TOPUP";
+        return {
+          id: r.ledger_id,
+          date: r.created_at,
+          event_type: r.event_type,          // DEPOSIT | WITHDRAWAL | TOPUP
+          flow: inflow ? "in" : "out",       // in = float up (credit), out = float down (debit)
+          amount: Number(r.amount),
+          signed_amount: inflow ? Number(r.amount) : -Number(r.amount),
+          balance_after: r.float_after != null ? Number(r.float_after) : null,
+          note: r.note || null,
+        };
+      });
+
+    res.json({
+      bank: { id: bank.agent_bank_id, bank_name: bank.bank_name,
+              float_balance: Number(bank.float_balance), cash_on_hand: Number(bank.cash_on_hand) },
+      entries: rows,
+    });
   } catch (e) { next(e); }
 };

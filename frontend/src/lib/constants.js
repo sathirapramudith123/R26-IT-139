@@ -11,7 +11,7 @@ export const NAV_ITEMS = [
   { label: "Inventory",      href: "/dashboard/inventory",      icon: "📦", group: "finance"    },
   { label: "Procurement",    href: "/dashboard/procurement",    icon: "🛒", group: "finance"    },
   { label: "Agency Banking", href: "/dashboard/agency-banking", icon: "🏦", group: "finance"    },
-  { label: "My Banks",       href: "/dashboard/my-banks",       icon: "🏦", group: "finance"    },
+  { label: "My Banks",       href: "/dashboard/my-banks",       icon: "🏛️", group: "finance"    },
   { label: "Suppliers",      href: "/dashboard/suppliers",      icon: "🤝", group: "operations" },
   { label: "Predictions",    href: "/dashboard/predictions",    icon: "🤖", group: "operations" },
   { label: "Profile",        href: "/dashboard/profile",        icon: "👤", group: "account"    },
@@ -33,14 +33,16 @@ export const INVENTORY_UNITS = [
 export const SUPPLIER_STATUSES = [
   { label: "Active", value: "active" }, { label: "Pending", value: "pending" }, { label: "Inactive", value: "inactive" },
 ];
+// Balance Inquiry removed — no switch to validate it against (rural agent build)
 export const AGENCY_TRANSACTION_TYPES = [
-  { label: "Cash Deposit", value: "cash_deposit" }, { label: "Cash Withdrawal", value: "cash_withdrawal" },
-  { label: "Fund Transfer", value: "fund_transfer" }, { label: "Balance Inquiry", value: "balance_inquiry" },
+  { label: "Cash Deposit", value: "cash_deposit" },
+  { label: "Cash Withdrawal", value: "cash_withdrawal" },
+  { label: "Fund Transfer", value: "fund_transfer" },
 ];
 export const PROCUREMENT_STATUSES = [
   { label: "Pending", value: "pending" }, { label: "Ordered", value: "ordered" },
   { label: "Received", value: "received" }, { label: "Cancelled", value: "cancelled" },
 ];
 export const CBSL_LIMITS = {
-  cash_deposit: 500000, cash_withdrawal: 200000, fund_transfer: 1000000, balance_inquiry: null,
+  cash_deposit: 500000, cash_withdrawal: 200000, fund_transfer: 1000000,
 };
