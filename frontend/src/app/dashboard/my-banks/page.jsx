@@ -5,7 +5,8 @@ import { agentBankApi } from "@/services/api/agentBank";
 import { formatCurrency } from "@/lib/formatters";
 import {
   Landmark, Plus, TrendingUp, AlertCircle, Loader2, X,
-  ArrowUpCircle, ShieldCheck, ShieldAlert, ShieldX,
+  ArrowUpCircle, ShieldCheck, ShieldAlert, ShieldX, History,
+  ArrowDownLeft, ArrowUpRight,
 } from "lucide-react";
 
 const RISK_TIERS = [
@@ -25,6 +26,7 @@ export default function MyBanksPage() {
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [topupBank, setTopupBank] = useState(null);
+  const [ledgerBank, setLedgerBank] = useState(null);
 
   async function load() {
     setLoading(true);
@@ -134,10 +136,16 @@ export default function MyBanksPage() {
                   </div>
                 </div>
 
-                <button onClick={() => setTopupBank(b)}
-                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-700 hover:bg-teal-100 dark:border-teal-900 dark:bg-teal-950/50 dark:text-teal-400 transition-all">
-                  <ArrowUpCircle className="h-4 w-4" /> Top up float
-                </button>
+                <div className="mt-4 flex gap-2">
+                  <button onClick={() => setLedgerBank(b)}
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 transition-all">
+                    <History className="h-4 w-4" /> History
+                  </button>
+                  <button onClick={() => setTopupBank(b)}
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-700 hover:bg-teal-100 dark:border-teal-900 dark:bg-teal-950/50 dark:text-teal-400 transition-all">
+                    <ArrowUpCircle className="h-4 w-4" /> Top up
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -146,6 +154,7 @@ export default function MyBanksPage() {
 
       {showAdd && <AddBankModal onClose={() => setShowAdd(false)} onSaved={() => { setShowAdd(false); load(); }} />}
       {topupBank && <TopupModal bank={topupBank} onClose={() => setTopupBank(null)} onSaved={() => { setTopupBank(null); load(); }} />}
+      {ledgerBank && <LedgerModal bank={ledgerBank} onClose={() => setLedgerBank(null)} />}
     </div>
   );
 }
@@ -262,6 +271,64 @@ function TopupModal({ bank, onClose, onSaved }) {
           {saving && <Loader2 className="h-4 w-4 animate-spin" />} Top up
         </button>
       </div>
+    </Modal>
+  );
+}
+
+/* ---------------------------------- Ledger (statement) ---------------------------------- */
+function LedgerModal({ bank, onClose }) {
+  const [loading, setLoading] = useState(true);
+  const [entries, setEntries] = useState([]);
+
+  useEffect(() => {
+    agentBankApi.ledger(bank.id)
+      .then((d) => setEntries(Array.isArray(d?.entries) ? d.entries : []))
+      .catch(() => setEntries([]))
+      .finally(() => setLoading(false));
+  }, [bank.id]);
+
+  const label = { DEPOSIT: "Customer deposit", WITHDRAWAL: "Customer withdrawal", TOPUP: "Float top-up" };
+
+  return (
+    <Modal title={`Float statement — ${bank.bank_name}`} onClose={onClose}>
+      <div className="mb-3 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm dark:bg-slate-800/40">
+        <span className="text-slate-500">Current float</span>
+        <span className="font-bold text-teal-600 dark:text-teal-400">{formatCurrency(bank.float_balance)}</span>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-slate-400" /></div>
+      ) : entries.length === 0 ? (
+        <p className="py-8 text-center text-sm text-slate-500">No float movements yet.</p>
+      ) : (
+        <div className="max-h-96 space-y-2 overflow-y-auto pr-1">
+          {entries.map((e) => {
+            const inflow = e.flow === "in";
+            return (
+              <div key={e.id} className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2.5 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-8 w-8 items-center justify-center rounded-full ${inflow ? "bg-emerald-100 dark:bg-emerald-950" : "bg-rose-100 dark:bg-rose-950"}`}>
+                    {inflow ? <ArrowDownLeft className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                            : <ArrowUpRight className="h-4 w-4 text-rose-600 dark:text-rose-400" />}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{label[e.event_type] || e.event_type}</p>
+                    <p className="text-[11px] text-slate-400">{new Date(e.date).toLocaleString()}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className={`text-sm font-bold ${inflow ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                    {inflow ? "+" : "−"}{formatCurrency(e.amount)}
+                  </p>
+                  {e.balance_after != null && (
+                    <p className="text-[11px] text-slate-400">Bal: {formatCurrency(e.balance_after)}</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </Modal>
   );
 }

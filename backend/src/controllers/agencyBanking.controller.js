@@ -8,29 +8,28 @@ const TABLE = "agency_banking";
 const ID = "agency_banking_id";
 const num = (v) => (v === "" || v == null ? 0 : Number(v));
 
-// ── CBSL Tiered KYC Daily Limits ─────────────────────────────────────────
-const TIER_LIMITS = {
-  BASIC:    { CASH_DEPOSIT: 50000,  CASH_WITHDRAWAL: 25000,  FUND_TRANSFER: 50000,   BALANCE_INQUIRY: null },
-  VERIFIED: { CASH_DEPOSIT: 200000, CASH_WITHDRAWAL: 100000, FUND_TRANSFER: 300000,  BALANCE_INQUIRY: null },
-  FULL:     { CASH_DEPOSIT: 500000, CASH_WITHDRAWAL: 200000, FUND_TRANSFER: 1000000, BALANCE_INQUIRY: null },
+// ── Rural agent build: fixed LOW-tier daily limits (no KYC dropdown) ──────
+// (matches the CBSL "Low volume / rural" agent tier)
+const DAILY_LIMITS = {
+  CASH_DEPOSIT:    50000,
+  CASH_WITHDRAWAL: 25000,
+  FUND_TRANSFER:   50000,
 };
 
 // Max transactions/day per NIC (point 3 — Commercial Bank agency limits)
-const MAX_TXNS_PER_DAY = { CASH_DEPOSIT: 5, CASH_WITHDRAWAL: 5, FUND_TRANSFER: 5, BALANCE_INQUIRY: null };
+const MAX_TXNS_PER_DAY = { CASH_DEPOSIT: 5, CASH_WITHDRAWAL: 5, FUND_TRANSFER: 5 };
 
-const VALID_TIERS = ["BASIC", "VERIFIED", "FULL"];
-const tierOf = (v) => {
-  const t = up(v || "BASIC");
-  return VALID_TIERS.includes(t) ? t : "BASIC";
-};
+// Allowed source-of-funds values (last = free text via "OTHER")
+const SOURCE_OF_FUNDS = ["SALARY", "BUSINESS_INCOME", "REMITTANCE", "SAVINGS", "SALE_OF_PROPERTY", "OTHER"];
 
 const toDb = (b) => ({
   customer_name:    b.customer_name,
   customer_phone:   b.customer_phone,
-  customer_nic:     b.customer_nic || null,          // point 3 (per-NIC limits)
+  customer_nic:     b.customer_nic || null,
+  account_number:   b.account_number || null,          // NEW (mandatory in form)
+  source_of_funds:  b.source_of_funds || null,         // NEW (mandatory in form)
   transaction_type: up(b.transaction_type),
-  kyc_tier:         tierOf(b.kyc_tier),
-  agent_bank_id:    b.agent_bank_id || null,         // point 7 (multi-bank)
+  agent_bank_id:    b.agent_bank_id || null,
   amount:           Number(b.amount),
   service_fee:      num(b.service_fee),
   commission:       num(b.commission),
@@ -46,7 +45,6 @@ const shape = (row) => {
   return c;
 };
 
-// අද දවසේ එම customer ගේ එම වර්ගයේ transactions වල එකතුව
 async function todaysTotal(userId, phone, type, excludeId = null) {
   const start = new Date();
   start.setHours(0, 0, 0, 0);
@@ -59,7 +57,6 @@ async function todaysTotal(userId, phone, type, excludeId = null) {
     .reduce((s, r) => s + num(r.amount), 0);
 }
 
-// අද දවසේ එම NIC එකේ එම වර්ගයේ transaction ගණන (point 3)
 async function todaysCount(userId, nic, type, excludeId = null) {
   if (!nic) return 0;
   const start = new Date();
@@ -72,16 +69,15 @@ async function todaysCount(userId, nic, type, excludeId = null) {
   return (data || []).filter((r) => r.agency_banking_id !== excludeId).length;
 }
 
-// Tiered + cumulative daily limit + max-txns/day/NIC
+// Fixed LOW-tier daily limit + cumulative daily + max-txns/day/NIC
 async function checkLimit(userId, payload, excludeId = null) {
-  const tier = tierOf(payload.kyc_tier);
   const type = payload.transaction_type;
-  const limit = TIER_LIMITS[tier]?.[type];
+  const limit = DAILY_LIMITS[type];
 
   // per-transaction cap
   if (limit && payload.amount > limit) {
     const t = type.replace(/_/g, " ").toLowerCase();
-    return `Amount exceeds the ${tier} KYC daily limit of LKR ${limit.toLocaleString()} for ${t}.`;
+    return `Amount exceeds the daily limit of LKR ${limit.toLocaleString()} for ${t}.`;
   }
 
   // cumulative daily (per customer_phone)
@@ -90,12 +86,12 @@ async function checkLimit(userId, payload, excludeId = null) {
     if (already + payload.amount > limit) {
       const remaining = Math.max(0, limit - already);
       const t = type.replace(/_/g, " ").toLowerCase();
-      return `Daily ${tier} KYC limit for ${t} is LKR ${limit.toLocaleString()}. ` +
+      return `Daily limit for ${t} is LKR ${limit.toLocaleString()}. ` +
              `Already used today: LKR ${already.toLocaleString()}. Remaining: LKR ${remaining.toLocaleString()}.`;
     }
   }
 
-  // max transactions/day per NIC (point 3)
+  // max transactions/day per NIC
   const maxTxns = MAX_TXNS_PER_DAY[type];
   if (maxTxns && payload.customer_nic) {
     const count = await todaysCount(userId, payload.customer_nic, type, excludeId);
@@ -108,7 +104,6 @@ async function checkLimit(userId, payload, excludeId = null) {
   return null;
 }
 
-// ML anomaly prediction (fail වුණත් transaction නතර නොවෙන්න)
 async function runAnomaly(payload) {
   let result = { is_anomaly: false, anomaly_score: 0 };
   try {
@@ -148,17 +143,23 @@ export const create = async (req, res, next) => {
   try {
     const payload = toDb(req.body);
 
-    // 1. Tiered KYC + cumulative + max-txns/NIC
+    // Validate mandatory fields
+    if (!payload.account_number) return res.status(400).json({ error: "Account number is required." });
+    // Source of funds is required for deposits only (money coming in -> AML record)
+    if (payload.transaction_type === "CASH_DEPOSIT" && !payload.source_of_funds) {
+      return res.status(400).json({ error: "Source of funds is required for deposits." });
+    }
+
+    // 1. Daily limit + cumulative + max-txns/NIC
     const err = await checkLimit(req.user.id, payload);
     if (err) return res.status(400).json({ error: err });
 
-    // 2. Float check (point 4) — bank එකක් තෝරලා තියෙනවා නම් විතරයි
+    // 2. Float check
     let bank = null;
     let floatWarn = null;
     if (payload.agent_bank_id) {
       bank = await getBank(req.user.id, payload.agent_bank_id);
       if (!bank) return res.status(400).json({ error: "Selected bank not found." });
-
       const fc = checkFloat(bank, payload.transaction_type, payload.amount);
       if (fc.block) return res.status(400).json({ error: fc.reason });
       floatWarn = fc.warn || null;
@@ -167,7 +168,7 @@ export const create = async (req, res, next) => {
     // 3. ML anomaly
     const mlResult = await runAnomaly(payload);
 
-    // 4. Insert transaction
+    // 4. Insert
     const { data, error } = await supabase
       .from(TABLE).insert([{
         user_id: req.user.id, ...payload,
@@ -175,12 +176,11 @@ export const create = async (req, res, next) => {
       }]).select().single();
     if (error) throw error;
 
-    // 5. Apply float movement + GL double-entry (point 5)
+    // 5. Float movement + GL double-entry
     let floatAfter = null;
     let health = null;
     if (bank) {
       floatAfter = await applyFloat(req.user.id, bank, payload.transaction_type, payload.amount, data[ID]);
-      // record float snapshot on the transaction (point 1)
       await supabase.from(TABLE).update({ float_after: floatAfter })
         .eq(ID, data[ID]).eq("user_id", req.user.id);
       health = floatHealth({ ...bank, float_balance: floatAfter });
@@ -209,6 +209,11 @@ export const create = async (req, res, next) => {
 export const update = async (req, res, next) => {
   try {
     const payload = toDb(req.body);
+    if (!payload.account_number) return res.status(400).json({ error: "Account number is required." });
+    if (payload.transaction_type === "CASH_DEPOSIT" && !payload.source_of_funds) {
+      return res.status(400).json({ error: "Source of funds is required for deposits." });
+    }
+
     const err = await checkLimit(req.user.id, payload, req.params.id);
     if (err) return res.status(400).json({ error: err });
 
@@ -221,8 +226,6 @@ export const update = async (req, res, next) => {
       }).eq(ID, req.params.id).eq("user_id", req.user.id).select().maybeSingle();
     if (error) throw error;
     if (!data) return res.status(404).json({ error: "Transaction not found" });
-    // Note: float re-adjustment on edit is intentionally not done here (would need
-    // to reverse the original float movement first — kept simple for Phase 1).
     res.json(shape(data));
   } catch (e) { next(e); }
 };

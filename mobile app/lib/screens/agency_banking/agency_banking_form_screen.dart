@@ -2,35 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme.dart';
 import '../../services/crud_service.dart';
+import '../../services/agent_bank_service.dart';
 import '../inventory/inventory_form_screen.dart' show fieldLabel, errorBox, saveButton;
 
 /// Tiered CBSL daily limits (LKR) — keep identical to the backend
 /// agencyBanking.controller.js TIER_LIMITS. `null` = no limit.
-const Map<String, Map<String, num?>> kTierLimits = {
-  "basic": {
-    "cash_deposit": 50000,
-    "cash_withdrawal": 25000,
-    "fund_transfer": 50000,
-    "balance_inquiry": null,
-  },
-  "verified": {
-    "cash_deposit": 200000,
-    "cash_withdrawal": 100000,
-    "fund_transfer": 300000,
-    "balance_inquiry": null,
-  },
-  "full": {
-    "cash_deposit": 500000,
-    "cash_withdrawal": 200000,
-    "fund_transfer": 1000000,
-    "balance_inquiry": null,
-  },
+// Rural agent build: fixed LOW-tier daily limits (no KYC dropdown).
+const Map<String, num?> kDailyLimits = {
+  "cash_deposit": 50000,
+  "cash_withdrawal": 25000,
+  "fund_transfer": 50000,
 };
 
-const List<Map<String, String>> kKycTiers = [
-  {"value": "basic", "label": "Basic (Unverified)"},
-  {"value": "verified", "label": "Verified"},
-  {"value": "full", "label": "Full (Biometric KYC)"},
+const List<Map<String, String>> kSourceOfFunds = [
+  {"value": "SALARY", "label": "Salary"},
+  {"value": "BUSINESS_INCOME", "label": "Business Income"},
+  {"value": "REMITTANCE", "label": "Remittance"},
+  {"value": "SAVINGS", "label": "Savings"},
+  {"value": "SALE_OF_PROPERTY", "label": "Sale of Property"},
+  {"value": "OTHER", "label": "Other"},
 ];
 
 class AgencyBankingFormScreen extends StatefulWidget {
@@ -47,24 +37,31 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
 
   final customerCtrl = TextEditingController();
   final phoneCtrl = TextEditingController();
+  final nicCtrl = TextEditingController();          // NEW
+  final accountCtrl = TextEditingController();      // NEW (mandatory)
+  final sourceOtherCtrl = TextEditingController();  // free text when "OTHER"
   final amountCtrl = TextEditingController();
   final feeCtrl = TextEditingController();
   final commissionCtrl = TextEditingController();
 
   String txType = "cash_deposit";
-  String kycTier = "basic"; // NEW
+  String sourceOfFunds = ""; // NEW (mandatory)
   String status = "completed";
   bool saving = false;
   String? error;
 
-  static const types = ["cash_deposit", "cash_withdrawal", "fund_transfer", "balance_inquiry"];
+  // Agent banks (float accounts)
+  List<Map<String, dynamic>> banks = [];
+  String? agentBankId;                              // NEW
+  bool loadingBanks = true;
+
+  static const types = ["cash_deposit", "cash_withdrawal", "fund_transfer"];
   static const statuses = ["completed", "pending", "failed"];
 
   bool get isEdit => widget.item != null;
-  bool get needsAmount => txType != "balance_inquiry";
+  bool get needsAmount => true;
 
-  num? get _limit => kTierLimits[kycTier]?[txType];
-  String get _tierLabel => kKycTiers.firstWhere((t) => t["value"] == kycTier)["label"]!;
+  num? get _limit => kDailyLimits[txType];
 
   @override
   void initState() {
@@ -78,17 +75,56 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
     txType = (it?["transaction_type"]?.toString().isNotEmpty ?? false)
         ? it!["transaction_type"].toString()
         : "cash_deposit";
-    final kt = it?["kyc_tier"]?.toString().toLowerCase();
-    kycTier = (kt != null && kTierLimits.containsKey(kt)) ? kt : "basic";
+    accountCtrl.text = it?["account_number"]?.toString() ?? "";
+    sourceOfFunds = it?["source_of_funds"]?.toString() ?? "";
     status = (it?["status"]?.toString().isNotEmpty ?? false)
         ? it!["status"].toString()
         : "completed";
+    nicCtrl.text = it?["customer_nic"]?.toString() ?? "";
+    agentBankId = it?["agent_bank_id"]?.toString();
+    _loadBanks();
+  }
+
+  Future<void> _loadBanks() async {
+    try {
+      final b = await AgentBankService.list();
+      if (!mounted) return;
+      setState(() {
+        banks = b;
+        agentBankId ??= b.isNotEmpty ? b.first["id"]?.toString() : null;
+        loadingBanks = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => loadingBanks = false);
+    }
+  }
+
+  Map<String, dynamic>? get _selectedBank {
+    if (agentBankId == null) return null;
+    for (final b in banks) {
+      if (b["id"]?.toString() == agentBankId) return b;
+    }
+    return null;
+  }
+
+  // Live float preview: deposit drains float, withdrawal raises it
+  double? get _floatAfter {
+    final bank = _selectedBank;
+    final amt = num.tryParse(amountCtrl.text.trim()) ?? 0;
+    if (bank == null || amt <= 0) return null;
+    final bal = (bank["float_balance"] as num?)?.toDouble() ?? 0;
+    if (txType == "cash_deposit") return bal - amt;
+    if (txType == "cash_withdrawal") return bal + amt;
+    return null;
   }
 
   @override
   void dispose() {
     customerCtrl.dispose();
     phoneCtrl.dispose();
+    nicCtrl.dispose();
+    accountCtrl.dispose();
+    sourceOtherCtrl.dispose();
     amountCtrl.dispose();
     feeCtrl.dispose();
     commissionCtrl.dispose();
@@ -110,19 +146,74 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
   }
 
   void _onAmountChanged(String val) {
-    if (isEdit) return;
     final amt = num.tryParse(val.trim()) ?? 0;
-    if (amt > 0) {
+    if (!isEdit && amt > 0) {
       final fee = (amt * 0.002) < 20 ? 20.0 : (amt * 0.002);
       feeCtrl.text = fee.toStringAsFixed(2);
       commissionCtrl.text = (amt * 0.005).toStringAsFixed(2);
     }
+    setState(() {}); // refresh live float panel
   }
 
   Widget _hint(String text) => Padding(
         padding: const EdgeInsets.only(top: 6, left: 2),
         child: Text(text, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
       );
+
+  Widget _floatPanel() {
+    final bank = _selectedBank!;
+    final bal = (bank["float_balance"] as num?)?.toDouble() ?? 0;
+    final floor = (bank["float_floor"] as num?)?.toDouble() ?? 0;
+    final health = (bank["float_health"] ?? "").toString();
+    final after = _floatAfter;
+
+    Color healthColor;
+    switch (health) {
+      case "CRITICAL_ALERT": healthColor = Colors.red; break;
+      case "LOW_ALERT":      healthColor = Colors.orange; break;
+      default:               healthColor = Colors.green;
+    }
+
+    String? warn;
+    Color warnColor = Colors.orange;
+    if (after != null) {
+      if (txType == "cash_deposit" && after < 0) { warn = "Insufficient float to fund this deposit."; warnColor = Colors.red; }
+      else if (txType == "cash_deposit" && after < floor) { warn = "Float will drop below floor — top-up recommended."; }
+      else if (txType == "cash_withdrawal") {
+        final ceil = (bank["float_ceiling"] as num?)?.toDouble() ?? double.infinity;
+        if (after > ceil) warn = "Float will exceed ceiling — schedule a sweep.";
+      }
+    }
+
+    Widget row(String k, String v, {Color? color}) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Text(k, style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodySmall?.color)),
+            Text(v, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
+          ]),
+        );
+
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.dark ? Colors.white10 : Colors.black.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(children: [
+        row("Current float", "LKR ${_money(bal)}"),
+        if (after != null)
+          row("After this txn", "LKR ${_money(after)}",
+              color: after < floor ? Colors.orange : Colors.green),
+        row("Health", health.isEmpty ? "—" : health.replaceAll("_", " "), color: healthColor),
+        if (warn != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(warn, style: TextStyle(fontSize: 12, color: warnColor)),
+          ),
+      ]),
+    );
+  }
 
   Future<void> _save() async {
     FocusScope.of(context).unfocus();
@@ -139,6 +230,20 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
       setState(() => error = "Enter a valid phone number (10 digits).");
       return;
     }
+    if (accountCtrl.text.trim().isEmpty) {
+      setState(() => error = "Account number is required.");
+      return;
+    }
+    if (txType == "cash_deposit") {
+      if (sourceOfFunds.isEmpty) {
+        setState(() => error = "Source of funds is required for deposits.");
+        return;
+      }
+      if (sourceOfFunds == "OTHER" && sourceOtherCtrl.text.trim().isEmpty) {
+        setState(() => error = "Please specify the source of funds.");
+        return;
+      }
+    }
 
     if (needsAmount) {
       final amt = num.tryParse(amountCtrl.text.trim());
@@ -149,7 +254,13 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
       // Per-transaction tier cap (cumulative daily එක backend එකෙන්)
       final lim = _limit;
       if (lim != null && amt > lim) {
-        setState(() => error = "Amount exceeds the $_tierLabel daily limit of LKR ${_money(lim)}.");
+        setState(() => error = "Amount exceeds the daily limit of LKR ${_money(lim)}.");
+        return;
+      }
+      // Client-side float guard (backend enforces too)
+      final fa = _floatAfter;
+      if (txType == "cash_deposit" && fa != null && fa < 0) {
+        setState(() => error = "Insufficient float in the selected bank for this deposit.");
         return;
       }
     }
@@ -159,8 +270,13 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
     final payload = <String, dynamic>{
       "customer_name": customerCtrl.text.trim(),
       "customer_phone": phoneCtrl.text.trim(),
+      "customer_nic": nicCtrl.text.trim(),
+      "account_number": accountCtrl.text.trim(),     // NEW
+      "source_of_funds": txType == "cash_deposit"
+          ? (sourceOfFunds == "OTHER" ? sourceOtherCtrl.text.trim() : sourceOfFunds)
+          : null, // deposits only
+      "agent_bank_id": agentBankId,
       "transaction_type": txType,
-      "kyc_tier": kycTier, // NEW
       "amount": needsAmount ? parseNum(amountCtrl.text) : 0,
       "service_fee": parseNum(feeCtrl.text),
       "commission": parseNum(commissionCtrl.text),
@@ -205,6 +321,31 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
                 const SizedBox(height: 12),
               ],
 
+              // Agent bank (float account) selector
+              fieldLabel("Agent Bank (Float Account)"),
+              if (loadingBanks)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text("Loading banks…", style: TextStyle(fontSize: 13)),
+                )
+              else
+                DropdownButtonFormField<String?>(
+                  value: agentBankId,
+                  decoration: const InputDecoration(),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null, child: Text("— No bank (skip float) —"),
+                    ),
+                    ...banks.map((b) => DropdownMenuItem<String?>(
+                          value: b["id"]?.toString(),
+                          child: Text("${b["bank_name"]} — LKR ${_money((b["float_balance"] as num?) ?? 0)}"),
+                        )),
+                  ],
+                  onChanged: saving ? null : (val) => setState(() => agentBankId = val),
+                ),
+              if (_selectedBank != null) _floatPanel(),
+              const SizedBox(height: 16),
+
               fieldLabel("Customer Name *"),
               TextField(
                 controller: customerCtrl,
@@ -225,6 +366,17 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
               ),
               const SizedBox(height: 16),
 
+              // NEW: Customer NIC
+              fieldLabel("Customer NIC"),
+              TextField(
+                controller: nicCtrl,
+                enabled: !saving,
+                textCapitalization: TextCapitalization.characters,
+                decoration: const InputDecoration(hintText: "e.g. 199012345678"),
+              ),
+              _hint("Used for daily transaction-count limits (max 5/day per NIC)"),
+              const SizedBox(height: 16),
+
               fieldLabel("Transaction Type *"),
               DropdownButtonFormField<String>(
                 value: types.contains(txType) ? txType : types.first,
@@ -236,24 +388,47 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
                         if (val != null) {
                           setState(() {
                             txType = val;
-                            if (txType == "balance_inquiry") amountCtrl.clear();
                           });
                         }
                       },
               ),
               const SizedBox(height: 16),
 
-              // NEW: KYC Tier
-              fieldLabel("Customer KYC Tier *"),
-              DropdownButtonFormField<String>(
-                value: kycTier,
-                decoration: const InputDecoration(),
-                items: kKycTiers
-                    .map((o) => DropdownMenuItem(value: o["value"], child: Text(o["label"]!)))
-                    .toList(),
-                onChanged: saving ? null : (val) => setState(() => kycTier = val ?? "basic"),
+              // NEW: Account Number (mandatory)
+              fieldLabel("Account Number *"),
+              TextField(
+                controller: accountCtrl,
+                enabled: !saving,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: const InputDecoration(hintText: "e.g. 8001234567"),
               ),
-              _hint("Higher tiers allow higher daily limits"),
+              const SizedBox(height: 16),
+
+              // NEW: Source of Funds — deposits only (mandatory dropdown + Other text)
+              if (txType == "cash_deposit") ...[
+                fieldLabel("Source of Funds *"),
+                DropdownButtonFormField<String>(
+                  value: sourceOfFunds.isEmpty ? null : sourceOfFunds,
+                  decoration: const InputDecoration(hintText: "Select source"),
+                  items: kSourceOfFunds
+                      .map((o) => DropdownMenuItem(value: o["value"], child: Text(o["label"]!)))
+                      .toList(),
+                  onChanged: saving ? null : (val) => setState(() => sourceOfFunds = val ?? ""),
+                ),
+                _hint("Required for deposits (AML record)"),
+                if (sourceOfFunds == "OTHER") ...[
+                  const SizedBox(height: 12),
+                  fieldLabel("Specify Source of Funds *"),
+                  TextField(
+                    controller: sourceOtherCtrl,
+                    enabled: !saving,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(hintText: "Describe the source of funds"),
+                  ),
+                ],
+                const SizedBox(height: 16),
+              ],
 
               if (needsAmount) ...[
                 const SizedBox(height: 16),
@@ -266,7 +441,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
                   decoration: const InputDecoration(hintText: "0.00", prefixText: "LKR "),
                   onChanged: _onAmountChanged,
                 ),
-                if (lim != null) _hint("$_tierLabel daily limit: LKR ${_money(lim)}"),
+                if (lim != null) _hint("Daily limit: LKR ${_money(lim)}"),
               ],
 
               const SizedBox(height: 16),
