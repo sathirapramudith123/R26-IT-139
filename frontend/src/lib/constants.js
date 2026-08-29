@@ -11,6 +11,7 @@ export const NAV_ITEMS = [
   { label: "Inventory",      href: "/dashboard/inventory",      icon: "📦", group: "finance"    },
   { label: "Procurement",    href: "/dashboard/procurement",    icon: "🛒", group: "finance"    },
   { label: "Agency Banking", href: "/dashboard/agency-banking", icon: "🏦", group: "finance"    },
+  { label: "My Banks",       href: "/dashboard/my-banks",       icon: "🏦", group: "finance"    },
   { label: "Suppliers",      href: "/dashboard/suppliers",      icon: "🤝", group: "operations" },
   { label: "Predictions",    href: "/dashboard/predictions",    icon: "🤖", group: "operations" },
   { label: "Profile",        href: "/dashboard/profile",        icon: "👤", group: "account"    },
