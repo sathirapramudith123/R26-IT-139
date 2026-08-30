@@ -56,6 +56,24 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
     supplierOptions.unshift(v.supplier_name);
   }
 
+  // ✅ Selected supplier's items_supplied ([{item_name, quantity, unit, unit_price}])
+  // powers a datalist suggestion on "Item Name" and auto-fills cost/unit
+  // when the typed name matches one of their items exactly.
+  const selectedSupplier = suppliers.find((s) => s.name === v.supplier_name);
+  const supplierItems = selectedSupplier?.items_supplied || [];
+
+  function setItemName(val) {
+    const match = supplierItems.find(
+      (it) => it.item_name.trim().toLowerCase() === val.trim().toLowerCase()
+    );
+    setV((p) => ({
+      ...p,
+      name: val,
+      ...(match ? { cost_price: match.unit_price ?? p.cost_price, unit: match.unit || p.unit } : {}),
+    }));
+    setErrors((p) => ({ ...p, name: undefined }));
+  }
+
   // Categories වල අලුත් custom category එකක් තිබේ නම් dropdown එකට එකතු කිරීම
   const categoryOptions = [...ITEM_CATEGORIES];
   if (v.category && !categoryOptions.includes(v.category)) {
@@ -109,19 +127,6 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
       )}
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-        <FormField label="Item Name" error={errors.name} required>
-          <input className={cls("name")} value={v.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Rice 5kg" />
-        </FormField>
-
-        <FormField label="Category" error={errors.category} required hint="Required for AI Demand Forecasting">
-          <select className="select-field" value={v.category} onChange={e => set("category", e.target.value)}>
-            <option value="">Select Category...</option>
-            {categoryOptions.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
-        </FormField>
-
         <FormField
           label="Supplier"
           hint={supplierOptions.length === 0 ? "No suppliers yet — add one first, or type a name." : "Choose from your suppliers"}
@@ -145,6 +150,35 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
               placeholder="e.g. ABC Traders"
             />
           )}
+        </FormField>
+
+        <FormField
+          label="Item Name"
+          error={errors.name}
+          required
+          hint={supplierItems.length > 0 ? `Suggested from ${v.supplier_name}: pick one to auto-fill cost & unit` : undefined}
+        >
+          <input
+            className={cls("name")}
+            list="supplier-item-suggestions"
+            value={v.name}
+            onChange={e => setItemName(e.target.value)}
+            placeholder="e.g. Rice 5kg"
+          />
+          {supplierItems.length > 0 && (
+            <datalist id="supplier-item-suggestions">
+              {supplierItems.map((it, i) => <option key={i} value={it.item_name} />)}
+            </datalist>
+          )}
+        </FormField>
+
+        <FormField label="Category" error={errors.category} required hint="Required for AI Demand Forecasting">
+          <select className="select-field" value={v.category} onChange={e => set("category", e.target.value)}>
+            <option value="">Select Category...</option>
+            {categoryOptions.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
         </FormField>
 
         <FormField label="Unit">

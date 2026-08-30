@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, useId } from "react";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -8,6 +8,23 @@ import "leaflet/dist/leaflet.css";
 // icon images correctly, so we point directly at the CDN versions instead).
 const markerIcon = new L.Icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+
+// ✅ Colored variants (public "leaflet-color-markers" CDN icons) so supplier
+// pins are visually distinct from the main location pin — red for a regular
+// matching supplier, green for the nearest one.
+const supplierIcon = new L.Icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+
+const nearestSupplierIcon = new L.Icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
   iconSize: [25, 41],
   iconAnchor: [12, 41],
@@ -23,7 +40,11 @@ function ClickHandler({ onPick }) {
   return null;
 }
 
-export default function LocationPickerMap({ coords, onPick }) {
+// extraMarkers: optional array of { lat, lng, label, highlight }.
+// Used by the Procurement form to plot suppliers of the selected item
+// (highlight=true on the nearest one) — SupplierForm just doesn't pass this,
+// so nothing changes there.
+export default function LocationPickerMap({ coords, onPick, extraMarkers = [] }) {
   const center = coords ? [coords.lat, coords.lng] : [6.9147, 79.9727]; // Malabe default
 
   // "Map container is being reused" fix:
@@ -62,6 +83,15 @@ export default function LocationPickerMap({ coords, onPick }) {
       />
       <ClickHandler onPick={onPick} />
       {coords && <Marker position={[coords.lat, coords.lng]} icon={markerIcon} />}
+      {extraMarkers.map((m, i) => (
+        <Marker
+          key={i}
+          position={[m.lat, m.lng]}
+          icon={m.highlight ? nearestSupplierIcon : supplierIcon}
+        >
+          {m.label && <Popup>{m.label}</Popup>}
+        </Marker>
+      ))}
     </MapContainer>
   );
 }
