@@ -175,47 +175,42 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
           tag: "INVENTORY", title: "Sales Forecast", icon: "📈",
           tint: KadeColors.amber, isDark: isDark, child: _unavailable(m));
     }
-    final pred = (m["prediction"] is num) ? (m["prediction"] as num).toDouble() : 0.0;
+    final items = (m["items"] is List) ? m["items"] as List : const [];
     final sub = Theme.of(context).textTheme.bodySmall?.color;
-
-    // Trend line only appears if the API sends a history array:
-    //   demand.history = [{ "label": "3 wks ago", "units": 40 }, ...]
-    final history = m["history"];
-    List<double> vals = [];
-    List<String> labs = [];
-    if (history is List && history.isNotEmpty) {
-      for (final h in history) {
-        if (h is Map) {
-          vals.add((h["units"] is num) ? (h["units"] as num).toDouble() : 0.0);
-          labs.add("${h["label"] ?? ""}");
-        }
-      }
-      vals.add(pred);
-      labs.add("Next wk");
-    }
 
     return _shell(
       tag: "INVENTORY", title: "Sales Forecast", icon: "📈",
       tint: KadeColors.amber, isDark: isDark,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text("Product: ${m["item"]}", style: TextStyle(fontSize: 12, color: sub)),
-        if (vals.length >= 2) ...[
-          const SizedBox(height: 10),
-          MiniTrendChart(values: vals, labels: labs, color: KadeColors.amber),
-        ],
-        const SizedBox(height: 8),
-        Row(crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic, children: [
-          Text("≈ ${pred.toStringAsFixed(0)}",
-              style: const TextStyle(
-                  fontSize: 40, fontWeight: FontWeight.w800, fontFamily: "Nunito", color: KadeColors.amber)),
-          const SizedBox(width: 8),
-          const Expanded(
-            child: Text("units expected to sell next week",
-                style: TextStyle(fontSize: 13, color: Colors.grey)),
-          ),
-        ]),
-        InfluenceBars(explanation: (m["explanation"] is List) ? m["explanation"] as List : const []),
+        ...items.map((raw) {
+          final it = raw as Map;
+          final f = it["forecast_units"];
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: KadeColors.amber.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(children: [
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text("${it["item"]}",
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                  Text("Stock: ${it["quantity"]} · Reorder: ${it["reorder_level"]}",
+                      style: TextStyle(fontSize: 11, color: sub)),
+                ]),
+              ),
+              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Text("≈ ${f is num ? f.toStringAsFixed(0) : "—"}",
+                    style: const TextStyle(
+                        fontSize: 22, fontWeight: FontWeight.w800,
+                        fontFamily: "Nunito", color: KadeColors.amber)),
+                Text("units / next wk", style: TextStyle(fontSize: 10, color: sub)),
+              ]),
+            ]),
+          );
+        }),
       ]),
     );
   }
@@ -228,48 +223,54 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
           tag: "PURCHASING", title: "Buy or Wait", icon: "🛒",
           tint: KadeColors.terra, isDark: isDark, child: _unavailable(m));
     }
-    // API returns recommended_action + buy_confidence_score (not prediction / score)
-    final action = "${m["recommended_action"] ?? ""}";
-    final buy = action == "BULK_BUY_NOW" || action == "MODERATE_BUY";
-    final score = (m["buy_confidence_score"] is num)
-        ? (m["buy_confidence_score"] as num).toDouble()
-        : ((m["score"] is num) ? (m["score"] as num).toDouble() : null);
+    final items = (m["items"] is List) ? m["items"] as List : const [];
     final sub = Theme.of(context).textTheme.bodySmall?.color;
 
     return _shell(
       tag: "PURCHASING", title: "Buy or Wait", icon: "🛒",
       tint: KadeColors.terra, isDark: isDark,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text("Product: ${m["item"]}", style: TextStyle(fontSize: 12, color: sub)),
-        const SizedBox(height: 10),
-        Row(children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        ...items.map((raw) {
+          final it = raw as Map;
+          final buy = it["action"] == "BUY";
+          final ctx = "${it["price_context"] ?? ""}";
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: (buy ? KadeColors.teal : Colors.grey).withOpacity(0.15),
-              borderRadius: BorderRadius.circular(16),
+              color: Colors.grey.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Text(buy ? "Buy now" : "Wait",
-                style: TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.w800, fontFamily: "Nunito",
-                    color: buy ? KadeColors.teal : Colors.grey)),
-          ),
-          if (score != null) ...[
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text("We're ${score.toStringAsFixed(0)}% sure",
-                  style: TextStyle(fontSize: 12, color: sub)),
-            ),
-          ],
-        ]),
-        const SizedBox(height: 8),
-        Text(
-          buy
-              ? "Prices look good right now — a fair moment to restock."
-              : "Prices may improve soon — holding off could save you money.",
-          style: TextStyle(fontSize: 12, color: sub),
-        ),
-        InfluenceBars(explanation: (m["explanation"] is List) ? m["explanation"] as List : const []),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text("${it["item"]}",
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                    Text("Stock: ${it["quantity"]} · Reorder: ${it["reorder_level"]}",
+                        style: TextStyle(fontSize: 11, color: sub)),
+                  ]),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: (buy ? KadeColors.teal : Colors.grey).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(buy ? "🛒 Buy" : "⏳ Wait",
+                      style: TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w800,
+                          fontFamily: "Nunito", color: buy ? KadeColors.teal : Colors.grey)),
+                ),
+              ]),
+              if (ctx.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text("${buy ? "Stock low — restock needed. " : "Enough stock. "}$ctx",
+                    style: TextStyle(fontSize: 11, color: sub, fontStyle: FontStyle.italic)),
+              ],
+            ]),
+          );
+        }),
       ]),
     );
   }

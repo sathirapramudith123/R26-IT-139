@@ -253,10 +253,6 @@ export default function PredictionsDashboard() {
   const creditScore = Number(credit.credit_score ?? credit.score ?? 0);
   const creditApproved = String(credit.status || "").startsWith("APPROVED");
 
-  // procurement: API returns buy_confidence_score + recommended_action
-  const procureScore = Number(procurement.buy_confidence_score ?? procurement.score ?? 0);
-  const procureBuy = ["BULK_BUY_NOW", "MODERATE_BUY"].includes(procurement.recommended_action);
-
   return (
     <div className="page-container space-y-6">
       <PageHeader
@@ -275,13 +271,17 @@ export default function PredictionsDashboard() {
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <p className="text-xs font-medium text-slate-500">Sales next week</p>
           <p className="mt-1 text-lg font-bold text-amber-600 dark:text-amber-400">
-            {demand.available ? `${Number(demand.prediction).toFixed(0)} units` : "N/A"}
+            {demand.available && demand.items?.length
+              ? `${demand.items.reduce((s, it) => s + Number(it.forecast_units || 0), 0).toFixed(0)} units`
+              : "N/A"}
           </p>
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-xs font-medium text-slate-500">Buying advice</p>
+          <p className="text-xs font-medium text-slate-500">To restock</p>
           <p className="mt-1 text-lg font-bold text-slate-800 dark:text-slate-100">
-            {procureBuy ? "🛒 Buy now" : "⏳ Wait"}
+            {procurement.available && procurement.items?.length
+              ? `🛒 ${procurement.items.filter((it) => it.action === "BUY").length} items`
+              : "—"}
           </p>
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -385,24 +385,23 @@ export default function PredictionsDashboard() {
             {!demand.available ? (
               <NoData reason={demand.reason} />
             ) : (
-              <div className="space-y-4">
-                <div className="rounded-xl border border-amber-100 bg-amber-50/50 p-4 dark:border-amber-900/30 dark:bg-amber-950/20">
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Product: <b className="text-slate-800 dark:text-slate-200">{demand.item}</b>
-                  </p>
-
-                  <DemandTrend history={demand.history} prediction={demand.prediction} />
-
-                  <div className="mt-2 flex items-baseline space-x-2">
-                    <span className="font-outfit text-4xl font-extrabold text-amber-600 dark:text-amber-400">
-                      ≈ {Number(demand.prediction).toFixed(0)}
-                    </span>
-                    <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-                      units expected to sell next week
-                    </span>
+              <div className="space-y-2">
+                {(demand.items || []).map((it, i) => (
+                  <div key={i} className="flex items-center justify-between rounded-xl border border-amber-100 bg-amber-50/50 px-4 py-3 dark:border-amber-900/30 dark:bg-amber-950/20">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{it.item}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Stock: {it.quantity} · Reorder: {it.reorder_level}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-outfit text-2xl font-extrabold text-amber-600 dark:text-amber-400">
+                        ≈ {it.forecast_units != null ? Number(it.forecast_units).toFixed(0) : "—"}
+                      </span>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">units / next week</p>
+                    </div>
                   </div>
-                </div>
-                <InfluenceChart explanation={demand.explanation} />
+                ))}
               </div>
             )}
           </div>
@@ -426,31 +425,37 @@ export default function PredictionsDashboard() {
             {!procurement.available ? (
               <NoData reason={procurement.reason} />
             ) : (
-              <div className="space-y-4">
-                <div className="space-y-3 rounded-xl bg-slate-50 p-4 dark:bg-slate-800/50">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">Product</p>
-                      <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{procurement.item}</p>
+              <div className="space-y-2">
+                {(procurement.items || []).map((it, i) => {
+                  const buy = it.action === "BUY";
+                  return (
+                    <div key={i} className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{it.item}</p>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                            Stock: {it.quantity} · Reorder: {it.reorder_level}
+                          </p>
+                        </div>
+                        <span
+                          className={`font-outfit rounded-xl px-3 py-1.5 text-sm font-bold ${
+                            buy
+                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                              : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
+                          }`}
+                        >
+                          {buy ? "🛒 Buy" : "⏳ Wait"}
+                        </span>
+                      </div>
+                      {it.price_context && (
+                        <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+                          {buy ? "Stock low — restock needed. " : "Enough stock. "}
+                          <span className="italic">{it.price_context}</span>
+                        </p>
+                      )}
                     </div>
-                    <span
-                      className={`font-outfit rounded-xl px-4 py-2 text-base font-bold ${
-                        procureBuy
-                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                          : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
-                      }`}
-                    >
-                      {procureBuy ? "Buy now" : "Wait"}
-                    </span>
-                  </div>
-                  <ConfidenceBar score={procureScore} />
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {procureBuy
-                      ? "Prices look favourable right now — a good moment to restock."
-                      : "Prices may improve soon — holding off could save you money."}
-                  </p>
-                </div>
-                <InfluenceChart explanation={procurement.explanation} />
+                  );
+                })}
               </div>
             )}
           </div>
