@@ -19,6 +19,20 @@ const DAILY_LIMITS = {
 // Max transactions/day per NIC (point 3 — Commercial Bank agency limits)
 const MAX_TXNS_PER_DAY = { CASH_DEPOSIT: 5, CASH_WITHDRAWAL: 5, FUND_TRANSFER: 5 };
 
+// CBSL amount-based risk (timestamp-free) — measures how close the amount is
+// to the CBSL daily limit for that transaction type.
+//   >= 100% of limit -> HIGH   (0.9 risk)
+//   >=  80% of limit -> MEDIUM (0.6 risk)
+//   <   80%          -> LOW    (0.2 risk)
+function cbslAmountRisk(type, amount) {
+  const limit = DAILY_LIMITS[type];
+  if (!limit) return { level: "LOW", ratio: 0, flag: false };
+  const ratio = amount / limit;
+  if (ratio >= 1.0) return { level: "HIGH",   ratio, flag: true };
+  if (ratio >= 0.8) return { level: "MEDIUM", ratio, flag: false };
+  return { level: "LOW", ratio, flag: false };
+}
+
 // Allowed source-of-funds values (last = free text via "OTHER")
 const SOURCE_OF_FUNDS = ["SALARY", "BUSINESS_INCOME", "REMITTANCE", "SAVINGS", "SALE_OF_PROPERTY", "OTHER"];
 
@@ -167,14 +181,21 @@ export const create = async (req, res, next) => {
       floatWarn = fc.warn || null;
     }
 
-    // 3. ML anomaly
+    // 3. ML anomaly + CBSL amount-based risk (hybrid, timestamp-free)
     const mlResult = await runAnomaly(payload);
+    const amtRisk = cbslAmountRisk(payload.transaction_type, payload.amount);
+    // final flag = ML anomaly OR CBSL amount over limit
+    const isAnomaly = mlResult.is_anomaly || amtRisk.flag;
+    const anomalyScore = Math.min(100, Math.max(
+      Number(mlResult.anomaly_score) || 0,
+      Math.round(amtRisk.ratio * 100)
+    ));
 
     // 4. Insert
     const { data, error } = await supabase
       .from(TABLE).insert([{
         user_id: req.user.id, ...payload,
-        is_anomaly: mlResult.is_anomaly, anomaly_score: mlResult.anomaly_score,
+        is_anomaly: isAnomaly, anomaly_score: anomalyScore,
       }]).select().single();
     if (error) throw error;
 
@@ -194,7 +215,7 @@ export const create = async (req, res, next) => {
 
     // 6. Notifications
     const alerts = [];
-    if (mlResult.is_anomaly) alerts.push("Suspicious transaction");
+    if (isAnomaly) alerts.push(amtRisk.flag ? `Amount at ${Math.round(amtRisk.ratio * 100)}% of CBSL limit` : "Suspicious transaction");
     if (floatWarn) alerts.push(floatWarn);
     if (health && health !== "HEALTHY") alerts.push(`Float ${health.replace("_", " ").toLowerCase()} — top-up recommended`);
 
@@ -223,15 +244,32 @@ export const update = async (req, res, next) => {
     if (err) return res.status(400).json({ error: err });
 
     const mlResult = await runAnomaly(payload);
+    const amtRisk = cbslAmountRisk(payload.transaction_type, payload.amount);
+    const isAnomaly = mlResult.is_anomaly || amtRisk.flag;
+    const anomalyScore = Math.min(100, Math.max(Number(mlResult.anomaly_score) || 0, Math.round(amtRisk.ratio * 100)));
 
     const { data, error } = await supabase
       .from(TABLE).update({
-        ...payload, is_anomaly: mlResult.is_anomaly,
-        anomaly_score: mlResult.anomaly_score, updated_at: new Date().toISOString(),
+        ...payload, is_anomaly: isAnomaly,
+        anomaly_score: anomalyScore, updated_at: new Date().toISOString(),
       }).eq(ID, req.params.id).eq("user_id", req.user.id).select().maybeSingle();
     if (error) throw error;
     if (!data) return res.status(404).json({ error: "Transaction not found" });
     res.json(shape(data));
+  } catch (e) { next(e); }
+};
+
+// PATCH /agency-banking/:id/mark-safe
+// Agent override: "I'm sure this is fine" -> clears the anomaly flag (permanent).
+export const markSafe = async (req, res, next) => {
+  try {
+    const { data, error } = await supabase
+      .from(TABLE)
+      .update({ is_anomaly: false, anomaly_score: 0, updated_at: new Date().toISOString() })
+      .eq(ID, req.params.id).eq("user_id", req.user.id).select().maybeSingle();
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: "Transaction not found" });
+    res.json({ ...shape(data), message: "Transaction marked as safe." });
   } catch (e) { next(e); }
 };
 

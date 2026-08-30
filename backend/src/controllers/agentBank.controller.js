@@ -1,6 +1,6 @@
 import { supabase } from "../config/supabase.js";
 import { toClient } from "../utils/mappers.js";
-import { topUpFloat, floatHealth, getBank, getCashPool } from "../utils/float.js";
+import { topUpFloat, floatHealth, getBank, getCashPool, addCashToPool } from "../utils/float.js";
 
 const TABLE = "agent_banks";
 const ID = "agent_bank_id";
@@ -111,6 +111,23 @@ export const topup = async (req, res, next) => {
     const updated = await getBank(req.user.id, req.params.id);
     res.json({ ...shape(updated), topped_up: amount,
                float_after: result.floatAfter, cash_after: result.cashAfter });
+  } catch (e) { next(e); }
+};
+
+// POST /agent-banks/pool/add-cash  { amount }
+// Agent puts physical cash into the shared pool (e.g. withdrew from a bank).
+export const addCash = async (req, res, next) => {
+  try {
+    const amount = num(req.body.amount);
+    const result = await addCashToPool(req.user.id, amount);
+    if (result.block) return res.status(400).json({ error: result.reason });
+    const pool = await getCashPool(req.user.id);
+    res.json({
+      cash_on_hand: num(pool.cash_on_hand),
+      reserve_floor: num(pool.reserve_floor),
+      available_for_topup: Math.max(0, num(pool.cash_on_hand) - num(pool.reserve_floor)),
+      added: amount,
+    });
   } catch (e) { next(e); }
 };
 

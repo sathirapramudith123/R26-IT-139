@@ -28,6 +28,7 @@ export default function MyBanksPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [topupBank, setTopupBank] = useState(null);
   const [ledgerBank, setLedgerBank] = useState(null);
+  const [showAddCash, setShowAddCash] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -69,7 +70,13 @@ export default function MyBanksPage() {
           <p className="mt-1 font-outfit text-2xl font-bold text-teal-600 dark:text-teal-400">{formatCurrency(totalFloat)}</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-xs font-medium text-slate-500">Cash on Hand (shared pool)</p>
+          <div className="flex items-start justify-between">
+            <p className="text-xs font-medium text-slate-500">Cash on Hand (shared pool)</p>
+            <button onClick={() => setShowAddCash(true)}
+              className="inline-flex items-center gap-1 rounded-lg bg-teal-50 px-2 py-1 text-[11px] font-semibold text-teal-700 hover:bg-teal-100 dark:bg-teal-950/50 dark:text-teal-400">
+              <Plus className="h-3 w-3" /> Add Cash
+            </button>
+          </div>
           <p className="mt-1 font-outfit text-2xl font-bold text-slate-800 dark:text-slate-200">
             {cashPool ? formatCurrency(cashPool.cash_on_hand) : "—"}
           </p>
@@ -162,6 +169,7 @@ export default function MyBanksPage() {
       {showAdd && <AddBankModal onClose={() => setShowAdd(false)} onSaved={() => { setShowAdd(false); load(); }} />}
       {topupBank && <TopupModal bank={topupBank} cashPool={cashPool} onClose={() => setTopupBank(null)} onSaved={() => { setTopupBank(null); load(); }} />}
       {ledgerBank && <LedgerModal bank={ledgerBank} onClose={() => setLedgerBank(null)} />}
+      {showAddCash && <AddCashModal cashPool={cashPool} onClose={() => setShowAddCash(false)} onSaved={() => { setShowAddCash(false); load(); }} />}
     </div>
   );
 }
@@ -344,6 +352,55 @@ function LedgerModal({ bank, onClose }) {
           })}
         </div>
       )}
+    </Modal>
+  );
+}
+
+/* ---------------------------------- Add Cash to pool ---------------------------------- */
+function AddCashModal({ cashPool, onClose, onSaved }) {
+  const [amount, setAmount] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState(null);
+
+  async function submit() {
+    const amt = Number(amount);
+    if (!amt || amt <= 0) { setErr("Enter an amount greater than 0."); return; }
+    setSaving(true); setErr(null);
+    try {
+      await agentBankApi.addCash(amt);
+      onSaved();
+    } catch (e) {
+      setErr(e.message || "Failed to add cash.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const current = cashPool ? Number(cashPool.cash_on_hand) : 0;
+  const after = current + (Number(amount) || 0);
+
+  return (
+    <Modal title="Add Cash to Pool" onClose={onClose}>
+      {err && <div className="mb-3 flex items-center gap-2 rounded-lg bg-red-50 p-2.5 text-xs text-red-600 dark:bg-red-950/40"><AlertCircle className="h-4 w-4" />{err}</div>}
+      <p className="text-sm text-slate-500">Add physical cash you've brought into the drawer (e.g. withdrawn from a bank). This increases your shared cash pool.</p>
+      <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-800/40">
+        <div className="flex justify-between"><span className="text-slate-500">Current cash pool</span><span className="font-semibold">{formatCurrency(current)}</span></div>
+        {Number(amount) > 0 && (
+          <div className="mt-1 flex justify-between"><span className="text-slate-500">After adding</span><span className="font-semibold text-teal-600 dark:text-teal-400">{formatCurrency(after)}</span></div>
+        )}
+      </div>
+      <div className="mt-3">
+        <label className="text-xs font-medium text-slate-500">Cash Amount (LKR)</label>
+        <input type="number" autoFocus value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="100000"
+          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950" />
+      </div>
+      <div className="mt-5 flex justify-end gap-2">
+        <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Cancel</button>
+        <button onClick={submit} disabled={saving}
+          className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500 disabled:opacity-50">
+          {saving && <Loader2 className="h-4 w-4 animate-spin" />} Add Cash
+        </button>
+      </div>
     </Modal>
   );
 }

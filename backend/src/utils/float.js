@@ -66,6 +66,16 @@ async function setPoolCash(userId, newCash) {
   if (error) throw error;
 }
 
+// Agent adds physical cash into the pool (e.g. withdrew cash from a bank).
+export async function addCashToPool(userId, amount) {
+  const amt = num(amount);
+  if (amt <= 0) return { ok: false, block: true, reason: "Enter an amount greater than 0." };
+  const pool = await getCashPool(userId);
+  const after = num(pool.cash_on_hand) + amt;
+  await setPoolCash(userId, after);
+  return { ok: true, cashAfter: after };
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Transaction-time check                                                    */
 /*    Deposit    -> float DOWN, pool cash UP                                   */
