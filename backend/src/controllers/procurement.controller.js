@@ -47,6 +47,19 @@ const toDb = (b) => {
 const shape = (row) => {
   const c = toClient(row, ID);
   c.status = c.procurement_status;
+
+  // ✅ Multi-item records store everything in items[] (JSONB) and leave the
+  // legacy item_name/quantity columns null — which made the Procurement list
+  // page show blank "—" cells. Derive a display summary from items[] here
+  // instead, so the list/table always has something sensible to show.
+  const lines = Array.isArray(row.items) ? row.items : [];
+  if (lines.length) {
+    c.item_name = lines.length === 1
+      ? lines[0].item_name
+      : `${lines[0].item_name} +${lines.length - 1} more`;
+    c.quantity = lines.reduce((s, l) => s + num(l.quantity), 0);
+  }
+
   return c;
 };
 

@@ -107,7 +107,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
     return null;
   }
 
-  // Live float preview: deposit drains float, withdrawal raises it
+  // Live float preview: deposit -> float DOWN, withdrawal -> float UP
   double? get _floatAfter {
     final bank = _selectedBank;
     final amt = num.tryParse(amountCtrl.text.trim()) ?? 0;
@@ -115,6 +115,17 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
     final bal = (bank["float_balance"] as num?)?.toDouble() ?? 0;
     if (txType == "cash_deposit") return bal - amt;
     if (txType == "cash_withdrawal") return bal + amt;
+    return null;
+  }
+
+  // deposit -> cash UP, withdrawal -> cash DOWN
+  double? get _cashAfter {
+    final bank = _selectedBank;
+    final amt = num.tryParse(amountCtrl.text.trim()) ?? 0;
+    if (bank == null || amt <= 0) return null;
+    final cash = (bank["cash_on_hand"] as num?)?.toDouble() ?? 0;
+    if (txType == "cash_deposit") return cash + amt;
+    if (txType == "cash_withdrawal") return cash - amt;
     return null;
   }
 
@@ -163,9 +174,11 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
   Widget _floatPanel() {
     final bank = _selectedBank!;
     final bal = (bank["float_balance"] as num?)?.toDouble() ?? 0;
+    final cash = (bank["cash_on_hand"] as num?)?.toDouble() ?? 0;
     final floor = (bank["float_floor"] as num?)?.toDouble() ?? 0;
     final health = (bank["float_health"] ?? "").toString();
     final after = _floatAfter;
+    final cashAfter = _cashAfter;
 
     Color healthColor;
     switch (health) {
@@ -180,8 +193,11 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
       if (txType == "cash_deposit" && after < 0) { warn = "Insufficient float to fund this deposit."; warnColor = Colors.red; }
       else if (txType == "cash_deposit" && after < floor) { warn = "Float will drop below floor — top-up recommended."; }
       else if (txType == "cash_withdrawal") {
-        final ceil = (bank["float_ceiling"] as num?)?.toDouble() ?? double.infinity;
-        if (after > ceil) warn = "Float will exceed ceiling — schedule a sweep.";
+        if (cashAfter != null && cashAfter < 0) { warn = "Insufficient cash on hand to pay out this withdrawal."; warnColor = Colors.red; }
+        else {
+          final ceil = (bank["float_ceiling"] as num?)?.toDouble() ?? double.infinity;
+          if (after > ceil) warn = "Float will exceed ceiling — schedule a sweep.";
+        }
       }
     }
 
@@ -203,8 +219,14 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
       child: Column(children: [
         row("Current float", "LKR ${_money(bal)}"),
         if (after != null)
-          row("After this txn", "LKR ${_money(after)}",
+          row("Float after ${txType == "cash_deposit" ? "↓" : "↑"}", "LKR ${_money(after)}",
               color: after < floor ? Colors.orange : Colors.green),
+        const Divider(height: 14),
+        row("Cash on hand", "LKR ${_money(cash)}"),
+        if (cashAfter != null)
+          row("Cash after ${txType == "cash_deposit" ? "↑" : "↓"}", "LKR ${_money(cashAfter)}",
+              color: cashAfter < 0 ? Colors.red : Colors.green),
+        const Divider(height: 14),
         row("Health", health.isEmpty ? "—" : health.replaceAll("_", " "), color: healthColor),
         if (warn != null)
           Padding(
