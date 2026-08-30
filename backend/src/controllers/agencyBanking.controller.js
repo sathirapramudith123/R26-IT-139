@@ -2,7 +2,7 @@ import { supabase } from "../config/supabase.js";
 import { toClient, up } from "../utils/mappers.js";
 import { notify } from "./notification.controller.js";
 import { predict } from "../utils/mlClient.js";
-import { getBank, checkFloat, applyFloat, floatHealth } from "../utils/float.js";
+import { getBank, getCashPool, checkFloat, applyFloat, floatHealth } from "../utils/float.js";
 
 const TABLE = "agency_banking";
 const ID = "agency_banking_id";
@@ -154,13 +154,15 @@ export const create = async (req, res, next) => {
     const err = await checkLimit(req.user.id, payload);
     if (err) return res.status(400).json({ error: err });
 
-    // 2. Float check
+    // 2. Float + global cash pool check
     let bank = null;
+    let pool = null;
     let floatWarn = null;
     if (payload.agent_bank_id) {
       bank = await getBank(req.user.id, payload.agent_bank_id);
       if (!bank) return res.status(400).json({ error: "Selected bank not found." });
-      const fc = checkFloat(bank, payload.transaction_type, payload.amount);
+      pool = await getCashPool(req.user.id);
+      const fc = checkFloat(bank, pool, payload.transaction_type, payload.amount);
       if (fc.block) return res.status(400).json({ error: fc.reason });
       floatWarn = fc.warn || null;
     }
@@ -178,9 +180,12 @@ export const create = async (req, res, next) => {
 
     // 5. Float movement + GL double-entry
     let floatAfter = null;
+    let cashAfter = null;
     let health = null;
     if (bank) {
-      floatAfter = await applyFloat(req.user.id, bank, payload.transaction_type, payload.amount, data[ID]);
+      const r = await applyFloat(req.user.id, bank, pool, payload.transaction_type, payload.amount, data[ID]);
+      floatAfter = r.floatAfter;
+      cashAfter = r.cashAfter;
       await supabase.from(TABLE).update({ float_after: floatAfter })
         .eq(ID, data[ID]).eq("user_id", req.user.id);
       health = floatHealth({ ...bank, float_balance: floatAfter });
@@ -202,7 +207,7 @@ export const create = async (req, res, next) => {
       link: "/dashboard/agency-banking",
     });
 
-    res.status(201).json({ ...shape(data), float_after: floatAfter, float_health: health, float_warning: floatWarn });
+    res.status(201).json({ ...shape(data), float_after: floatAfter, cash_after: cashAfter, float_health: health, float_warning: floatWarn });
   } catch (e) { next(e); }
 };
 

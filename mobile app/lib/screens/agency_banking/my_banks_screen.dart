@@ -147,8 +147,11 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
         ]),
         const SizedBox(height: 14),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text("Float vs floor", style: TextStyle(fontSize: 11, color: Theme.of(context).textTheme.bodySmall?.color)),
-          Text("${util.toStringAsFixed(0)}%", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+          Text("Float is at ${util.toStringAsFixed(0)}% of floor",
+              style: TextStyle(fontSize: 11, color: Theme.of(context).textTheme.bodySmall?.color)),
+          Text(util >= 100 ? "Above floor ✓" : "Below floor",
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold,
+                  color: util >= 100 ? Colors.green : Colors.orange)),
         ]),
         const SizedBox(height: 4),
         ClipRRect(
@@ -161,7 +164,7 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
         ),
         const SizedBox(height: 4),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text("Floor: LKR ${_money(floor)}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
+          Text("Floor: LKR ${_money(floor)} (100%)", style: const TextStyle(fontSize: 10, color: Colors.grey)),
           Text("Ceiling: LKR ${_money(ceiling)}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
         ]),
         const SizedBox(height: 12),

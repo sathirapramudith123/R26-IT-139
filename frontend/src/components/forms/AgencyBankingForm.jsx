@@ -42,6 +42,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
   const [errors, setErrors] = useState({});
 
   const [banks, setBanks] = useState([]);
+  const [cashPool, setCashPool] = useState(null);
   const [loadingBanks, setLoadingBanks] = useState(true);
 
   const [v, setV] = useState({
@@ -65,8 +66,10 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
   useEffect(() => {
     agentBankApi.list()
       .then((d) => {
-        const arr = Array.isArray(d) ? d : [];
+        // new shape: { cash_pool, banks }  (fallback: plain array)
+        const arr = Array.isArray(d) ? d : (d?.banks || []);
         setBanks(arr);
+        setCashPool(Array.isArray(d) ? null : (d?.cash_pool || null));
         // auto-select first bank if none chosen
         if (!v.agent_bank_id && arr.length > 0) {
           setV((p) => ({ ...p, agent_bank_id: arr[0].id }));
@@ -97,19 +100,24 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
   const limit = DAILY_LIMITS[v.transaction_type];
   const selectedBank = banks.find((b) => b.id === v.agent_bank_id);
 
-  // Live float preview — deposit drains float, withdrawal raises it
+  // Live preview — deposit: float DOWN, cash UP | withdrawal: float UP, cash DOWN
   let floatAfter = null;
+  let cashAfter = null;
   let floatMsg = null;
   if (selectedBank && Number(v.amount) > 0) {
     const bal = Number(selectedBank.float_balance);
+    const cash = cashPool ? Number(cashPool.cash_on_hand) : 0;
     const amt = Number(v.amount);
     if (v.transaction_type === "cash_deposit") {
-      floatAfter = bal - amt;
+      floatAfter = bal - amt;         // float down
+      cashAfter = cash + amt;         // cash up
       if (floatAfter < 0) floatMsg = { type: "error", text: "Insufficient float to fund this deposit." };
       else if (floatAfter < Number(selectedBank.float_floor)) floatMsg = { type: "warn", text: "Float will drop below floor — top-up recommended." };
     } else if (v.transaction_type === "cash_withdrawal") {
-      floatAfter = bal + amt;
-      if (floatAfter > Number(selectedBank.float_ceiling)) floatMsg = { type: "warn", text: "Float will exceed ceiling — schedule a sweep." };
+      floatAfter = bal + amt;         // float up
+      cashAfter = cash - amt;         // cash down
+      if (cashAfter < 0) floatMsg = { type: "error", text: "Insufficient cash on hand to pay out this withdrawal." };
+      else if (floatAfter > Number(selectedBank.float_ceiling)) floatMsg = { type: "warn", text: "Float will exceed ceiling — schedule a sweep." };
     }
   }
 
@@ -202,19 +210,35 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
 
           {selectedBank && (
             <div className="flex flex-col justify-center rounded-xl bg-slate-900/60 px-4 py-3 text-sm">
+              {/* Float */}
               <div className="flex items-center justify-between">
                 <span className="text-slate-400">Current float</span>
                 <span className="font-semibold text-slate-100">{formatCurrency(selectedBank.float_balance)}</span>
               </div>
               {floatAfter !== null && (
                 <div className="mt-1 flex items-center justify-between">
-                  <span className="text-slate-400">After this txn</span>
+                  <span className="text-slate-400">Float after {v.transaction_type === "cash_deposit" ? "↓" : "↑"}</span>
                   <span className={`font-semibold ${floatAfter < Number(selectedBank.float_floor) ? "text-amber-400" : "text-emerald-400"}`}>
                     {formatCurrency(floatAfter)}
                   </span>
                 </div>
               )}
-              <div className="mt-1 flex items-center justify-between">
+              <div className="my-2 border-t border-slate-700/60" />
+              {/* Cash on hand (shared global pool) */}
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Cash on hand (pool)</span>
+                <span className="font-semibold text-slate-100">{cashPool ? formatCurrency(cashPool.cash_on_hand) : "—"}</span>
+              </div>
+              {cashAfter !== null && (
+                <div className="mt-1 flex items-center justify-between">
+                  <span className="text-slate-400">Cash after {v.transaction_type === "cash_deposit" ? "↑" : "↓"}</span>
+                  <span className={`font-semibold ${cashAfter < 0 ? "text-red-400" : "text-emerald-400"}`}>
+                    {formatCurrency(cashAfter)}
+                  </span>
+                </div>
+              )}
+              <div className="my-2 border-t border-slate-700/60" />
+              <div className="flex items-center justify-between">
                 <span className="text-slate-400">Health</span>
                 <span className={`font-semibold ${HEALTH_COLORS[selectedBank.float_health] || "text-slate-300"}`}>
                   {(selectedBank.float_health || "—").replace("_", " ")}
