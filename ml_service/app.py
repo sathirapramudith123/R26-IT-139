@@ -1,4 +1,8 @@
+import warnings
+warnings.filterwarnings("ignore")    
+
 import os
+os.environ["PYTHONWARNINGS"] = "ignore"  
 import joblib
 import traceback
 import numpy as np
@@ -8,18 +12,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import __main__
 
-# ==============================================================================
-# 1. FIX FOR JOBLIB LOAD ERROR (Custom Transformers)
-# ==============================================================================
 def add_domain_features(X):
     return X
 
 setattr(__main__, 'add_domain_features', add_domain_features)
 
 
-# ==============================================================================
-# 2. FASTAPI APP INITIALIZATION
-# ==============================================================================
+
 app = FastAPI(
     title='Smart Merchant ML & Decision Engine API',
     version='2.0',
@@ -33,7 +32,6 @@ app.add_middleware(
     allow_headers=['*'],
 )
 
-# File Mapping
 FILES = {
     'credit': 'models/component1_sales_financial_model.pkl',
     'procurement': 'models/component2_procurement_model.pkl',
@@ -43,7 +41,7 @@ FILES = {
 
 BUNDLES = {}
 
-# Load Models / Bundles into Memory
+
 for name, path in FILES.items():
     if os.path.exists(path):
         try:
@@ -128,7 +126,7 @@ def features(component: str):
 def predict(req: PredictRequest):
     comp_key = req.component.lower().strip()
 
-    # Alias Mapping
+    
     alias_map = {'sales': 'credit', 'pricing': 'procurement', 'inventory': 'demand'}
     comp_key = alias_map.get(comp_key, comp_key)
 
@@ -142,7 +140,7 @@ def predict(req: PredictRequest):
     features_dict = req.features.copy()
 
     try:
-        # 1. Type Coercion & Safe Conversion
+        
         for k, v in features_dict.items():
             if isinstance(v, str):
                 try:
@@ -150,14 +148,14 @@ def predict(req: PredictRequest):
                 except ValueError:
                     pass
 
-        # 2. CALCULATE DYNAMIC FEATURES FIRST
+    
         rev = float(features_dict.get('monthly_revenue_rs', 0) or 0)
         exp = float(features_dict.get('monthly_expenses_rs', 0) or 0)
         months = float(features_dict.get('months_active', 1) or 1)
         curr = float(features_dict.get('current_price_rs', 0) or 0)
         hist = float(features_dict.get('historical_avg_price_rs', 0) or 0)
 
-        # Dynamic Financial Features
+        
         features_dict['net_cash_flow'] = rev - exp
         features_dict['debt_to_income_ratio'] = exp / (rev + 1e-5)
         features_dict['cash_flow_margin'] = (rev - exp) / (rev + 1e-5)
@@ -167,10 +165,10 @@ def predict(req: PredictRequest):
         )
         features_dict['price_variance_pct'] = ((curr - hist) / (hist + 1e-5)) * 100
 
-        # 3. GET EXPECTED COLUMNS & ENSURE DYNAMIC COLUMNS ARE INCLUDED
+        
         needed = extract_expected_columns(bundle_or_model) or []
         
-        # Credit model එක සඳහා අවශ්‍ය dynamic columns ලැයිස්තුව ආරක්ෂිතව එකතු කිරීම
+    
         if comp_key == 'credit':
             dynamic_cols = [
                 'net_cash_flow', 
@@ -183,7 +181,7 @@ def predict(req: PredictRequest):
                 if dc not in needed:
                     needed.append(dc)
 
-        # Missing Features Auto-Fill
+    
         for col in needed:
             if (
                 col not in features_dict
@@ -194,14 +192,14 @@ def predict(req: PredictRequest):
                     'general' if col in ['item', 'category'] else 0.0
                 )
 
-        # Pandas DataFrame එක සාදා Column Filtering සිදු කිරීම
+    
         X = pd.DataFrame([features_dict])
         if needed:
             X = X[needed]
 
         # 4. EXECUTION BY COMPONENT TYPE
 
-        # --- COMPONENT 1: CREDIT ---
+    
         if comp_key == 'credit':
             cls_model = bundle_or_model.get('classifier_pipeline') or bundle_or_model.get('classifier_model')
             reg_model = bundle_or_model.get('regressor_pipeline') or bundle_or_model.get('regressor_model')
@@ -236,7 +234,7 @@ def predict(req: PredictRequest):
                 'rule_alerts': hard_blocks if hard_blocks else ['None'],
             }
 
-        # --- COMPONENT 2: PROCUREMENT ---
+    
         elif comp_key == 'procurement':
             cls_model = bundle_or_model.get('classifier_pipeline') or bundle_or_model.get('classifier_model')
             reg_model = bundle_or_model.get('regressor_pipeline') or bundle_or_model.get('regressor_model')
@@ -271,7 +269,7 @@ def predict(req: PredictRequest):
                 'rule_alerts': rule_alerts if rule_alerts else ['None'],
             }
 
-        # --- COMPONENT 3 & 4: DEMAND & ANOMALY ---
+    
         else:
             model = None
             if isinstance(bundle_or_model, dict):
