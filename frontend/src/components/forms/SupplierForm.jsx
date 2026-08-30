@@ -12,17 +12,26 @@ import { isValidEmail } from "@/lib/validators";
 // client-side only, same as it's used on the Procurement form.
 const LocationPickerMap = dynamic(() => import("./LocationPickerMap"), { ssr: false });
 
-const emptySupplyItem = { item_name: "", quantity: "" };
+// Same idea as the Unit dropdown on the Inventory form — adjust this list
+// if your Inventory form uses a different/longer set of units.
+const UNIT_OPTIONS = ["kg", "g", "L", "ml", "unit", "pack", "box", "dozen"];
+
+const emptySupplyItem = { item_name: "", quantity: "", unit: "kg", unit_price: "" };
 
 // Accepts the old TEXT[] shape (["Rice","Sugar"]) so existing suppliers
 // saved before this change still render fine, alongside the new
-// [{item_name, quantity}] shape.
+// [{item_name, quantity, unit, unit_price}] shape.
 function normalizeSuppliedItems(raw) {
   if (!Array.isArray(raw)) return [];
   return raw.map((it) =>
     typeof it === "string"
-      ? { item_name: it, quantity: "" }
-      : { item_name: it.item_name ?? "", quantity: it.quantity ?? "" }
+      ? { item_name: it, quantity: "", unit: "kg", unit_price: "" }
+      : {
+          item_name: it.item_name ?? "",
+          quantity: it.quantity ?? "",
+          unit: it.unit ?? "kg",
+          unit_price: it.unit_price ?? "",
+        }
   );
 }
 
@@ -59,11 +68,17 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
     const er = {};
     if (!supplyItem.item_name.trim()) er.item_name = "Item name is required.";
     if (supplyItem.quantity === "" || Number(supplyItem.quantity) <= 0) er.quantity = "Enter a valid quantity.";
+    if (supplyItem.unit_price !== "" && Number(supplyItem.unit_price) < 0) er.unit_price = "Unit price cannot be negative.";
     if (Object.keys(er).length) { setSupplyItemErrors(er); return; }
 
     setSuppliedItems((prev) => [
       ...prev,
-      { item_name: supplyItem.item_name.trim(), quantity: Number(supplyItem.quantity) },
+      {
+        item_name: supplyItem.item_name.trim(),
+        quantity: Number(supplyItem.quantity),
+        unit: supplyItem.unit || "kg",
+        unit_price: supplyItem.unit_price === "" ? 0 : Number(supplyItem.unit_price),
+      },
     ]);
     setSupplyItem(emptySupplyItem);
     setSupplyItemErrors({});
@@ -223,13 +238,13 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
           Items Supplied
         </div>
         <div className="space-y-4 p-5">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_140px_auto] sm:items-end">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_100px_100px_130px_auto] sm:items-end">
             <FormField label="Item Name" error={supplyItemErrors.item_name}>
               <input
                 className={supplyItemErrors.item_name ? "input-field border-red-400 ring-2 ring-red-100" : "input-field"}
                 value={supplyItem.item_name}
                 onChange={(e) => setSupplyItemField("item_name", e.target.value)}
-                placeholder="e.g. Rice"
+                placeholder="e.g. Rice 5kg"
               />
             </FormField>
             <FormField label="Quantity" error={supplyItemErrors.quantity}>
@@ -239,6 +254,20 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
                 value={supplyItem.quantity}
                 onChange={(e) => setSupplyItemField("quantity", e.target.value)}
                 placeholder="0"
+              />
+            </FormField>
+            <FormField label="Unit">
+              <select className="select-field" value={supplyItem.unit} onChange={(e) => setSupplyItemField("unit", e.target.value)}>
+                {UNIT_OPTIONS.map((u) => <option key={u} value={u}>{u}</option>)}
+              </select>
+            </FormField>
+            <FormField label="Unit Price (LKR)" error={supplyItemErrors.unit_price}>
+              <input
+                className={supplyItemErrors.unit_price ? "input-field border-red-400 ring-2 ring-red-100" : "input-field"}
+                type="number" min="0" step="0.01"
+                value={supplyItem.unit_price}
+                onChange={(e) => setSupplyItemField("unit_price", e.target.value)}
+                placeholder="0.00"
               />
             </FormField>
             <Button type="button" variant="secondary" onClick={addSuppliedItem}>+ Add Item</Button>
@@ -251,18 +280,22 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
                   <th className="px-3 py-3 text-left font-semibold">#</th>
                   <th className="px-3 py-3 text-left font-semibold">Item</th>
                   <th className="px-3 py-3 text-right font-semibold">Quantity</th>
+                  <th className="px-3 py-3 text-left font-semibold">Unit</th>
+                  <th className="px-3 py-3 text-right font-semibold">Unit Price (LKR)</th>
                   <th className="px-3 py-3 text-center font-semibold">✕</th>
                 </tr>
               </thead>
               <tbody>
                 {suppliedItems.length === 0 ? (
-                  <tr><td colSpan={4} className="px-4 py-8 text-center text-slate-400">No items added yet.</td></tr>
+                  <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">No items added yet.</td></tr>
                 ) : (
                   suppliedItems.map((it, i) => (
                     <tr key={i} className="border-t border-slate-100 dark:border-slate-800">
                       <td className="px-3 py-3 text-slate-500">{i + 1}</td>
                       <td className="px-3 py-3 font-medium text-slate-800 dark:text-slate-100">{it.item_name}</td>
                       <td className="px-3 py-3 text-right">{it.quantity}</td>
+                      <td className="px-3 py-3 text-slate-500">{it.unit}</td>
+                      <td className="px-3 py-3 text-right">{Number(it.unit_price || 0).toFixed(2)}</td>
                       <td className="px-3 py-3 text-center">
                         <button type="button" onClick={() => removeSuppliedItem(i)} className="text-red-500 hover:text-red-700" aria-label="Remove">✕</button>
                       </td>

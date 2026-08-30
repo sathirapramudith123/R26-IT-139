@@ -10,12 +10,22 @@ const HIDDEN = [
   "banking_status",
   "notification_type",
   "notification_category",
+  // ✅ Supplier-level unit_price is a stale/unused column now that pricing
+  // lives per-item inside items_supplied — showing it here is misleading
+  // (always LKR 0.00). Raw lat/lng aren't meaningful to a user reading this
+  // card either — the "Delivery Location" address already covers that.
+  "unit_price",
+  "latitude",
+  "longitude",
+  // items_supplied gets its own dedicated table below instead of falling
+  // through to the generic key/value row (which would show [object Object]).
+  "items_supplied",
 ];
 
 const DATE_FIELDS = ["created_at", "updated_at", "read_at"];
 
 const MONEY_FIELDS = [
-  "amount", "unit_price", "delivery_cost", "total_cost",
+  "amount", "delivery_cost", "total_cost",
   "estimated_profit", "expected_selling_price", "service_fee", "commission",
 ];
 
@@ -59,6 +69,10 @@ export default function DetailDialog({ open, title, data, onClose }) {
     ([k, v]) => !HIDDEN.includes(k) && v !== null && v !== undefined && v !== ""
   );
 
+  // ✅ items_supplied ([{item_name, quantity, unit, unit_price}]) needs its
+  // own table instead of the generic key/value row.
+  const suppliedItems = Array.isArray(data.items_supplied) ? data.items_supplied : [];
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -91,6 +105,36 @@ export default function DetailDialog({ open, title, data, onClose }) {
             </div>
           ))}
         </div>
+
+        {suppliedItems.length > 0 && (
+          <div className="mt-4">
+            <p className="mb-2 text-sm font-medium text-slate-500 dark:text-slate-400">
+              Items Supplied
+            </p>
+            <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                    <th className="px-3 py-2 text-left font-semibold">Item</th>
+                    <th className="px-3 py-2 text-right font-semibold">Qty</th>
+                    <th className="px-3 py-2 text-left font-semibold">Unit</th>
+                    <th className="px-3 py-2 text-right font-semibold">Unit Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {suppliedItems.map((it, i) => (
+                    <tr key={i} className="border-t border-slate-100 dark:border-slate-800">
+                      <td className="px-3 py-2 font-medium text-slate-800 dark:text-slate-100">{it.item_name}</td>
+                      <td className="px-3 py-2 text-right">{it.quantity}</td>
+                      <td className="px-3 py-2 text-slate-500">{it.unit || "—"}</td>
+                      <td className="px-3 py-2 text-right">{formatMoney(it.unit_price)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

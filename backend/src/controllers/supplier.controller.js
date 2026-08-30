@@ -5,16 +5,21 @@ const TABLE = "suppliers";
 const ID = "supplier_id";
 const num = (v) => (v === "" || v == null ? 0 : Number(v));
 
-// Accepts [{item_name, quantity}] objects from the new per-item form, and
-// also tolerates the old plain string array (["Rice","Sugar"]) shape from
-// suppliers saved before this change — those just come back with quantity 0.
+// Accepts [{item_name, quantity, unit_price}] objects from the per-item
+// form, and also tolerates the old plain string array (["Rice","Sugar"])
+// shape from suppliers saved before this change — those just come back
+// with quantity/unit_price at 0.
 const toSuppliedItems = (v) => {
   if (!Array.isArray(v)) return [];
   return v
     .map((it) =>
       typeof it === "string"
-        ? { item_name: it.trim(), quantity: 0 }
-        : { item_name: String(it?.item_name ?? "").trim(), quantity: Number(it?.quantity) || 0 }
+        ? { item_name: it.trim(), quantity: 0, unit_price: 0 }
+        : {
+            item_name: String(it?.item_name ?? "").trim(),
+            quantity: Number(it?.quantity) || 0,
+            unit_price: Number(it?.unit_price) || 0,
+          }
     )
     .filter((it) => it.item_name);
 };
