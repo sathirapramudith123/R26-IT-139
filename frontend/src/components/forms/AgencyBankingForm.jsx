@@ -14,17 +14,19 @@ import { User, Phone, AlertCircle, Loader2, Landmark, CreditCard } from "lucide-
 
 const STATUSES = ["completed", "pending", "failed"];
 
-const KYC_TIERS = [
-  { value: "basic",    label: "Basic (Unverified)" },
-  { value: "verified", label: "Verified" },
-  { value: "full",     label: "Full (Biometric KYC)" },
-];
-
-const TIER_LIMITS = {
-  basic:    { cash_deposit: 50000,  cash_withdrawal: 25000,  fund_transfer: 50000,   balance_inquiry: null },
-  verified: { cash_deposit: 200000, cash_withdrawal: 100000, fund_transfer: 300000,  balance_inquiry: null },
-  full:     { cash_deposit: 500000, cash_withdrawal: 200000, fund_transfer: 1000000, balance_inquiry: null },
+// Rural agent build -> fixed LOW-tier daily limits (no KYC dropdown)
+const DAILY_LIMITS = {
+  cash_deposit: 50000, cash_withdrawal: 25000, fund_transfer: 50000,
 };
+
+const SOURCE_OF_FUNDS = [
+  { value: "SALARY",           label: "Salary" },
+  { value: "BUSINESS_INCOME",  label: "Business Income" },
+  { value: "REMITTANCE",       label: "Remittance" },
+  { value: "SAVINGS",          label: "Savings" },
+  { value: "SALE_OF_PROPERTY", label: "Sale of Property" },
+  { value: "OTHER",            label: "Other" },
+];
 
 const HEALTH_COLORS = {
   HEALTHY:         "text-emerald-400",
@@ -40,15 +42,18 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
   const [errors, setErrors] = useState({});
 
   const [banks, setBanks] = useState([]);
+  const [cashPool, setCashPool] = useState(null);
   const [loadingBanks, setLoadingBanks] = useState(true);
 
   const [v, setV] = useState({
     customer_name:    initialData.customer_name    ?? "",
     customer_phone:   initialData.customer_phone   ?? "",
-    customer_nic:     initialData.customer_nic     ?? "",   // NEW
+    customer_nic:     initialData.customer_nic     ?? "",
+    account_number:   initialData.account_number   ?? "",   // NEW (mandatory)
+    source_of_funds:  initialData.source_of_funds  ?? "",   // NEW (mandatory)
+    source_other:     "",                                    // free text when "OTHER"
     transaction_type: initialData.transaction_type ?? "cash_deposit",
-    kyc_tier:         initialData.kyc_tier         ?? "basic",
-    agent_bank_id:    initialData.agent_bank_id    ?? "",    // NEW
+    agent_bank_id:    initialData.agent_bank_id    ?? "",
     amount:           initialData.amount           ?? "",
     service_fee:      initialData.service_fee      ?? "",
     commission:       initialData.commission       ?? "",
@@ -61,8 +66,10 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
   useEffect(() => {
     agentBankApi.list()
       .then((d) => {
-        const arr = Array.isArray(d) ? d : [];
+        // new shape: { cash_pool, banks }  (fallback: plain array)
+        const arr = Array.isArray(d) ? d : (d?.banks || []);
         setBanks(arr);
+        setCashPool(Array.isArray(d) ? null : (d?.cash_pool || null));
         // auto-select first bank if none chosen
         if (!v.agent_bank_id && arr.length > 0) {
           setV((p) => ({ ...p, agent_bank_id: arr[0].id }));
@@ -90,22 +97,27 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
     setErrors(p => ({ ...p, amount: undefined }));
   }
 
-  const limit = TIER_LIMITS[v.kyc_tier]?.[v.transaction_type];
+  const limit = DAILY_LIMITS[v.transaction_type];
   const selectedBank = banks.find((b) => b.id === v.agent_bank_id);
 
-  // Live float preview — deposit drains float, withdrawal raises it
+  // Live preview — deposit: float DOWN, cash UP | withdrawal: float UP, cash DOWN
   let floatAfter = null;
+  let cashAfter = null;
   let floatMsg = null;
   if (selectedBank && Number(v.amount) > 0) {
     const bal = Number(selectedBank.float_balance);
+    const cash = cashPool ? Number(cashPool.cash_on_hand) : 0;
     const amt = Number(v.amount);
     if (v.transaction_type === "cash_deposit") {
-      floatAfter = bal - amt;
+      floatAfter = bal - amt;         // float down
+      cashAfter = cash + amt;         // cash up
       if (floatAfter < 0) floatMsg = { type: "error", text: "Insufficient float to fund this deposit." };
       else if (floatAfter < Number(selectedBank.float_floor)) floatMsg = { type: "warn", text: "Float will drop below floor — top-up recommended." };
     } else if (v.transaction_type === "cash_withdrawal") {
-      floatAfter = bal + amt;
-      if (floatAfter > Number(selectedBank.float_ceiling)) floatMsg = { type: "warn", text: "Float will exceed ceiling — schedule a sweep." };
+      floatAfter = bal + amt;         // float up
+      cashAfter = cash - amt;         // cash down
+      if (cashAfter < 0) floatMsg = { type: "error", text: "Insufficient cash on hand to pay out this withdrawal." };
+      else if (floatAfter > Number(selectedBank.float_ceiling)) floatMsg = { type: "warn", text: "Float will exceed ceiling — schedule a sweep." };
     }
   }
 
@@ -116,7 +128,12 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
     if (!isValidPhone(v.customer_phone)) er.customer_phone = "Enter a valid Sri Lankan number.";
     if (!v.amount || Number(v.amount) <= 0) er.amount = "Enter an amount greater than 0.";
     if (limit && Number(v.amount) > limit) {
-      er.amount = `${KYC_TIERS.find(t => t.value === v.kyc_tier)?.label} limit is ${formatCurrency(limit)}.`;
+      er.amount = `Daily limit is ${formatCurrency(limit)}.`;
+    }
+    if (!v.account_number.trim()) er.account_number = "Account number is required.";
+    if (v.transaction_type === "cash_deposit") {
+      if (!v.source_of_funds) er.source_of_funds = "Source of funds is required for deposits.";
+      if (v.source_of_funds === "OTHER" && !v.source_other.trim()) er.source_other = "Please specify the source of funds.";
     }
     // client-side float guard (backend enforces too)
     if (floatMsg?.type === "error") er.amount = "Insufficient float in the selected bank for this deposit.";
@@ -129,6 +146,9 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
     const num = x => x === "" ? 0 : Number(x);
     const payload = {
       ...v,
+      source_of_funds: v.transaction_type === "cash_deposit"
+        ? (v.source_of_funds === "OTHER" ? v.source_other.trim() : v.source_of_funds)
+        : null,
       agent_bank_id: v.agent_bank_id || null,
       amount: Number(v.amount),
       service_fee: num(v.service_fee),
@@ -190,19 +210,35 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
 
           {selectedBank && (
             <div className="flex flex-col justify-center rounded-xl bg-slate-900/60 px-4 py-3 text-sm">
+              {/* Float */}
               <div className="flex items-center justify-between">
                 <span className="text-slate-400">Current float</span>
                 <span className="font-semibold text-slate-100">{formatCurrency(selectedBank.float_balance)}</span>
               </div>
               {floatAfter !== null && (
                 <div className="mt-1 flex items-center justify-between">
-                  <span className="text-slate-400">After this txn</span>
+                  <span className="text-slate-400">Float after {v.transaction_type === "cash_deposit" ? "↓" : "↑"}</span>
                   <span className={`font-semibold ${floatAfter < Number(selectedBank.float_floor) ? "text-amber-400" : "text-emerald-400"}`}>
                     {formatCurrency(floatAfter)}
                   </span>
                 </div>
               )}
-              <div className="mt-1 flex items-center justify-between">
+              <div className="my-2 border-t border-slate-700/60" />
+              {/* Cash on hand (shared global pool) */}
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Cash on hand (pool)</span>
+                <span className="font-semibold text-slate-100">{cashPool ? formatCurrency(cashPool.cash_on_hand) : "—"}</span>
+              </div>
+              {cashAfter !== null && (
+                <div className="mt-1 flex items-center justify-between">
+                  <span className="text-slate-400">Cash after {v.transaction_type === "cash_deposit" ? "↑" : "↓"}</span>
+                  <span className={`font-semibold ${cashAfter < 0 ? "text-red-400" : "text-emerald-400"}`}>
+                    {formatCurrency(cashAfter)}
+                  </span>
+                </div>
+              )}
+              <div className="my-2 border-t border-slate-700/60" />
+              <div className="flex items-center justify-between">
                 <span className="text-slate-400">Health</span>
                 <span className={`font-semibold ${HEALTH_COLORS[selectedBank.float_health] || "text-slate-300"}`}>
                   {(selectedBank.float_health || "—").replace("_", " ")}
@@ -253,17 +289,36 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
           </select>
         </FormField>
 
-        <FormField label="Customer KYC Tier" required hint="Higher tiers allow higher daily limits">
-          <select className={selectClass} value={v.kyc_tier}
-            onChange={e => set("kyc_tier", e.target.value)}>
-            {KYC_TIERS.map(o => (
-              <option key={o.value} value={o.value} className="bg-slate-900 text-slate-100">{o.label}</option>
-            ))}
-          </select>
+        <FormField label="Account Number" error={errors.account_number} required>
+          <div className="relative">
+            <CreditCard className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <input className={getInputClass("account_number")} value={v.account_number}
+              onChange={e => set("account_number", e.target.value)} placeholder="e.g. 8001234567" />
+          </div>
         </FormField>
 
+        {v.transaction_type === "cash_deposit" && (
+          <FormField label="Source of Funds" error={errors.source_of_funds} required
+            hint="Required for deposits (AML record)">
+            <select className={selectClass} value={v.source_of_funds}
+              onChange={e => set("source_of_funds", e.target.value)}>
+              <option value="" className="bg-slate-900">— Select source —</option>
+              {SOURCE_OF_FUNDS.map(o => (
+                <option key={o.value} value={o.value} className="bg-slate-900 text-slate-100">{o.label}</option>
+              ))}
+            </select>
+          </FormField>
+        )}
+
+        {v.transaction_type === "cash_deposit" && v.source_of_funds === "OTHER" && (
+          <FormField label="Specify Source of Funds" error={errors.source_other} required>
+            <input className={getInputClass("source_other")} value={v.source_other}
+              onChange={e => set("source_other", e.target.value)} placeholder="Describe the source of funds" />
+          </FormField>
+        )}
+
         <FormField label="Amount (LKR)" error={errors.amount}
-          hint={limit ? `${KYC_TIERS.find(t => t.value === v.kyc_tier)?.label} daily limit: ${formatCurrency(limit)}` : undefined}
+          hint={limit ? `Daily limit: ${formatCurrency(limit)}` : undefined}
           required>
           <div className="relative">
             <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 select-none">Rs.</span>

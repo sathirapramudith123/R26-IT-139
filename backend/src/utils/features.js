@@ -161,14 +161,25 @@ export function buildAnomalyFeatures(txn, allTxns) {
   const d = new Date(txn.created_at);
   const type = String(txn.transaction_type || "").toLowerCase();
 
+  // Map our transaction types to the training vocabulary (paysim.csv)
+  //   deposit -> cash_in, withdrawal -> cash_out, transfer -> transfer
+  let txnType = "payment";
+  if (type.includes("deposit")) txnType = "cash_in";
+  else if (type.includes("withdrawal")) txnType = "cash_out";
+  else if (type.includes("transfer")) txnType = "transfer";
+
+  const zscore = +z.toFixed(3);
+
   return {
-    txn_type:        type,
+    txn_type:        txnType,
     amount_abs_rs:   Math.abs(num(txn.amount)),
     direction:       type.includes("deposit") ? "in" : "out",
-    channel:         "agent",
+    channel:         "agency_banking_agent",           // matches training vocabulary
     weekday:         d.getDay(),
     day_of_month:    d.getDate(),
     created_offline: txn.created_offline ? 1 : 0,
-    amount_zscore:   +z.toFixed(3),
+    amount_zscore:   zscore,
+    is_high_zscore:  Math.abs(zscore) > 2.0 ? 1 : 0,   // engineered feature (training Step 2)
+    unsupervised_anomaly_score: Math.abs(zscore) > 2.5 ? 1 : 0, // proxy for the iso-forest flag
   };
 }

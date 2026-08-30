@@ -8,12 +8,19 @@ const now = () => new Date().toISOString();
 const batchStatus = (qty) => (qty <= 0 ? "OUT_OF_STOCK" : "AVAILABLE");
 
 // එක item එකක සියලුම batches — FIFO පිළිවෙළට (පරණ received_at මුලින්)
+// item_name එක case-insensitive + trimmed ලෙස match කරනවා — "Salt", "salt",
+// "Salt " වගේ ඒවා එකම item එකක් ලෙස සලකනවා (duplicate items වළක්වයි).
+const normName = (s) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
+
 async function itemBatches(userId, itemName) {
+  const target = normName(itemName);
+  if (!target) return [];
   const { data } = await supabase
     .from("inventory").select("*")
-    .eq("user_id", userId).eq("item_name", itemName)
+    .eq("user_id", userId)
     .order("received_at", { ascending: true });
-  return data || [];
+  return (data || [])
+    .filter((b) => normName(b.item_name) === target);
 }
 
 const totalQty = (batches) => batches.reduce((s, b) => s + num(b.quantity), 0);
@@ -104,9 +111,12 @@ export async function receiveStock(userId, itemName, qty, costPrice, reason = ""
 
   // නැත්නම් අලුත් batch row එකක් — meta එක තියෙන batch එකකින් copy කරනවා
   const t = batches[batches.length - 1] || batches[0] || {};
+  // existing item එකක් තියෙනවා නම් ඒකෙ නියම නම පාවිච්චි කරනවා (case consistent),
+  // නැත්නම් user දුන්න නම trim කරලා.
+  const canonicalName = t.item_name || String(itemName).trim();
   const { data } = await supabase.from("inventory").insert([{
     user_id: userId,
-    item_name: itemName,
+    item_name: canonicalName,
     category: t.category ?? "Other",
     supplier_name: t.supplier_name ?? null,
     quantity: addQty,

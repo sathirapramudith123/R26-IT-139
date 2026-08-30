@@ -15,6 +15,7 @@ const QUICK = [
   { href: "/dashboard/suppliers/create",    label: "Add Supplier",    icon: "🤝" },
   { href: "/dashboard/procurement/create",  label: "Procurement",     icon: "🛒" },
   { href: "/dashboard/agency-banking/create", label: "Agency Banking", icon: "🏦" },
+  { href: "/dashboard/my-banks",              label: "My Banks",  icon: "🏦" },
   { href: "/dashboard/predictions",         label: "Predictions",     icon: "🤖" },
 ];
 
