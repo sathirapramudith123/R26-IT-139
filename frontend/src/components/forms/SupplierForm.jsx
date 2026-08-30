@@ -7,14 +7,11 @@ import FormField from "./FormField";
 import Button from "@/components/ui/Button";
 import { supplierApi } from "@/services/api/supplier";
 import { isValidEmail } from "@/lib/validators";
+import { INVENTORY_UNITS } from "@/lib/constants";
 
 // LocationPickerMap uses Leaflet, which touches `window` — must be loaded
 // client-side only, same as it's used on the Procurement form.
 const LocationPickerMap = dynamic(() => import("./LocationPickerMap"), { ssr: false });
-
-// Same idea as the Unit dropdown on the Inventory form — adjust this list
-// if your Inventory form uses a different/longer set of units.
-const UNIT_OPTIONS = ["kg", "g", "L", "ml", "unit", "pack", "box", "dozen"];
 
 const emptySupplyItem = { item_name: "", quantity: "", unit: "kg", unit_price: "" };
 
@@ -258,7 +255,7 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
             </FormField>
             <FormField label="Unit">
               <select className="select-field" value={supplyItem.unit} onChange={(e) => setSupplyItemField("unit", e.target.value)}>
-                {UNIT_OPTIONS.map((u) => <option key={u} value={u}>{u}</option>)}
+                {INVENTORY_UNITS.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
               </select>
             </FormField>
             <FormField label="Unit Price (LKR)" error={supplyItemErrors.unit_price}>
