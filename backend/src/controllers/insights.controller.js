@@ -7,6 +7,20 @@ import {
   buildAnomalyFeatures,
 } from "../utils/features.js";
 
+// CBSL LOW/rural daily limits (must match agencyBanking.controller.js)
+const CBSL_LIMITS = { CASH_DEPOSIT: 50000, CASH_WITHDRAWAL: 25000, FUND_TRANSFER: 50000 };
+
+// Amount-based CBSL risk (timestamp-free)
+function cbslAmountRisk(type, amount) {
+  const key = String(type || "").toUpperCase();
+  const limit = CBSL_LIMITS[key];
+  if (!limit) return { level: "LOW", ratio: 0, flag: false };
+  const ratio = Number(amount || 0) / limit;
+  if (ratio >= 1.0) return { level: "HIGH",   ratio, flag: true };
+  if (ratio >= 0.8) return { level: "MEDIUM", ratio, flag: false };
+  return { level: "LOW", ratio, flag: false };
+}
+
 /** Run a model without ever throwing — a failed card shows its reason instead. */
 async function safePredict(component, features) {
   try {
@@ -67,11 +81,27 @@ export const getInsights = async (req, res) => {
   }
 
   // C4 — anomaly check on the latest banking transaction
+  //      Hybrid: ML model OR CBSL amount-based risk (over daily limit)
   if (banking.length > 0) {
     const latest = banking[0];
     const r = await safePredict("anomaly", buildAnomalyFeatures(latest, banking));
+    const amtRisk = cbslAmountRisk(latest.transaction_type, latest.amount);
+
+    // ML flag (prediction===1) OR CBSL over-limit → final anomaly
+    const mlFlag = r.available && r.prediction === 1;
+    const finalFlag = mlFlag || amtRisk.flag;
+    const finalScore = Math.max(
+      r.available ? Number(r.score) || 0 : 0,
+      Math.round(amtRisk.ratio * 100)
+    );
+
     out.anomaly = {
       ...r,
+      available: true,
+      prediction: finalFlag ? 1 : 0,
+      score: Math.min(100, finalScore),
+      risk_level: amtRisk.level,          // LOW / MEDIUM / HIGH (from CBSL amount)
+      cbsl_ratio_pct: Math.round(amtRisk.ratio * 100),
       customer: latest.customer_name,
       amount: latest.amount,
       reference: latest.reference_code,

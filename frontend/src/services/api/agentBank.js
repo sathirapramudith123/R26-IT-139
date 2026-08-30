@@ -8,4 +8,6 @@ export const agentBankApi = {
   remove:  (id)         => apiClient.delete(`/agent-banks/${id}`),
   topup:   (id, amount) => apiClient.post(`/agent-banks/${id}/topup`, { amount }),
   ledger:  (id)         => apiClient.get(`/agent-banks/${id}/ledger`),
+  summary: ()           => apiClient.get("/agent-banks/summary"),
+  addCash: (amount)     => apiClient.post("/agent-banks/pool/add-cash", { amount }),
 };
