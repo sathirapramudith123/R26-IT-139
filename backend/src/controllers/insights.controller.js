@@ -60,24 +60,84 @@ export const getInsights = async (req, res) => {
     .filter((i) => Number(i.quantity) <= Number(i.reorder_level))
     .sort((a, b) => Number(a.quantity) - Number(b.quantity));
 
-  // C2 — demand forecast for the lowest-stock item
-  if (lowStock.length > 0) {
-    const target = lowStock[0];
-    const r = await safePredict("demand", buildDemandFeatures(target));
-    out.demand = { ...r, item: target.item_name };
+  // Deduplicate by item name — inventory can have multiple rows (batches / different
+  // suppliers) for the same product. Combine quantities so each item appears once.
+  const normName = (s) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
+  const byName = {};
+  for (const it of items) {
+    const key = normName(it.item_name);
+    if (!key) continue;
+    if (!byName[key]) {
+      byName[key] = { ...it, quantity: Number(it.quantity || 0) };
+    } else {
+      byName[key].quantity += Number(it.quantity || 0);
+      byName[key].reorder_level = Math.max(
+        Number(byName[key].reorder_level || 0), Number(it.reorder_level || 0)
+      );
+      byName[key].cost_price = Number(byName[key].cost_price) || Number(it.cost_price) || 0;
+    }
+  }
+  const uniqueItems = Object.values(byName);
+
+  // Rank items by movement (reorder level = how important to keep stocked)
+  const sortedByMovement = [...uniqueItems].sort(
+    (a, b) => Number(b.reorder_level || 0) - Number(a.reorder_level || 0)
+  );
+  const topItems = sortedByMovement.slice(0, 6);   // show up to 6 high-movement items
+
+  // C2 — demand forecast for each top-moving item (LIST)
+  if (topItems.length > 0) {
+    const list = [];
+    for (const item of topItems) {
+      const r = await safePredict("demand", buildDemandFeatures(item));
+      list.push({
+        item: item.item_name,
+        quantity: Number(item.quantity),
+        reorder_level: Number(item.reorder_level),
+        forecast_units: r.available ? r.prediction : null,
+        available: r.available,
+      });
+    }
+    out.demand = { available: true, items: list };
   } else {
-    out.demand = { available: false, reason: "No items are low on stock." };
+    out.demand = { available: false, reason: "Add inventory items to see forecasts." };
   }
 
-  // C3 — buy now or wait, for that same item
-  //      price එක target item එකේ cost_price එකෙන් (suppliers.unit_price අයින් කළා)
-  if (lowStock.length > 0) {
-    const target = lowStock[0];
-    const price = Number(target.cost_price) || Number(target.unit_price) || 0;
-    const r = await safePredict("procurement", buildProcurementFeatures(target, price));
-    out.procurement = { ...r, item: target.item_name };
+  // C3 — buy or wait for each top-moving item (LIST)
+  //      Hybrid: reorder rule decides BUY/WAIT, ML model adds price context.
+  if (topItems.length > 0) {
+    const list = [];
+    for (const item of topItems) {
+      const qty = Number(item.quantity);
+      const reorder = Number(item.reorder_level);
+      const price = Number(item.cost_price) || Number(item.unit_price) || 0;
+
+      // primary decision: reorder-level rule
+      const action = qty <= reorder ? "BUY" : "WAIT";
+
+      // ML price context (advisory only)
+      const r = await safePredict("procurement", buildProcurementFeatures(item, price));
+      const mlAction = r.available ? r.recommended_action : null;   // BULK_BUY_NOW / MODERATE_BUY / WAIT_DO_NOT_BUY
+      let priceContext = "";
+      if (r.available) {
+        if (mlAction === "BULK_BUY_NOW" || mlAction === "MODERATE_BUY") priceContext = "Good price right now";
+        else if (mlAction === "WAIT_DO_NOT_BUY") priceContext = "Prices may improve soon";
+      }
+
+      list.push({
+        item: item.item_name,
+        quantity: qty,
+        reorder_level: reorder,
+        action,                                   // BUY / WAIT (reorder rule)
+        urgent: action === "BUY",
+        price_context: priceContext,              // ML advisory
+        buy_confidence: r.available ? r.buy_confidence_score : null,
+        available: true,
+      });
+    }
+    out.procurement = { available: true, items: list };
   } else {
-    out.procurement = { available: false, reason: "Nothing to procure right now." };
+    out.procurement = { available: false, reason: "Add inventory items to see buy/wait advice." };
   }
 
   // C4 — anomaly check on the latest banking transaction
