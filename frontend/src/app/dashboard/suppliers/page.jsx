@@ -11,14 +11,13 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import EmptyState from "@/components/common/EmptyState";
 import useSuppliers from "@/hooks/useSuppliers";
 import { supplierApi } from "@/services/api/supplier";
-import { formatCurrency } from "@/lib/formatters";
 import DetailDialog from "@/components/common/DetailDialog";
 
 const COLS = [
   { key: "name", label: "Supplier" }, 
   { key: "company_name", label: "Company" },
   { key: "contact_number", label: "Contact" }, 
-  { key: "unit_price", label: "Unit Price" },
+  { key: "items_summary", label: "Items" },
   { key: "status", label: "Status" }, 
   { key: "actions", label: "" },
 ];
@@ -40,19 +39,25 @@ export default function SuppliersPage() {
     return !kw ? items : items.filter(i => [i.name, i.company_name, i.contact_number].join(" ").toLowerCase().includes(kw));
   }, [items, search]);
 
-  const rows = filtered.map(item => ({
-    ...item,
-    company_name: item.company_name ?? "—",
-    unit_price: formatCurrency(item.unit_price),
-    status: <StatusBadge status={item.status} />,
-    actions: (
-      <div className="flex gap-2">
-        <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => setViewItem(item)}>View</Button>
-        <Link href={`/dashboard/suppliers/${item.id}/edit`}><Button variant="secondary" size="sm">Edit</Button></Link>
-        <Button variant="danger" size="sm" onClick={() => handleDelete(item.id)}>Delete</Button>
-      </div>
-    ),
-  }));
+  const rows = filtered.map(item => {
+    // ✅ Unit Price column එක අයින් කරලා — price දැන් per-item (items_supplied
+    // JSONB එක ඇතුළේ) නිසා, supplier-level එක price එකක් පෙන්නීම වැරදි.
+    // ඒ වෙනුවට items count එක පෙන්නනවා — item එකක්වත් නැත්නම් "—".
+    const itemCount = Array.isArray(item.items_supplied) ? item.items_supplied.length : 0;
+    return {
+      ...item,
+      company_name: item.company_name ?? "—",
+      items_summary: itemCount > 0 ? `${itemCount} item${itemCount > 1 ? "s" : ""}` : "—",
+      status: <StatusBadge status={item.status} />,
+      actions: (
+        <div className="flex gap-2">
+          <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => setViewItem(item)}>View</Button>
+          <Link href={`/dashboard/suppliers/${item.id}/edit`}><Button variant="secondary" size="sm">Edit</Button></Link>
+          <Button variant="danger" size="sm" onClick={() => handleDelete(item.id)}>Delete</Button>
+        </div>
+      ),
+    };
+  });
 
   return (
     <div className="page-container">

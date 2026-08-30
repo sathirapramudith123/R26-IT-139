@@ -7,12 +7,26 @@ import FormField from "./FormField";
 import Button from "@/components/ui/Button";
 import { procurementApi } from "@/services/api/procurement";
 import { inventoryApi } from "@/services/api/inventory";
+import { supplierApi } from "@/services/api/supplier";
 import { INVENTORY_UNITS } from "@/lib/constants";
 
 const LocationPickerMap = dynamic(() => import("./LocationPickerMap"), { ssr: false });
 
 const today = () => new Date().toISOString().slice(0, 10);
 const genPrNo = () => `PR-${String(Date.now()).slice(-5)}`;
+
+// Haversine formula — straight-line distance (km) between two lat/lng points.
+// Good enough for "which supplier is closest to this delivery point" without
+// needing a routing API.
+function distanceKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 // unit_cost එකතු කළා — RECEIVED කරාම batch එකේ cost එකට යනවා
 const emptyItem = { item_name: "", unit: "unit", quantity: "", unit_cost: "" };
@@ -22,6 +36,8 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
   const isEdit = !!procurementId;
 
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [savedSuppliers, setSavedSuppliers] = useState([]);
   const [serverError, setServerError] = useState(null);
 
   const [date, setDate] = useState(initialData.date ?? initialData.order_date ?? today());
@@ -29,7 +45,6 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
 
   const [location, setLocation] = useState(initialData.delivery_location ?? initialData.location ?? "");
   const [coords, setCoords] = useState(initialData.coords ?? null);
-  const [arrivalDate, setArrivalDate] = useState(initialData.arrival_date ?? "");
   const [specialNote, setSpecialNote] = useState(initialData.special_note ?? "");
 
   const [item, setItem] = useState(emptyItem);
@@ -39,6 +54,7 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
   const [topErrors, setTopErrors] = useState({});
 
   const [inventory, setInventory] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
 
   useEffect(() => {
     inventoryApi.list()
@@ -46,11 +62,104 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
       .catch(() => setInventory([]));
   }, []);
 
-  const itemNames = inventory.map((i) => i.name).filter(Boolean);
+  useEffect(() => {
+    supplierApi.list()
+      .then((d) => setSuppliers(Array.isArray(d) ? d : []))
+      .catch(() => setSuppliers([]));
+  }, []);
+
+  const inventoryItemNames = inventory.map((i) => i.name).filter(Boolean);
+
+  // ✅ Also pull in every item name suppliers have listed under items_supplied
+  // — a merchant should be able to procure something a supplier carries even
+  // before it exists as an Inventory record.
+  const supplierItemNamesFlat = suppliers.flatMap((s) =>
+    Array.isArray(s.items_supplied) ? s.items_supplied.map((it) => it.item_name).filter(Boolean) : []
+  );
+
+  const itemNames = [...new Set([...inventoryItemNames, ...supplierItemNamesFlat])];
   const itemNameOptions = [...itemNames];
   if (item.item_name && !itemNameOptions.includes(item.item_name)) {
     itemNameOptions.unshift(item.item_name);
   }
+
+  // ✅ Suppliers that supply the item currently selected in the entry form —
+  // matched against each supplier's items_supplied list. Only suppliers with
+  // a saved map pin (latitude/longitude) can be shown on the map, so those
+  // without one are left out of the "on map" set but still worth knowing
+  // about — kept separate so we can mention them without pinning them.
+  const matchingSuppliers = suppliers.filter((s) =>
+    Array.isArray(s.items_supplied) &&
+    s.items_supplied.some(
+      (it) => it.item_name?.trim().toLowerCase() === item.item_name.trim().toLowerCase()
+    )
+  );
+  const mappableSuppliers = matchingSuppliers.filter((s) => s.latitude != null && s.longitude != null);
+
+  // Distance to the chosen delivery point (if picked yet) — sorted nearest
+  // first so the "Nearest" badge/marker is unambiguous.
+  const suppliersWithDistance = mappableSuppliers
+    .map((s) => ({
+      ...s,
+      distanceKm: coords ? distanceKm(coords.lat, coords.lng, Number(s.latitude), Number(s.longitude)) : null,
+    }))
+    .sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
+
+  const nearestSupplierId = coords && suppliersWithDistance[0]?.id;
+
+  // ✅ Whole-order matching — once items have been added, find which
+  // supplier(s) can fulfil the most of the basket (not just the single item
+  // currently being typed into the entry form). Ranked by how many of the
+  // added items they carry, then by distance to the delivery point.
+  const orderItemNames = items.map((it) => it.item_name.trim().toLowerCase());
+
+  const orderSupplierCandidates = orderItemNames.length === 0 ? [] : suppliers
+    .map((s) => {
+      const supplierItemNames = Array.isArray(s.items_supplied)
+        ? s.items_supplied.map((si) => si.item_name?.trim().toLowerCase())
+        : [];
+      const matchedCount = orderItemNames.filter((n) => supplierItemNames.includes(n)).length;
+      const matchedItems = items
+        .filter((it) => supplierItemNames.includes(it.item_name.trim().toLowerCase()))
+        .map((it) => it.item_name);
+      const missing = items
+        .filter((it) => !supplierItemNames.includes(it.item_name.trim().toLowerCase()))
+        .map((it) => it.item_name);
+      return {
+        ...s,
+        matchedCount,
+        matchedItems,
+        missing,
+        fullMatch: matchedCount === orderItemNames.length,
+        distanceKm: coords && s.latitude != null && s.longitude != null
+          ? distanceKm(coords.lat, coords.lng, Number(s.latitude), Number(s.longitude))
+          : null,
+      };
+    })
+    .filter((s) => s.matchedCount > 0)
+    .sort((a, b) => b.matchedCount - a.matchedCount || (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
+
+  const bestOrderSupplierId = orderSupplierCandidates[0]?.id;
+
+  // Map markers: once the order has items, show whole-order coverage
+  // (best-match supplier highlighted green) instead of the single-item view.
+  const supplierMapMarkers = orderItemNames.length > 0
+    ? orderSupplierCandidates
+        .filter((s) => s.latitude != null && s.longitude != null)
+        .map((s) => ({
+          lat: Number(s.latitude),
+          lng: Number(s.longitude),
+          label: `${s.name} — ${s.matchedCount}/${orderItemNames.length} items`
+            + (s.fullMatch ? " ✓ full match" : "")
+            + (s.distanceKm != null ? ` — ${s.distanceKm.toFixed(1)} km` : ""),
+          highlight: s.id === bestOrderSupplierId,
+        }))
+    : suppliersWithDistance.map((s) => ({
+        lat: Number(s.latitude),
+        lng: Number(s.longitude),
+        label: s.distanceKm != null ? `${s.name} — ${s.distanceKm.toFixed(1)} km away` : s.name,
+        highlight: s.id === nearestSupplierId,
+      }));
 
   const totalItems = items.length;
   const totalQuantity = items.reduce((sum, it) => sum + (Number(it.quantity) || 0), 0);
@@ -62,14 +171,28 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
     setItemErrors((p) => ({ ...p, [k]: undefined }));
   }
 
-  // Item එකක් තෝරද්දි — inventory cost එකෙන් unit_cost pre-fill (edit කරන්න පුළුවන්)
+  // Item එකක් තෝරද්දි — Inventory එකේ තියෙනවා නම් ඒකේ cost එකෙන් pre-fill;
+  // නැත්නම් (item එක supplier කෙනෙක්ගේ items_supplied එකේ විතරක් තියෙනවා
+  // නම්) ඒ supplier ලාගේ unit_price/unit එකෙන් pre-fill (edit කරන්න පුළුවන්).
   function pickItemName(name) {
     const inv = inventory.find((i) => i.name === name);
-    setItem((p) => ({
-      ...p,
-      item_name: name,
-      unit_cost: inv ? String(Number(inv.cost_price ?? inv.unit_price ?? 0)) : p.unit_cost,
-    }));
+    if (inv) {
+      setItem((p) => ({
+        ...p,
+        item_name: name,
+        unit_cost: String(Number(inv.cost_price ?? inv.unit_price ?? 0)),
+      }));
+    } else {
+      const supplierMatch = suppliers
+        .flatMap((s) => (Array.isArray(s.items_supplied) ? s.items_supplied : []))
+        .find((it) => it.item_name?.trim().toLowerCase() === name.trim().toLowerCase());
+      setItem((p) => ({
+        ...p,
+        item_name: name,
+        unit_cost: supplierMatch ? String(Number(supplierMatch.unit_price ?? 0)) : p.unit_cost,
+        unit: supplierMatch?.unit || p.unit,
+      }));
+    }
     setItemErrors((p) => ({ ...p, item_name: undefined }));
   }
 
@@ -126,7 +249,6 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
     setDate(today());
     setLocation("");
     setCoords(null);
-    setArrivalDate("");
     setSpecialNote("");
     setItem(emptyItem);
     setItems([]);
@@ -140,7 +262,6 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
     const er = {};
     if (items.length === 0) er.items = "Add at least one item.";
     if (!location.trim()) er.location = "Location is required.";
-    if (!arrivalDate) er.arrivalDate = "Arrival date is required.";
 
     if (Object.keys(er).length) { setTopErrors(er); return; }
 
@@ -151,17 +272,24 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
       date,
       delivery_location: location.trim(),
       coords,
-      arrival_date: arrivalDate,
       special_note: specialNote.trim(),
       items,                 // [{item_name, unit, quantity, unit_cost}]
       total_cost: totalCost, // backend එකෙනුත් re-compute වෙනවා
+      // ✅ Best-match supplier (computed above from items_supplied coverage)
+      // — previously never sent, so the list page's SUPPLIER column was
+      // always blank for multi-item orders.
+      selected_supplier_name: orderSupplierCandidates[0]?.name ?? null,
       status: initialData.status ?? "pending",
     };
 
     try {
       if (isEdit) await procurementApi.update(procurementId, payload);
       else await procurementApi.create(payload);
-      router.push("/dashboard/procurement");
+      // Snapshot the ranked supplier list at save time — best match first,
+      // then next-nearest — so the merchant can see who to actually order
+      // from before leaving this page.
+      setSavedSuppliers(orderSupplierCandidates);
+      setSaved(true);
     } catch (err) {
       setServerError(err.message || "Save failed.");
     } finally {
@@ -170,6 +298,66 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
   }
 
   const fmt = (n) => (Number(n) || 0).toLocaleString("en-LK", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  // ✅ Post-save screen — instead of redirecting straight away, show the
+  // ranked supplier list (best match first, then next-nearest) so the
+  // merchant knows who to actually contact before leaving this page.
+  if (saved) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-6">
+        <div className="card-elevated space-y-1 text-center">
+          <div className="text-3xl">✅</div>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Procurement Saved</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {prNo} · {items.length} item{items.length > 1 ? "s" : ""} · LKR {fmt(totalCost)}
+          </p>
+        </div>
+
+        <div className="card-elevated space-y-4">
+          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Recommended Suppliers</h2>
+          <p className="text-sm text-slate-400">Best match first, then the next-nearest suppliers for this order.</p>
+
+          {savedSuppliers.length === 0 ? (
+            <p className="text-sm text-slate-400">No known supplier carries any of these items yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {savedSuppliers.map((s, i) => (
+                <div key={s.id} className="rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-100">
+                      #{i + 1} {s.name}
+                      {i === 0 && (
+                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-900 dark:text-green-300">
+                          Best match
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-sm text-slate-500">
+                      {s.matchedCount}/{items.length} items
+                      {s.distanceKm != null ? ` · ${s.distanceKm.toFixed(1)} km away` : ""}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                    <span className="font-medium">Items they carry:</span> {s.matchedItems.join(", ")}
+                  </p>
+                  {s.missing.length > 0 && (
+                    <p className="mt-1 text-xs text-slate-400">Missing: {s.missing.join(", ")}</p>
+                  )}
+                  {s.delivery_location && (
+                    <p className="mt-1 text-xs text-slate-400">📍 {s.delivery_location}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-center gap-3">
+          <Button type="button" onClick={() => router.push("/dashboard/procurement")}>Continue</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} noValidate className="mx-auto max-w-5xl space-y-6">
@@ -207,6 +395,43 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
                   {itemNameOptions.map((name) => <option key={name} value={name}>{name}</option>)}
                 </select>
               </FormField>
+
+              {/* ✅ Which suppliers carry this item, nearest first once a
+                  delivery location has been picked below. */}
+              {item.item_name && (
+                <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-xs text-blue-700 dark:border-slate-700 dark:bg-slate-800 dark:text-blue-300">
+                  {matchingSuppliers.length === 0 ? (
+                    <>No known supplier for "{item.item_name}" yet.</>
+                  ) : (
+                    <>
+                      <div className="mb-1.5 font-semibold">Suppliers for {item.item_name}:</div>
+                      <ul className="space-y-1">
+                        {suppliersWithDistance.map((s) => (
+                          <li key={s.id} className="flex items-center justify-between gap-2">
+                            <span className="flex items-center gap-1.5">
+                              {s.name}
+                              {s.id === nearestSupplierId && (
+                                <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900 dark:text-green-300">
+                                  Nearest
+                                </span>
+                              )}
+                            </span>
+                            {s.distanceKm != null && <span>{s.distanceKm.toFixed(1)} km</span>}
+                          </li>
+                        ))}
+                        {matchingSuppliers.length > mappableSuppliers.length && (
+                          <li className="pt-1 text-slate-400">
+                            + {matchingSuppliers.length - mappableSuppliers.length} more without a saved map location
+                          </li>
+                        )}
+                      </ul>
+                      {!coords && (
+                        <p className="mt-1.5 text-[11px] text-slate-400">Pick a delivery location below to see distances.</p>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
 
               <FormField label="Quantity" error={itemErrors.quantity} required>
                 <input className={itemErrors.quantity ? "input-field border-red-400 ring-2 ring-red-100" : "input-field"}
@@ -278,6 +503,46 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
                   <span>Total Cost</span><span>LKR {fmt(totalCost)}</span>
                 </div>
               </div>
+
+              {/* ✅ Best supplier(s) for the whole basket — coverage-ranked,
+                  nearest as tiebreaker once a delivery point is picked. */}
+              {items.length > 0 && (
+                <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-3 text-xs font-normal text-blue-700 dark:border-slate-700 dark:bg-slate-800 dark:text-blue-300">
+                  <div className="mb-1.5 font-semibold">
+                    Best supplier for this order ({items.length} item{items.length > 1 ? "s" : ""}):
+                  </div>
+                  {orderSupplierCandidates.length === 0 ? (
+                    <>No known supplier carries any of these items yet.</>
+                  ) : (
+                    <ul className="space-y-1.5">
+                      {orderSupplierCandidates.slice(0, 5).map((s) => (
+                        <li key={s.id} className="border-b border-blue-100/60 pb-1.5 last:border-0 last:pb-0 dark:border-slate-700">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="flex items-center gap-1.5 font-medium">
+                              {s.name}
+                              {s.id === bestOrderSupplierId && (
+                                <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900 dark:text-green-300">
+                                  Best match
+                                </span>
+                              )}
+                            </span>
+                            <span>
+                              {s.matchedCount}/{orderItemNames.length} items
+                              {s.distanceKm != null ? ` · ${s.distanceKm.toFixed(1)} km` : ""}
+                            </span>
+                          </div>
+                          {s.missing.length > 0 && (
+                            <p className="mt-0.5 text-[11px] text-slate-400">Missing: {s.missing.join(", ")}</p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {!coords && orderSupplierCandidates.length > 0 && (
+                    <p className="mt-1.5 text-[11px] text-slate-400">Pick a delivery location below to rank by distance too.</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -297,18 +562,20 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
           <Button type="button" onClick={handleLocate}>📍 Use My Location</Button>
         </div>
         <p className="text-xs text-slate-400">Tip: You can click on the map and pick the exact location</p>
+        {supplierMapMarkers.length > 0 && (
+          <p className="text-xs text-slate-400">
+            {orderItemNames.length > 0
+              ? <>🟢 Best match for this order &nbsp; 🔴 Partial match &nbsp; 🔵 Delivery location</>
+              : <>🔴 Supplier for "{item.item_name}" &nbsp; 🟢 Nearest supplier &nbsp; 🔵 Delivery location</>}
+          </p>
+        )}
         <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
-          <LocationPickerMap coords={coords} onPick={handleMapPick} />
+          <LocationPickerMap coords={coords} onPick={handleMapPick} extraMarkers={supplierMapMarkers} />
         </div>
       </div>
 
-      {/* Arrival + note */}
-      <div className="card-elevated grid grid-cols-1 gap-5 md:grid-cols-2">
-        <FormField label="Arrival Date" error={topErrors.arrivalDate} required>
-          <input className={topErrors.arrivalDate ? "input-field border-red-400 ring-2 ring-red-100" : "input-field"}
-            type="date" value={arrivalDate}
-            onChange={(e) => { setArrivalDate(e.target.value); setTopErrors((p) => ({ ...p, arrivalDate: undefined })); }} />
-        </FormField>
+      {/* Note */}
+      <div className="card-elevated">
         <FormField label="Special Note">
           <textarea className="input-field min-h-[110px] resize-y" value={specialNote}
             onChange={(e) => setSpecialNote(e.target.value)} placeholder="Enter special note here..." />
