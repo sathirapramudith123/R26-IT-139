@@ -5,16 +5,41 @@ const TABLE = "suppliers";
 const ID = "supplier_id";
 const num = (v) => (v === "" || v == null ? 0 : Number(v));
 
+// Accepts [{item_name, quantity}] objects from the new per-item form, and
+// also tolerates the old plain string array (["Rice","Sugar"]) shape from
+// suppliers saved before this change — those just come back with quantity 0.
+const toSuppliedItems = (v) => {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((it) =>
+      typeof it === "string"
+        ? { item_name: it.trim(), quantity: 0 }
+        : { item_name: String(it?.item_name ?? "").trim(), quantity: Number(it?.quantity) || 0 }
+    )
+    .filter((it) => it.item_name);
+};
+
+// lat/lng: keep null when not provided instead of forcing 0 (0,0 is a real
+// point in the Gulf of Guinea — we don't want to silently save that).
+const toCoord = (v) => (v === "" || v == null ? null : Number(v));
+
 const toDb = (b) => ({
   supplier_name:      b.name || b.supplier_name,
   company_name:       b.company_name || null,
   contact_number:     b.contact_number,
   email:              b.email || null,
-  address:            b.address || null,
-  delivery_location:  b.delivery_location || null,        // ✅ අලුතින් එකතු කළා
+  // NOTE: `address` is intentionally not mapped here anymore — the form's
+  // "Location" field (delivery_location) now captures the full address via
+  // the map pin, so a separate free-text address is no longer collected.
+  // Leaving this key out of toDb() means Supabase's .update() won't touch
+  // whatever is already in that column (vs sending null and wiping it).
+  delivery_location:  b.delivery_location || null,
   delivery_cost:      num(b.delivery_cost),
-  available_quantity: num(b.available_quantity),
+  available_quantity: num(b.available_quantity),          // derived client-side: sum of items_supplied quantities
   lead_time_days:     num(b.lead_time_days ?? 1),         // Procurement Optimization සඳහා
+  items_supplied:     toSuppliedItems(b.items_supplied),  // ✅ [{item_name, quantity}] — JSONB
+  latitude:           toCoord(b.latitude),                // ✅ අලුතින් එකතු කළා
+  longitude:          toCoord(b.longitude),                // ✅ අලුතින් එකතු කළා
   // unit_price සහ supplier_status form එකෙන් තව එන්නෙ නෑ.
   // DB එකේ column දෙකම තාම තියෙනවා නම්, ඒවා default (0 / 'ACTIVE') විදිහට save වෙනවා.
 });
@@ -23,6 +48,7 @@ const shape = (row) => {
   const c = toClient(row, ID);
   c.name = c.supplier_name;
   c.status = c.supplier_status;
+  c.items_supplied = row.items_supplied || [];
   return c;
 };
 
