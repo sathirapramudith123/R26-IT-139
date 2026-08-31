@@ -20,6 +20,124 @@ function isoWeek(d = new Date()) {
 const itemPrice = (item) => num(item?.cost_price) || num(item?.unit_price) || 0;
 const itemCategory = (item) => (item?.category && String(item.category).trim()) || "general";
 
+const normName = (s) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
+
+// ✅ Weighted-average REAL sale price per item, from actual SALE
+// transactions (amount actually charged ÷ quantity) — not the inventory
+// item's listed/wholesale price, which can differ from what customers were
+// actually charged (bulk discounts, price changes over time, etc). Used to
+// convert a unit demand forecast into a revenue estimate.
+export async function getAvgSalePriceByItem(userId) {
+  const { data: txns } = await supabase
+    .from("transactions")
+    .select("item_name, quantity, items")
+    .eq("user_id", userId)
+    .eq("transaction_type", "SALE");
+
+  const sums = {}; // normalized item name -> { amount, qty }
+  for (const t of txns || []) {
+    const rows = Array.isArray(t.items) && t.items.length
+      ? t.items
+      : (t.item_name ? [{ item_name: t.item_name, quantity: t.quantity }] : []);
+    for (const line of rows) {
+      const key = normName(line.item_name);
+      const qty = num(line.quantity);
+      if (!key || qty <= 0) continue;
+      // Prefer the line's actual charged amount; fall back to unit_price×qty
+      // for older rows that only recorded a per-unit price.
+      const amount = line.amount != null ? num(line.amount) : num(line.unit_price) * qty;
+      if (!sums[key]) sums[key] = { amount: 0, qty: 0 };
+      sums[key].amount += amount;
+      sums[key].qty += qty;
+    }
+  }
+
+  const avgPrice = {};
+  for (const [key, { amount, qty }] of Object.entries(sums)) {
+    if (qty > 0) avgPrice[key] = +(amount / qty).toFixed(2);
+  }
+  return avgPrice;
+}
+
+// ✅ All-time real sales totals, one item name -> total units sold, from
+// every SALE transaction (not scoped to a single item like
+// getWeeklySalesSeries above). Used to rank items by ACTUAL sales volume —
+// e.g. so a "top sellers" list reflects what really sells, not each item's
+// manually-set reorder_level (which has no relationship to sales volume).
+export async function getTotalSoldByItem(userId) {
+  const { data: txns } = await supabase
+    .from("transactions")
+    .select("item_name, quantity, items")
+    .eq("user_id", userId)
+    .eq("transaction_type", "SALE");
+
+  const totals = {}; // normalized item name -> total units sold (all-time)
+  for (const t of txns || []) {
+    const rows = Array.isArray(t.items) && t.items.length
+      ? t.items
+      : (t.item_name ? [{ item_name: t.item_name, quantity: t.quantity }] : []);
+    for (const line of rows) {
+      const key = normName(line.item_name);
+      if (!key) continue;
+      totals[key] = (totals[key] || 0) + num(line.quantity);
+    }
+  }
+  return totals;
+}
+
+// ✅ Real weekly SALE history for one item, newest week first — built from
+// the `transactions` table (SALE rows), not guessed from current stock.
+// Handles both the legacy item_name/quantity columns and the items[] JSONB
+// cart shape (a single SALE transaction can contain several items).
+//
+// Outlier handling: a single unusually large sale-line (e.g. a one-off
+// bulk/wholesale order) can dominate a week's total, especially when only
+// one week of history exists yet — there's no other week to average it
+// against. So each individual sale-line is capped at 3× the median
+// sale-line size for this item *before* being summed into a weekly total —
+// same approach as robustVolatility() above, applied to demand instead of
+// income.
+async function getWeeklySalesSeries(userId, itemName) {
+  const target = normName(itemName);
+  if (!target) return [];
+
+  const { data: txns } = await supabase
+    .from("transactions")
+    .select("created_at, transaction_type, item_name, quantity, items")
+    .eq("user_id", userId)
+    .eq("transaction_type", "SALE");
+
+  const lines = [];
+  for (const t of txns || []) {
+    const rows = Array.isArray(t.items) && t.items.length
+      ? t.items
+      : (t.item_name ? [{ item_name: t.item_name, quantity: t.quantity }] : []);
+
+    for (const line of rows) {
+      if (normName(line.item_name) !== target) continue;
+      const d = new Date(t.created_at);
+      if (isNaN(d)) continue;
+      const qty = num(line.quantity);
+      if (qty <= 0) continue;
+      lines.push({ date: d, qty });
+    }
+  }
+  if (!lines.length) return [];
+
+  const med = median(lines.map((l) => l.qty));
+  const cap = med > 0 ? med * 3 : Infinity;
+
+  const byWeek = {}; // "YYYY-WW" -> total (outlier-capped) units sold that week
+  for (const l of lines) {
+    const key = `${l.date.getFullYear()}-${String(isoWeek(l.date)).padStart(2, "0")}`;
+    byWeek[key] = (byWeek[key] || 0) + Math.min(l.qty, cap);
+  }
+
+  return Object.entries(byWeek)
+    .sort((a, b) => (a[0] < b[0] ? 1 : -1))          // newest week first
+    .map(([week, units]) => ({ week, units }));
+}
+
 // median (outlier-resistant)
 function median(arr) {
   if (!arr.length) return 0;
@@ -106,28 +224,51 @@ export async function buildCreditFeatures(userId) {
   };
 }
 
-export function buildDemandFeatures(item) {
+// ✅ Previously this faked lag1_units/lag4_units/rolling4_mean_units by
+// copying `item.quantity` (current stock) — so an item's forecast reflected
+// its stock level, not its actual sales trend, and `item.quantity || 50`
+// meant a 0-stock item got a *bigger* fake number (50) than a 46-in-stock
+// item. Now it queries real SALE history and returns hasSalesHistory so the
+// caller can skip items that have never actually sold, instead of feeding
+// the model made-up data.
+export async function buildDemandFeatures(userId, item) {
   const now = new Date();
   const retail = itemPrice(item) || 100;
   const wholesale = retail * 0.85;
-  const units = num(item.quantity) || 50;
+
+  const series = await getWeeklySalesSeries(userId, item.item_name);
+  const hasSalesHistory = series.length > 0;
+
+  if (!hasSalesHistory) {
+    return { hasSalesHistory: false, features: null };
+  }
+
+  const last4 = series.slice(0, 4).map((w) => w.units);
+  const rollingMean = +(last4.reduce((a, b) => a + b, 0) / last4.length).toFixed(2);
+  const lag1Units = last4[0];
+  // 4th most-recent week if we have it, else fall back to the rolling mean
+  // rather than 0 (0 would read to the model as "sales collapsed").
+  const lag4Units = series[3]?.units ?? rollingMean;
 
   return {
-    item:                   item.item_name || "Unknown",
-    category:               itemCategory(item),
-    iso_year:               now.getFullYear(),
-    iso_week:               isoWeek(now),
-    days_to_avurudu:        daysToAvurudu(now),
-    festival_season:        daysToAvurudu(now) <= 30 ? 1 : 0,
-    avg_wholesale_price_rs: +wholesale.toFixed(2),
-    avg_retail_price_rs:    +retail.toFixed(2),
-    lag1_price:             +wholesale.toFixed(2),
-    lag4_price:             +wholesale.toFixed(2),
-    rolling4_mean_price:    +wholesale.toFixed(2),
-    lag1_units:             units,
-    lag4_units:             units,
-    rolling4_mean_units:    units,
-    weekend_share:          0.3,
+    hasSalesHistory: true,
+    features: {
+      item:                   item.item_name || "Unknown",
+      category:               itemCategory(item),
+      iso_year:               now.getFullYear(),
+      iso_week:               isoWeek(now),
+      days_to_avurudu:        daysToAvurudu(now),
+      festival_season:        daysToAvurudu(now) <= 30 ? 1 : 0,
+      avg_wholesale_price_rs: +wholesale.toFixed(2),
+      avg_retail_price_rs:    +retail.toFixed(2),
+      lag1_price:             +wholesale.toFixed(2),
+      lag4_price:             +wholesale.toFixed(2),
+      rolling4_mean_price:    +wholesale.toFixed(2),
+      lag1_units:             lag1Units,
+      lag4_units:             lag4Units,
+      rolling4_mean_units:    rollingMean,
+      weekend_share:          0.3,
+    },
   };
 }
 

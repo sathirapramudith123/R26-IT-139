@@ -5,6 +5,8 @@ import {
   buildDemandFeatures,
   buildProcurementFeatures,
   buildAnomalyFeatures,
+  getTotalSoldByItem,
+  getAvgSalePriceByItem,
 } from "../utils/features.js";
 
 // CBSL LOW/rural daily limits (must match agencyBanking.controller.js)
@@ -80,27 +82,66 @@ export const getInsights = async (req, res) => {
   const uniqueItems = Object.values(byName);
 
   // Rank items by movement (reorder level = how important to keep stocked)
+  // — used for "Buy or Wait" / low-stock urgency, unrelated to sales volume.
   const sortedByMovement = [...uniqueItems].sort(
     (a, b) => Number(b.reorder_level || 0) - Number(a.reorder_level || 0)
   );
   const topItems = sortedByMovement.slice(0, 6);   // show up to 6 high-movement items
 
-  // C2 — demand forecast for each top-moving item (LIST)
-  if (topItems.length > 0) {
+  // C2 — demand forecast for each top-SELLING item (LIST)
+  // ✅ Previously ranked by reorder_level (a manually-set restock threshold
+  // with no link to actual sales volume), so a newly added, never-sold item
+  // could take a slot ahead of a real best-seller. Now ranked by real
+  // all-time units sold (getTotalSoldByItem, from actual SALE transactions)
+  // — items that don't sell naturally sort to the bottom and only appear if
+  // there aren't 6 items with real sales yet.
+  {
+    const totalSold = await getTotalSoldByItem(userId);
+    const avgSalePrice = await getAvgSalePriceByItem(userId);
+    const normName = (s) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
+    const sortedBySales = [...uniqueItems].sort(
+      (a, b) => (totalSold[normName(b.item_name)] || 0) - (totalSold[normName(a.item_name)] || 0)
+    );
+
     const list = [];
-    for (const item of topItems) {
-      const r = await safePredict("demand", buildDemandFeatures(item));
-      list.push({
-        item: item.item_name,
-        quantity: Number(item.quantity),
-        reorder_level: Number(item.reorder_level),
-        forecast_units: r.available ? r.prediction : null,
-        available: r.available,
-      });
+    for (const item of sortedBySales) {
+      if (list.length >= 6) break;
+      const { hasSalesHistory, features: demandFeatures } = await buildDemandFeatures(userId, item);
+      if (hasSalesHistory) {
+        const r = await safePredict("demand", demandFeatures);
+        // ✅ Revenue estimate = forecast units × the REAL average price this
+        // item actually sold for (not inventory's listed/wholesale price).
+        // Rounded to the nearest 100 — the unit forecast itself has ~±21
+        // units of average error (model MAE), so an exact-looking rupee
+        // figure would be false precision.
+        const price = avgSalePrice[normName(item.item_name)]
+          || Number(item.cost_price) || Number(item.unit_price) || 0;
+        const forecastRevenue = (r.available && price)
+          ? Math.round((r.prediction * price) / 100) * 100
+          : null;
+        list.push({
+          item: item.item_name,
+          quantity: Number(item.quantity),
+          reorder_level: Number(item.reorder_level),
+          forecast_units: r.available ? r.prediction : null,
+          forecast_revenue: forecastRevenue,
+          available: r.available,
+        });
+      } else {
+        list.push({
+          item: item.item_name,
+          quantity: Number(item.quantity),
+          reorder_level: Number(item.reorder_level),
+          forecast_units: null,
+          forecast_revenue: null,
+          available: false,
+          reason: "No sales recorded yet for this item",
+        });
+      }
     }
-    out.demand = { available: true, items: list };
-  } else {
-    out.demand = { available: false, reason: "Add inventory items to see forecasts." };
+    out.demand = list.length
+      ? { available: true, items: list }
+      : { available: false, reason: "Add inventory items to see forecasts." };
   }
 
   // C3 — buy or wait for each top-moving item (LIST)
