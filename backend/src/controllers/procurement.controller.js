@@ -35,6 +35,9 @@ const toDb = (b) => {
     delivery_location:      b.delivery_location || null,
     coords:                 b.coords || null,
     arrival_date:           b.arrival_date || null,
+    // ✅ Ranked supplier snapshot (best-match first) frozen at save time —
+    // powers the View dialog's "Recommended Suppliers" list.
+    recommended_suppliers:  Array.isArray(b.recommended_suppliers) ? b.recommended_suppliers : [],
     special_note:           b.special_note || null,
     expected_selling_price: num(b.expected_selling_price),
     selected_supplier_name: b.selected_supplier_name || b.supplier_name || null,
