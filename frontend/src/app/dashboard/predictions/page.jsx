@@ -275,6 +275,11 @@ export default function PredictionsDashboard() {
               ? `${demand.items.reduce((s, it) => s + Number(it.forecast_units || 0), 0).toFixed(0)} units`
               : "N/A"}
           </p>
+          {demand.available && demand.items?.some((it) => it.forecast_revenue != null) && (
+            <p className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+              ≈ Rs {demand.items.reduce((s, it) => s + Number(it.forecast_revenue || 0), 0).toLocaleString("en-LK")}
+            </p>
+          )}
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <p className="text-xs font-medium text-slate-500">To restock</p>
@@ -386,22 +391,52 @@ export default function PredictionsDashboard() {
               <NoData reason={demand.reason} />
             ) : (
               <div className="space-y-2">
-                {(demand.items || []).map((it, i) => (
-                  <div key={i} className="flex items-center justify-between rounded-xl border border-amber-100 bg-amber-50/50 px-4 py-3 dark:border-amber-900/30 dark:bg-amber-950/20">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{it.item}</p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        Stock: {it.quantity} · Reorder: {it.reorder_level}
-                      </p>
+                {(demand.items || []).map((it, i) => {
+                  // ✅ quantity/reorder_level was rendered as plain text with no
+                  // comparison — a Stock:0 row and a Stock:46 row looked identical
+                  // even though one needs restocking now and the other doesn't.
+                  const needsReorder = Number(it.quantity) < Number(it.reorder_level);
+                  // ✅ Items with no real sales history now come through as
+                  // available:false instead of a fabricated number — show that
+                  // plainly rather than a bare "≈ —" that looks like a glitch.
+                  const noHistory = it.available === false;
+                  return (
+                    <div key={i} className="flex items-center justify-between rounded-xl border border-amber-100 bg-amber-50/50 px-4 py-3 dark:border-amber-900/30 dark:bg-amber-950/20">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{it.item}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Stock: {it.quantity} · Reorder: {it.reorder_level}
+                        </p>
+                        <span
+                          className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                            needsReorder
+                              ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
+                              : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                          }`}
+                        >
+                          {needsReorder ? "🚩 Reorder now" : "✓ Adequate"}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        {noHistory ? (
+                          <span className="text-xs italic text-slate-400">No sales data yet</span>
+                        ) : (
+                          <>
+                            <span className="font-outfit text-2xl font-extrabold text-amber-600 dark:text-amber-400">
+                              ≈ {it.forecast_units != null ? Number(it.forecast_units).toFixed(0) : "—"}
+                            </span>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400">units / next week</p>
+                            {it.forecast_revenue != null && (
+                              <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                                ≈ Rs {Number(it.forecast_revenue).toLocaleString("en-LK")}
+                              </p>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="font-outfit text-2xl font-extrabold text-amber-600 dark:text-amber-400">
-                        ≈ {it.forecast_units != null ? Number(it.forecast_units).toFixed(0) : "—"}
-                      </span>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400">units / next week</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

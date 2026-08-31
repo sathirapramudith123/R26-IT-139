@@ -30,6 +30,13 @@ const nearestSupplierIcon = new L.Icon({
   iconAnchor: [12, 41],
 });
 
+const cheapestSupplierIcon = new L.Icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+
 // Invisible helper: listens for map clicks and reports lat/lng to the parent.
 function ClickHandler({ onPick }) {
   useMapEvents({
@@ -87,7 +94,7 @@ export default function LocationPickerMap({ coords, onPick, extraMarkers = [] })
         <Marker
           key={i}
           position={[m.lat, m.lng]}
-          icon={m.highlight ? nearestSupplierIcon : supplierIcon}
+          icon={m.highlight ? nearestSupplierIcon : m.cheapest ? cheapestSupplierIcon : supplierIcon}
         >
           {m.label && <Popup>{m.label}</Popup>}
         </Marker>
