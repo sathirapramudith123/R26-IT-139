@@ -81,12 +81,21 @@ export const getInsights = async (req, res) => {
   }
   const uniqueItems = Object.values(byName);
 
-  // Rank items by movement (reorder level = how important to keep stocked)
-  // — used for "Buy or Wait" / low-stock urgency, unrelated to sales volume.
-  const sortedByMovement = [...uniqueItems].sort(
-    (a, b) => Number(b.reorder_level || 0) - Number(a.reorder_level || 0)
-  );
-  const topItems = sortedByMovement.slice(0, 6);   // show up to 6 high-movement items
+  // ✅ Previously ranked by reorder_level (a manually-set threshold, not
+  // urgency) — an item at Stock:0/Reorder:5 (critically out) could be
+  // skipped in favor of Stock:25/Reorder:30 (not urgent) just because the
+  // latter's reorder_level number was bigger. Now ranked by real urgency:
+  // quantity ÷ reorder_level, ascending — 0 (out of stock) sorts first,
+  // items far above their reorder point sort last. Items with no
+  // reorder_level set (0) have no meaningful threshold, so they sort last.
+  const reorderRatio = (item) => {
+    const reorder = Number(item.reorder_level) || 0;
+    const qty = Number(item.quantity) || 0;
+    if (reorder <= 0) return Infinity;
+    return qty / reorder;
+  };
+  const sortedByUrgency = [...uniqueItems].sort((a, b) => reorderRatio(a) - reorderRatio(b));
+  const topItems = sortedByUrgency.slice(0, 6);   // show up to 6 most-urgent items
 
   // C2 — demand forecast for each top-SELLING item (LIST)
   // ✅ Previously ranked by reorder_level (a manually-set restock threshold
@@ -221,4 +230,107 @@ export const getInsights = async (req, res) => {
   };
 
   res.json(out);
+};
+
+// ✅ Sales Forecast (getInsights → out.demand) only ever shows the top 6
+// items by real sales volume — there was no way to see every item's actual
+// total sold quantity. This endpoint returns ALL inventory items with their
+// real all-time sold quantity, average real sale price, and derived
+// revenue — for a "View all items" table, sortable/filterable client-side.
+export const getSalesSummary = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { data: inv } = await supabase.from("inventory").select("*").eq("user_id", userId);
+    const items = inv || [];
+
+    const normName = (s) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
+    const byName = {};
+    for (const it of items) {
+      const key = normName(it.item_name);
+      if (!key) continue;
+      if (!byName[key]) {
+        byName[key] = { ...it, quantity: Number(it.quantity || 0) };
+      } else {
+        byName[key].quantity += Number(it.quantity || 0);
+        byName[key].reorder_level = Math.max(
+          Number(byName[key].reorder_level || 0), Number(it.reorder_level || 0)
+        );
+      }
+    }
+    const uniqueItems = Object.values(byName);
+
+    const totalSold = await getTotalSoldByItem(userId);
+    const avgSalePrice = await getAvgSalePriceByItem(userId);
+
+    const list = uniqueItems
+      .map((item) => {
+        const key = normName(item.item_name);
+        const sold = totalSold[key] || 0;
+        const price = avgSalePrice[key] || Number(item.cost_price) || Number(item.unit_price) || 0;
+        return {
+          item: item.item_name,
+          quantity: Number(item.quantity),
+          reorder_level: Number(item.reorder_level),
+          total_sold: sold,
+          avg_sale_price: price ? +price.toFixed(2) : null,
+          // Same nearest-100 rounding as the demand forecast card — avoids
+          // an exact-looking rupee figure the underlying data can't support.
+          total_revenue: sold && price ? Math.round((sold * price) / 100) * 100 : 0,
+        };
+      })
+      .sort((a, b) => b.total_sold - a.total_sold);
+
+    res.json({ items: list });
+  } catch (e) { next(e); }
+};
+
+// ✅ Buy or Wait (out.procurement) only shows the top 6 most-urgent items —
+// this returns EVERY item's stock/reorder status so a "View all items"
+// table can show what's happening across the whole inventory, not just the
+// 6 most urgent. No ML price-context calls here (that's per-item and would
+// mean one model call per inventory item) — just the rule-based BUY/WAIT
+// status, sortable/filterable client-side.
+export const getProcurementSummary = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { data: inv } = await supabase.from("inventory").select("*").eq("user_id", userId);
+    const items = inv || [];
+
+    const normName = (s) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
+    const byName = {};
+    for (const it of items) {
+      const key = normName(it.item_name);
+      if (!key) continue;
+      if (!byName[key]) {
+        byName[key] = { ...it, quantity: Number(it.quantity || 0) };
+      } else {
+        byName[key].quantity += Number(it.quantity || 0);
+        byName[key].reorder_level = Math.max(
+          Number(byName[key].reorder_level || 0), Number(it.reorder_level || 0)
+        );
+      }
+    }
+    const uniqueItems = Object.values(byName);
+
+    const list = uniqueItems
+      .map((item) => {
+        const qty = Number(item.quantity);
+        const reorder = Number(item.reorder_level);
+        const urgent = qty <= reorder;
+        return {
+          item: item.item_name,
+          quantity: qty,
+          reorder_level: reorder,
+          action: urgent ? "BUY" : "WAIT",
+          urgent,
+          deficit: Math.max(0, reorder - qty),   // how far below the reorder point
+        };
+      })
+      .sort((a, b) => {
+        if (a.urgent !== b.urgent) return a.urgent ? -1 : 1;   // BUY items first
+        return b.deficit - a.deficit;                          // most urgent first within each group
+      });
+
+    res.json({ items: list });
+  } catch (e) { next(e); }
 };
