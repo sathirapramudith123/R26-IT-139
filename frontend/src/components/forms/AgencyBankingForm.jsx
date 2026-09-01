@@ -14,7 +14,6 @@ import { User, Phone, AlertCircle, Loader2, Landmark, CreditCard } from "lucide-
 
 const STATUSES = ["completed", "pending", "failed"];
 
-// Rural agent build -> fixed LOW-tier daily limits (no KYC dropdown)
 const DAILY_LIMITS = {
   cash_deposit: 50000, cash_withdrawal: 25000, fund_transfer: 50000,
 };
@@ -62,7 +61,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
     status:           initialData.status           ?? "completed",
   });
 
-  // Load agent banks for the selector
+  
   useEffect(() => {
     agentBankApi.list()
       .then((d) => {
