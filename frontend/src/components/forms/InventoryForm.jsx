@@ -1,139 +1,226 @@
 "use client";
-
-import Input from "@/components/ui/Input";
-import Select from "@/components/ui/Select";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import FormField from "./FormField";
 import Button from "@/components/ui/Button";
+import { inventoryApi } from "@/services/api/inventory";
+import { supplierApi } from "@/services/api/supplier";
+import { INVENTORY_UNITS } from "@/lib/constants";
 
-const UNIT_OPTIONS = [
-  { label: "Kilogram (kg)", value: "kg" },
-  { label: "Gram (g)", value: "g" },
-  { label: "Milliliter (ml)", value: "ml" },
-  { label: "Liter (l)", value: "l" },
-  { label: "Unit", value: "unit" },
-  { label: "Box", value: "box" },
-  { label: "Carton", value: "carton" },
+const ITEM_CATEGORIES = [
+  "Rice & Grains",
+  "Beverages",
+  "Dairy & Bakery",
+  "Snacks & Sweets",
+  "Canned & Packaged Food",
+  "Household & Cleaning",
+  "Personal Care",
+  "Spices & Cooking Essentials",
+  "Other"
 ];
 
-export default function InventoryForm({
-  onSubmit,
-  submitLabel = "Save",
-  initialData = {},
-  suppliers = [],
-}) {
-  const supplierOptions = [
-    { label: "Select supplier", value: "" },
-    ...suppliers.map((supplier) => ({
-      label: `${supplier.name} - ${supplier.company_name ?? "N/A"}`,
-      value: supplier.id,
-    })),
-  ];
+export default function InventoryForm({ initialData = {}, itemId = null }) {
+  const router = useRouter();
+  const isEdit = !!itemId;
+  const [saving, setSaving] = useState(false);
+  const [serverError, setServerError] = useState(null);
+  const [errors, setErrors] = useState({});
+  const [suppliers, setSuppliers] = useState([]);
 
-  function handleSubmit(e) {
-    e.preventDefault();
+  const [v, setV] = useState({
+    name:           initialData.name          ?? "",
+    category:       initialData.category      ?? "",
+    supplier_name:  initialData.supplier_name ?? "",
+    quantity:       initialData.quantity      ?? "",
+    reorder_level:  initialData.reorder_level ?? "",
+    unit:           initialData.unit          ?? "unit",
+    cost_price:     initialData.cost_price    ?? initialData.unit_price ?? "",
+    lead_time_days: initialData.lead_time_days ?? "1", // AI Safety Stock එක සඳහා
+  });
 
-    const values = Object.fromEntries(new FormData(e.currentTarget).entries());
-
-    const selectedSupplier = suppliers.find(
-      (supplier) => supplier.id === values.supplier_id
-    );
-
-    if (!selectedSupplier) {
-      alert("Please select a valid supplier");
-      return;
-    }
-
-    values.supplier_name = selectedSupplier.name;
-    values.quantity = Number(values.quantity);
-    values.reorder_level = Number(values.reorder_level);
-    values.unit_price = Number(values.unit_price);
-
-    values.sync_status = initialData.sync_status || "synced";
-    values.version = initialData.version || 1;
-    values.device_id = initialData.device_id || null;
-    values.last_synced_at = initialData.last_synced_at || null;
-
-    if (
-      Number.isNaN(values.quantity) ||
-      Number.isNaN(values.reorder_level) ||
-      Number.isNaN(values.unit_price)
-    ) {
-      alert("Invalid number input");
-      return;
-    }
-
-    onSubmit?.(values);
+  function set(k, val) {
+    setV(p => ({ ...p, [k]: val }));
+    setErrors(p => ({ ...p, [k]: undefined }));
   }
 
+  useEffect(() => {
+    supplierApi.list()
+      .then((data) => setSuppliers(Array.isArray(data) ? data : []))
+      .catch(() => setSuppliers([]));
+  }, []);
+
+  const supplierNames = suppliers.map((s) => s.name);
+  const supplierOptions = [...supplierNames];
+  if (v.supplier_name && !supplierNames.includes(v.supplier_name)) {
+    supplierOptions.unshift(v.supplier_name);
+  }
+
+  // ✅ Selected supplier's items_supplied ([{item_name, quantity, unit, unit_price}])
+  // powers a datalist suggestion on "Item Name" and auto-fills cost/unit
+  // when the typed name matches one of their items exactly.
+  const selectedSupplier = suppliers.find((s) => s.name === v.supplier_name);
+  const supplierItems = selectedSupplier?.items_supplied || [];
+
+  function setItemName(val) {
+    const match = supplierItems.find(
+      (it) => it.item_name.trim().toLowerCase() === val.trim().toLowerCase()
+    );
+    setV((p) => ({
+      ...p,
+      name: val,
+      ...(match ? { cost_price: match.unit_price ?? p.cost_price, unit: match.unit || p.unit } : {}),
+    }));
+    setErrors((p) => ({ ...p, name: undefined }));
+  }
+
+  // Categories වල අලුත් custom category එකක් තිබේ නම් dropdown එකට එකතු කිරීම
+  const categoryOptions = [...ITEM_CATEGORIES];
+  if (v.category && !categoryOptions.includes(v.category)) {
+    categoryOptions.unshift(v.category);
+  }
+
+  // >>> Total Cost = Unit Cost × Quantity (live calculate — DB එකේ save වෙන්නෙ නෑ)
+  const unitCost  = Number(v.cost_price) || 0;
+  const qty       = Number(v.quantity)   || 0;
+  const totalCost = unitCost * qty;
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const er = {};
+    if (!v.name.trim()) er.name = "Item name is required.";
+    if (!v.category) er.category = "Please select a category for AI forecasting.";
+    if (v.quantity === "" || Number(v.quantity) < 0) er.quantity = "Enter a valid quantity (0 or more).";
+    if (v.cost_price !== "" && Number(v.cost_price) < 0) er.cost_price = "Cost price cannot be negative.";
+
+    if (Object.keys(er).length) { setErrors(er); return; }
+
+    setSaving(true); setServerError(null);
+
+    const payload = {
+      ...v,
+      quantity: Number(v.quantity),
+      reorder_level: v.reorder_level === "" ? 0 : Number(v.reorder_level),
+      cost_price: v.cost_price === "" ? 0 : Number(v.cost_price),
+      lead_time_days: v.lead_time_days === "" ? 1 : Number(v.lead_time_days),
+    };
+
+    try {
+      if (isEdit) await inventoryApi.update(itemId, payload);
+      else await inventoryApi.create(payload);
+      router.push("/dashboard/inventory");
+    } catch (err) {
+      setServerError(err.message || "Save failed.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const cls = k => `input-field ${errors[k] ? "border-red-400 ring-2 ring-red-100" : ""}`;
+
   return (
-    <form onSubmit={handleSubmit} className="card-elevated max-w-4xl space-y-6">
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <Input
-          label="Item Name"
-          name="name"
-          type="text"
-          placeholder="e.g. Rice 5kg bag"
-          required
-          defaultValue={initialData.name ?? ""}
-        />
+    <form onSubmit={handleSubmit} noValidate className="card-elevated max-w-3xl space-y-5">
+      {serverError && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {serverError}
+        </div>
+      )}
 
-        <Select
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <FormField
           label="Supplier"
-          name="supplier_id"
-          options={supplierOptions}
-          required
-          defaultValue={initialData.supplier_id ?? ""}
-        />
+          hint={supplierOptions.length === 0 ? "No suppliers yet — add one first, or type a name." : "Choose from your suppliers"}
+        >
+          {supplierOptions.length > 0 ? (
+            <select
+              className="select-field"
+              value={v.supplier_name}
+              onChange={(e) => set("supplier_name", e.target.value)}
+            >
+              <option value="">Select a supplier</option>
+              {supplierOptions.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+          ) : (
+            <input
+              className="input-field"
+              value={v.supplier_name}
+              onChange={(e) => set("supplier_name", e.target.value)}
+              placeholder="e.g. ABC Traders"
+            />
+          )}
+        </FormField>
 
-        <Input
-          label="Quantity"
-          name="quantity"
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder="0"
+        <FormField
+          label="Item Name"
+          error={errors.name}
           required
-          defaultValue={initialData.quantity ?? ""}
-        />
+          hint={supplierItems.length > 0 ? `Suggested from ${v.supplier_name}: pick one to auto-fill cost & unit` : undefined}
+        >
+          <input
+            className={cls("name")}
+            list="supplier-item-suggestions"
+            value={v.name}
+            onChange={e => setItemName(e.target.value)}
+            placeholder="e.g. Rice 5kg"
+          />
+          {supplierItems.length > 0 && (
+            <datalist id="supplier-item-suggestions">
+              {supplierItems.map((it, i) => <option key={i} value={it.item_name} />)}
+            </datalist>
+          )}
+        </FormField>
 
-        <Input
-          label="Reorder Level"
-          name="reorder_level"
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder="e.g. 10"
-          required
-          defaultValue={initialData.reorder_level ?? ""}
-        />
+        <FormField label="Category" error={errors.category} required hint="Required for AI Demand Forecasting">
+          <select className="select-field" value={v.category} onChange={e => set("category", e.target.value)}>
+            <option value="">Select Category...</option>
+            {categoryOptions.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </FormField>
 
-        <Select
-          label="Unit"
-          name="unit"
-          options={UNIT_OPTIONS}
-          defaultValue={initialData.unit ?? "kg"}
-        />
+        <FormField label="Unit">
+          <select className="select-field" value={v.unit} onChange={e => set("unit", e.target.value)}>
+            {INVENTORY_UNITS.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+          </select>
+        </FormField>
 
-        <Input
-          label="Unit Price (LKR)"
-          name="unit_price"
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder="0.00"
-          required
-          defaultValue={initialData.unit_price ?? ""}
-        />
+        <FormField label="Initial Quantity" error={errors.quantity} required>
+          <input className={cls("quantity")} type="number" min="0" step="0.01" value={v.quantity} onChange={e => set("quantity", e.target.value)} />
+        </FormField>
+
+        <FormField label="Reorder Level" hint="Alert threshold (Auto-calculated by AI if empty)">
+          <input className="input-field" type="number" min="0" step="0.01" value={v.reorder_level} onChange={e => set("reorder_level", e.target.value)} placeholder="Default: Auto AI" />
+        </FormField>
+
+        <FormField label="Unit Cost per Unit (LKR)" error={errors.cost_price} hint="Buying price per unit">
+          <input className={cls("cost_price")} type="number" min="0" step="0.01" value={v.cost_price} onChange={e => set("cost_price", e.target.value)} placeholder="e.g. 1100.00" />
+        </FormField>
+
+        {/* >>> Selling Price ain kala. Ee wenuwata Total Cost (read-only) */}
+        <FormField
+          label="Total Cost (LKR)"
+          hint={`Unit Cost × Quantity  =  ${unitCost.toFixed(2)} × ${qty}`}
+        >
+          <input
+            className="input-field bg-slate-100 font-semibold text-slate-700 cursor-not-allowed dark:bg-slate-800"
+            type="text"
+            value={totalCost.toLocaleString("en-LK", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            readOnly
+            tabIndex={-1}
+          />
+        </FormField>
+
+        <FormField label="Item Delivery Lead Time (Days)" error={errors.lead_time_days} hint="Expected delivery time (Used for Dynamic Safety Stock)">
+          <input className={cls("lead_time_days")} type="number" min="0" step="1" value={v.lead_time_days} onChange={e => set("lead_time_days", e.target.value)} placeholder="e.g. 1" />
+        </FormField>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-        Status will be calculated automatically:
-        <strong> quantity ≤ reorder level = low stock</strong>, otherwise available.
-      </div>
-
-      <div className="flex justify-end">
-        <Button type="submit" className="w-full sm:w-auto">
-          {submitLabel}
-        </Button>
+      <div className="flex justify-end gap-3 border-t border-slate-100 pt-5 dark:border-slate-800">
+        <Link href="/dashboard/inventory"><Button variant="secondary" type="button">Cancel</Button></Link>
+        <Button type="submit" disabled={saving}>{saving ? "Saving..." : (isEdit ? "Update Item" : "Add Item")}</Button>
       </div>
     </form>
   );

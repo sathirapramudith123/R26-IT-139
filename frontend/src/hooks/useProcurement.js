@@ -1,7 +1,6 @@
 "use client";
-
 import { useCallback, useState } from "react";
-import { procurementApi } from "@/services/api/procurement.api";
+import { procurementApi } from "@/services/api/procurement";
 
 export default function useProcurement() {
   const [items, setItems] = useState([]);
@@ -9,24 +8,11 @@ export default function useProcurement() {
   const [error, setError] = useState(null);
 
   const fetchAll = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const data = await procurementApi.list();
-      setItems(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError(err.message || "Failed to load procurement decisions");
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true); setError(null);
+    try { const d = await procurementApi.list(); setItems(Array.isArray(d) ? d : []); }
+    catch (e) { setError(e.message || "Failed to load procurement"); setItems([]); }
+    finally { setLoading(false); }
   }, []);
 
-  return {
-    items,
-    loading,
-    error,
-    fetchAll,
-  };
+  return { items, loading, error, fetchAll };
 }
