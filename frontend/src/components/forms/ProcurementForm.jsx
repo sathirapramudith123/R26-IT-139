@@ -28,6 +28,15 @@ function distanceKm(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// Expected arrival = order date + the chosen supplier's delivery lead time
+// (days). Replaces manually typing an Arrival Date — we now derive it from
+// how long the best-match supplier said they take to deliver.
+function addDays(dateStr, days) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + (Number(days) || 0));
+  return d.toISOString().slice(0, 10);
+}
+
 // unit_cost එකතු කළා — RECEIVED කරාම batch එකේ cost එකට යනවා
 const emptyItem = { item_name: "", unit: "unit", quantity: "", unit_cost: "" };
 
@@ -94,18 +103,60 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
       (it) => it.item_name?.trim().toLowerCase() === item.item_name.trim().toLowerCase()
     )
   );
-  const mappableSuppliers = matchingSuppliers.filter((s) => s.latitude != null && s.longitude != null);
 
-  // Distance to the chosen delivery point (if picked yet) — sorted nearest
-  // first so the "Nearest" badge/marker is unambiguous.
-  const suppliersWithDistance = mappableSuppliers
+  // ✅ Enrich each matching supplier with everything needed to compare them
+  // properly: item price (+ their flat delivery fee) as "estimated cost",
+  // distance to the chosen delivery point, and their stated delivery lead
+  // time — instead of just picking by distance alone.
+  const enrichedSuppliers = matchingSuppliers.map((s) => {
+    const supplierItem = s.items_supplied.find(
+      (it) => it.item_name?.trim().toLowerCase() === item.item_name.trim().toLowerCase()
+    );
+    const unitPrice = Number(supplierItem?.unit_price) || 0;
+    const qty = Number(item.quantity) || 1;
+    const estimatedCost = unitPrice * qty + (Number(s.delivery_cost) || 0);
+    const leadTimeDays = Number(s.lead_time_days) || 0;
+    const dKm = coords && s.latitude != null && s.longitude != null
+      ? distanceKm(coords.lat, coords.lng, Number(s.latitude), Number(s.longitude))
+      : null;
+    return { ...s, unitPrice, estimatedCost, leadTimeDays, distanceKm: dKm };
+  });
+
+  const mappableSuppliers = enrichedSuppliers.filter((s) => s.latitude != null && s.longitude != null);
+
+  // Min-max normalize a metric across candidates (0 = best/lowest, 1 =
+  // worst/highest) so cost (LKR), distance (km) and lead time (days) —
+  // three different units — can be summed into one comparable score.
+  function normalizer(list, key) {
+    const vals = list.map((s) => s[key]).filter((v) => v != null && !isNaN(v));
+    if (vals.length === 0) return () => 0;
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    return (v) => (v == null || isNaN(v) || max === min ? 0 : (v - min) / (max - min));
+  }
+
+  const costNorm = normalizer(enrichedSuppliers, "estimatedCost");
+  const leadNorm = normalizer(enrichedSuppliers, "leadTimeDays");
+  const distNorm = normalizer(mappableSuppliers, "distanceKm");
+
+  const scoredSuppliers = enrichedSuppliers
     .map((s) => ({
       ...s,
-      distanceKm: coords ? distanceKm(coords.lat, coords.lng, Number(s.latitude), Number(s.longitude)) : null,
+      score: costNorm(s.estimatedCost) + leadNorm(s.leadTimeDays) + (s.distanceKm != null ? distNorm(s.distanceKm) : 0),
     }))
-    .sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
+    .sort((a, b) => a.score - b.score);
 
-  const nearestSupplierId = coords && suppliersWithDistance[0]?.id;
+  const suppliersWithDistance = scoredSuppliers; // kept name for the map-marker code below
+  const bestOverallId = scoredSuppliers[0]?.id;
+  const nearestSupplierId = coords && mappableSuppliers.length
+    ? [...mappableSuppliers].sort((a, b) => a.distanceKm - b.distanceKm)[0].id
+    : null;
+  const cheapestSingleId = enrichedSuppliers.length
+    ? [...enrichedSuppliers].sort((a, b) => a.estimatedCost - b.estimatedCost)[0].id
+    : null;
+  const fastestSingleId = enrichedSuppliers.length
+    ? [...enrichedSuppliers].sort((a, b) => a.leadTimeDays - b.leadTimeDays)[0].id
+    : null;
 
   // ✅ Whole-order matching — once items have been added, find which
   // supplier(s) can fulfil the most of the basket (not just the single item
@@ -115,9 +166,8 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
 
   const orderSupplierCandidates = orderItemNames.length === 0 ? [] : suppliers
     .map((s) => {
-      const supplierItemNames = Array.isArray(s.items_supplied)
-        ? s.items_supplied.map((si) => si.item_name?.trim().toLowerCase())
-        : [];
+      const supplierItems = Array.isArray(s.items_supplied) ? s.items_supplied : [];
+      const supplierItemNames = supplierItems.map((si) => si.item_name?.trim().toLowerCase());
       const matchedCount = orderItemNames.filter((n) => supplierItemNames.includes(n)).length;
       const matchedItems = items
         .filter((it) => supplierItemNames.includes(it.item_name.trim().toLowerCase()))
@@ -125,11 +175,20 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
       const missing = items
         .filter((it) => !supplierItemNames.includes(it.item_name.trim().toLowerCase()))
         .map((it) => it.item_name);
+      // ✅ What it would cost to buy the items this supplier carries, using
+      // their own per-item unit_price — powers the "Cheapest" comparison.
+      const totalPrice = items.reduce((sum, it) => {
+        const match = supplierItems.find(
+          (si) => si.item_name?.trim().toLowerCase() === it.item_name.trim().toLowerCase()
+        );
+        return match ? sum + (Number(it.quantity) || 0) * (Number(match.unit_price) || 0) : sum;
+      }, 0);
       return {
         ...s,
         matchedCount,
         matchedItems,
         missing,
+        totalPrice,
         fullMatch: matchedCount === orderItemNames.length,
         distanceKm: coords && s.latitude != null && s.longitude != null
           ? distanceKm(coords.lat, coords.lng, Number(s.latitude), Number(s.longitude))
@@ -141,8 +200,15 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
 
   const bestOrderSupplierId = orderSupplierCandidates[0]?.id;
 
+  // ✅ Cheapest of the matching suppliers, by total price for the items
+  // they carry (not necessarily a full-match supplier — coverage is shown
+  // alongside so the comparison stays honest).
+  const cheapestSupplierId = orderSupplierCandidates.length > 0
+    ? orderSupplierCandidates.reduce((min, s) => (s.totalPrice < min.totalPrice ? s : min), orderSupplierCandidates[0]).id
+    : null;
+
   // Map markers: once the order has items, show whole-order coverage
-  // (best-match supplier highlighted green) instead of the single-item view.
+  // (best-match = green, cheapest = gold) instead of the single-item view.
   const supplierMapMarkers = orderItemNames.length > 0
     ? orderSupplierCandidates
         .filter((s) => s.latitude != null && s.longitude != null)
@@ -151,15 +217,24 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
           lng: Number(s.longitude),
           label: `${s.name} — ${s.matchedCount}/${orderItemNames.length} items`
             + (s.fullMatch ? " ✓ full match" : "")
+            + ` — LKR ${s.totalPrice.toLocaleString("en-LK", { minimumFractionDigits: 2 })}`
+            + (s.id === cheapestSupplierId ? " (cheapest)" : "")
             + (s.distanceKm != null ? ` — ${s.distanceKm.toFixed(1)} km` : ""),
           highlight: s.id === bestOrderSupplierId,
+          cheapest: s.id === cheapestSupplierId,
         }))
-    : suppliersWithDistance.map((s) => ({
-        lat: Number(s.latitude),
-        lng: Number(s.longitude),
-        label: s.distanceKm != null ? `${s.name} — ${s.distanceKm.toFixed(1)} km away` : s.name,
-        highlight: s.id === nearestSupplierId,
-      }));
+    : suppliersWithDistance
+        .filter((s) => s.latitude != null && s.longitude != null)
+        .map((s) => ({
+          lat: Number(s.latitude),
+          lng: Number(s.longitude),
+          label: `${s.name}`
+            + ` — LKR ${s.estimatedCost.toLocaleString("en-LK", { minimumFractionDigits: 2 })}`
+            + ` · ${s.leadTimeDays}d lead time`
+            + (s.distanceKm != null ? ` · ${s.distanceKm.toFixed(1)} km` : ""),
+          highlight: s.id === bestOverallId,
+          cheapest: s.id === cheapestSingleId && s.id !== bestOverallId,
+        }));
 
   const totalItems = items.length;
   const totalQuantity = items.reduce((sum, it) => sum + (Number(it.quantity) || 0), 0);
@@ -267,6 +342,8 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
 
     setSaving(true); setServerError(null);
 
+    const bestMatch = orderSupplierCandidates[0];
+
     const payload = {
       procurement_no: prNo,
       date,
@@ -278,7 +355,22 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
       // ✅ Best-match supplier (computed above from items_supplied coverage)
       // — previously never sent, so the list page's SUPPLIER column was
       // always blank for multi-item orders.
-      selected_supplier_name: orderSupplierCandidates[0]?.name ?? null,
+      selected_supplier_name: bestMatch?.name ?? null,
+      // ✅ Auto-computed instead of manually typed — order date + the best
+      // supplier's own delivery lead time (days).
+      arrival_date: bestMatch ? addDays(date, bestMatch.lead_time_days) : null,
+      // ✅ Freeze the ranked supplier list at save time so the View dialog
+      // can show it later without re-running the match live.
+      recommended_suppliers: orderSupplierCandidates.map((s) => ({
+        id: s.id,
+        name: s.name,
+        matchedCount: s.matchedCount,
+        matchedItems: s.matchedItems,
+        missing: s.missing,
+        distanceKm: s.distanceKm,
+        totalPrice: s.totalPrice,
+        delivery_location: s.delivery_location,
+      })),
       status: initialData.status ?? "pending",
     };
 
@@ -311,6 +403,11 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
           <p className="text-sm text-slate-500 dark:text-slate-400">
             {prNo} · {items.length} item{items.length > 1 ? "s" : ""} · LKR {fmt(totalCost)}
           </p>
+          {savedSuppliers[0] && (
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Expected arrival: {addDays(date, savedSuppliers[0].lead_time_days)} (based on {savedSuppliers[0].name}'s {savedSuppliers[0].lead_time_days ?? 0}-day lead time)
+            </p>
+          )}
         </div>
 
         <div className="card-elevated space-y-4">
@@ -331,6 +428,11 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
                           Best match
                         </span>
                       )}
+                      {s.id === cheapestSupplierId && (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-900 dark:text-amber-300">
+                          💰 Cheapest
+                        </span>
+                      )}
                     </span>
                     <span className="text-sm text-slate-500">
                       {s.matchedCount}/{items.length} items
@@ -339,6 +441,10 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
                   </div>
                   <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
                     <span className="font-medium">Items they carry:</span> {s.matchedItems.join(", ")}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    LKR {s.totalPrice.toLocaleString("en-LK", { minimumFractionDigits: 2 })}
+                    {!s.fullMatch ? " (for items they carry)" : ""}
                   </p>
                   {s.missing.length > 0 && (
                     <p className="mt-1 text-xs text-slate-400">Missing: {s.missing.join(", ")}</p>
@@ -396,8 +502,9 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
                 </select>
               </FormField>
 
-              {/* ✅ Which suppliers carry this item, nearest first once a
-                  delivery location has been picked below. */}
+              {/* ✅ Which suppliers carry this item — ranked by a combined
+                  score of price (incl. their delivery fee), distance to the
+                  delivery point, and their stated delivery lead time. */}
               {item.item_name && (
                 <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-xs text-blue-700 dark:border-slate-700 dark:bg-slate-800 dark:text-blue-300">
                   {matchingSuppliers.length === 0 ? (
@@ -405,18 +512,39 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
                   ) : (
                     <>
                       <div className="mb-1.5 font-semibold">Suppliers for {item.item_name}:</div>
-                      <ul className="space-y-1">
-                        {suppliersWithDistance.map((s) => (
-                          <li key={s.id} className="flex items-center justify-between gap-2">
-                            <span className="flex items-center gap-1.5">
-                              {s.name}
-                              {s.id === nearestSupplierId && (
-                                <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900 dark:text-green-300">
-                                  Nearest
-                                </span>
-                              )}
-                            </span>
-                            {s.distanceKm != null && <span>{s.distanceKm.toFixed(1)} km</span>}
+                      <ul className="space-y-1.5">
+                        {scoredSuppliers.map((s) => (
+                          <li key={s.id} className="border-b border-blue-100/60 pb-1.5 last:border-0 last:pb-0 dark:border-slate-700">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="flex flex-wrap items-center gap-1">
+                                {s.name}
+                                {s.id === bestOverallId && (
+                                  <span className="rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900 dark:text-green-300">
+                                    🏆 Best overall
+                                  </span>
+                                )}
+                                {s.id === nearestSupplierId && (
+                                  <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                                    📍 Nearest
+                                  </span>
+                                )}
+                                {s.id === cheapestSingleId && (
+                                  <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900 dark:text-amber-300">
+                                    💰 Cheapest
+                                  </span>
+                                )}
+                                {s.id === fastestSingleId && (
+                                  <span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-semibold text-purple-700 dark:bg-purple-900 dark:text-purple-300">
+                                    🚚 Fastest
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                            <p className="mt-0.5 text-slate-500">
+                              LKR {s.estimatedCost.toLocaleString("en-LK", { minimumFractionDigits: 2 })}
+                              {" · "}{s.leadTimeDays}-day delivery
+                              {s.distanceKm != null ? ` · ${s.distanceKm.toFixed(1)} km` : ""}
+                            </p>
                           </li>
                         ))}
                         {matchingSuppliers.length > mappableSuppliers.length && (
@@ -426,7 +554,7 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
                         )}
                       </ul>
                       {!coords && (
-                        <p className="mt-1.5 text-[11px] text-slate-400">Pick a delivery location below to see distances.</p>
+                        <p className="mt-1.5 text-[11px] text-slate-400">Pick a delivery location below to factor in distance too.</p>
                       )}
                     </>
                   )}
@@ -525,12 +653,21 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
                                   Best match
                                 </span>
                               )}
+                              {s.id === cheapestSupplierId && (
+                                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900 dark:text-amber-300">
+                                  💰 Cheapest
+                                </span>
+                              )}
                             </span>
                             <span>
                               {s.matchedCount}/{orderItemNames.length} items
                               {s.distanceKm != null ? ` · ${s.distanceKm.toFixed(1)} km` : ""}
                             </span>
                           </div>
+                          <p className="mt-0.5 text-slate-500">
+                            LKR {s.totalPrice.toLocaleString("en-LK", { minimumFractionDigits: 2 })}
+                            {!s.fullMatch ? " (for items they carry)" : ""}
+                          </p>
                           {s.missing.length > 0 && (
                             <p className="mt-0.5 text-[11px] text-slate-400">Missing: {s.missing.join(", ")}</p>
                           )}
@@ -565,8 +702,8 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
         {supplierMapMarkers.length > 0 && (
           <p className="text-xs text-slate-400">
             {orderItemNames.length > 0
-              ? <>🟢 Best match for this order &nbsp; 🔴 Partial match &nbsp; 🔵 Delivery location</>
-              : <>🔴 Supplier for "{item.item_name}" &nbsp; 🟢 Nearest supplier &nbsp; 🔵 Delivery location</>}
+              ? <>🟢 Best match &nbsp; 🟡 Cheapest &nbsp; 🔴 Other suppliers &nbsp; 🔵 Delivery location</>
+              : <>🟢 Best overall for "{item.item_name}" &nbsp; 🟡 Cheapest &nbsp; 🔴 Other suppliers &nbsp; 🔵 Delivery location</>}
           </p>
         )}
         <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">

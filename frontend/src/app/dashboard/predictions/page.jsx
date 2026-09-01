@@ -224,12 +224,246 @@ const CategoryChip = ({ label, tone }) => {
   return <span className={`rounded-md px-2 py-1 text-xs font-bold ${tones[tone]}`}>{label}</span>;
 };
 
+// ✅ Sales Forecast only ever shows the top 6 items by real sales volume —
+// this modal shows EVERY item's actual total sold quantity, searchable and
+// sortable, fetched from GET /insights/sales-summary (all items, uncapped).
+const SALES_SUMMARY_COLS = [
+  { key: "item", label: "Item" },
+  { key: "total_sold", label: "Total Sold" },
+  { key: "avg_sale_price", label: "Avg Sale Price" },
+  { key: "total_revenue", label: "Total Revenue" },
+  { key: "quantity", label: "Stock" },
+];
 
+function SalesSummaryModal({ open, onClose }) {
+  const [rows, setRows] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState("total_sold");
+  const [sortDir, setSortDir] = useState("desc");
+
+  useEffect(() => {
+    if (!open || rows !== null) return;
+    setLoading(true);
+    insightsApi
+      .getSalesSummary()
+      .then((d) => setRows(d.items || []))
+      .catch(() => setError("Couldn't load the sales summary. Please try again."))
+      .finally(() => setLoading(false));
+  }, [open, rows]);
+
+  if (!open) return null;
+
+  const toggleSort = (key) => {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("desc"); }
+  };
+
+  const filtered = (rows || []).filter((r) =>
+    r.item?.toLowerCase().includes(search.toLowerCase().trim())
+  );
+  const sorted = [...filtered].sort((a, b) => {
+    const va = a[sortKey], vb = b[sortKey];
+    const cmp = typeof va === "string" ? va.localeCompare(vb) : (Number(va) || 0) - (Number(vb) || 0);
+    return sortDir === "asc" ? cmp : -cmp;
+  });
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.45)" }}
+      onClick={onClose}
+    >
+      <div
+        className="card-elevated flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white p-6 dark:bg-slate-900"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="font-outfit text-lg font-bold text-slate-900 dark:text-slate-100">
+            All Items — Sales Summary
+          </h3>
+          <button onClick={onClose} className="rounded-lg px-3 py-1.5 text-base hover:bg-slate-100 dark:hover:bg-slate-800">✕</button>
+        </div>
+
+        <input
+          type="text"
+          placeholder="Search item..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="input-field mb-3"
+        />
+
+        <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <p className="py-8 text-center text-sm text-slate-500">Loading…</p>
+          ) : error ? (
+            <p className="py-8 text-center text-sm text-rose-600">{error}</p>
+          ) : sorted.length === 0 ? (
+            <p className="py-8 text-center text-sm text-slate-500">No items match.</p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="sticky top-0 bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                  {SALES_SUMMARY_COLS.map((c) => (
+                    <th
+                      key={c.key}
+                      onClick={() => toggleSort(c.key)}
+                      className="cursor-pointer select-none whitespace-nowrap px-3 py-2 text-left font-semibold hover:text-amber-600"
+                    >
+                      {c.label} {sortKey === c.key ? (sortDir === "asc" ? "▲" : "▼") : ""}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((r, i) => (
+                  <tr key={i} className="border-t border-slate-100 dark:border-slate-800">
+                    <td className="px-3 py-2 font-medium text-slate-800 dark:text-slate-100">{r.item}</td>
+                    <td className="px-3 py-2">{r.total_sold}</td>
+                    <td className="px-3 py-2">{r.avg_sale_price != null ? `Rs ${r.avg_sale_price.toLocaleString("en-LK")}` : "—"}</td>
+                    <td className="px-3 py-2">{r.total_revenue ? `Rs ${r.total_revenue.toLocaleString("en-LK")}` : "—"}</td>
+                    <td className="px-3 py-2 text-slate-500">{r.quantity}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
+// ✅ Buy or Wait only shows the top 6 most-urgent items — this modal shows
+// EVERY item's stock/reorder status, fetched from
+// GET /insights/procurement-summary (all items, uncapped).
+const PROCUREMENT_SUMMARY_COLS = [
+  { key: "item", label: "Item" },
+  { key: "quantity", label: "Stock" },
+  { key: "reorder_level", label: "Reorder" },
+  { key: "deficit", label: "Deficit" },
+  { key: "action", label: "Status" },
+];
+
+function ProcurementSummaryModal({ open, onClose }) {
+  const [rows, setRows] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState("deficit");
+  const [sortDir, setSortDir] = useState("desc");
+
+  useEffect(() => {
+    if (!open || rows !== null) return;
+    setLoading(true);
+    insightsApi
+      .getProcurementSummary()
+      .then((d) => setRows(d.items || []))
+      .catch(() => setError("Couldn't load the stock summary. Please try again."))
+      .finally(() => setLoading(false));
+  }, [open, rows]);
+
+  if (!open) return null;
+
+  const toggleSort = (key) => {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("desc"); }
+  };
+
+  const filtered = (rows || []).filter((r) =>
+    r.item?.toLowerCase().includes(search.toLowerCase().trim())
+  );
+  const sorted = [...filtered].sort((a, b) => {
+    const va = a[sortKey], vb = b[sortKey];
+    const cmp = typeof va === "string" ? va.localeCompare(vb) : (Number(va) || 0) - (Number(vb) || 0);
+    return sortDir === "asc" ? cmp : -cmp;
+  });
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.45)" }}
+      onClick={onClose}
+    >
+      <div
+        className="card-elevated flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white p-6 dark:bg-slate-900"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="font-outfit text-lg font-bold text-slate-900 dark:text-slate-100">
+            All Items — Stock Status
+          </h3>
+          <button onClick={onClose} className="rounded-lg px-3 py-1.5 text-base hover:bg-slate-100 dark:hover:bg-slate-800">✕</button>
+        </div>
+
+        <input
+          type="text"
+          placeholder="Search item..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="input-field mb-3"
+        />
+
+        <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <p className="py-8 text-center text-sm text-slate-500">Loading…</p>
+          ) : error ? (
+            <p className="py-8 text-center text-sm text-rose-600">{error}</p>
+          ) : sorted.length === 0 ? (
+            <p className="py-8 text-center text-sm text-slate-500">No items match.</p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="sticky top-0 bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                  {PROCUREMENT_SUMMARY_COLS.map((c) => (
+                    <th
+                      key={c.key}
+                      onClick={() => toggleSort(c.key)}
+                      className="cursor-pointer select-none whitespace-nowrap px-3 py-2 text-left font-semibold hover:text-orange-600"
+                    >
+                      {c.label} {sortKey === c.key ? (sortDir === "asc" ? "▲" : "▼") : ""}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((r, i) => (
+                  <tr key={i} className="border-t border-slate-100 dark:border-slate-800">
+                    <td className="px-3 py-2 font-medium text-slate-800 dark:text-slate-100">{r.item}</td>
+                    <td className="px-3 py-2">{r.quantity}</td>
+                    <td className="px-3 py-2">{r.reorder_level}</td>
+                    <td className="px-3 py-2">{r.deficit || "—"}</td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={`rounded-lg px-2 py-1 text-xs font-bold ${
+                          r.urgent
+                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                            : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
+                        }`}
+                      >
+                        {r.urgent ? "🛒 Buy" : "⏳ Wait"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function PredictionsDashboard() {
   useAuthGuard();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showAllItems, setShowAllItems] = useState(false);
+  const [showAllProcurement, setShowAllProcurement] = useState(false);
 
   useEffect(() => {
     insightsApi
@@ -263,7 +497,7 @@ export default function PredictionsDashboard() {
       {/* At-a-glance strip */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-xs font-medium text-slate-500">Loan readiness</p>
+          <p className="text-xs font-medium text-slate-500">Credit Score</p>
           <p className="mt-1 text-lg font-bold text-slate-800 dark:text-slate-100">
             {creditApproved ? "✅ Ready" : "⚠️ Needs work"}
           </p>
@@ -275,6 +509,11 @@ export default function PredictionsDashboard() {
               ? `${demand.items.reduce((s, it) => s + Number(it.forecast_units || 0), 0).toFixed(0)} units`
               : "N/A"}
           </p>
+          {demand.available && demand.items?.some((it) => it.forecast_revenue != null) && (
+            <p className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+              ≈ Rs {demand.items.reduce((s, it) => s + Number(it.forecast_revenue || 0), 0).toLocaleString("en-LK")}
+            </p>
+          )}
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <p className="text-xs font-medium text-slate-500">To restock</p>
@@ -300,7 +539,7 @@ export default function PredictionsDashboard() {
               <div className="flex items-center space-x-2">
                 <CategoryChip label="Money" tone="teal" />
                 <h3 className="font-outfit text-lg font-semibold text-slate-900 dark:text-slate-100">
-                  Loan Readiness
+                  Credit Score
                 </h3>
               </div>
               <span className="text-2xl">💳</span>
@@ -379,29 +618,67 @@ export default function PredictionsDashboard() {
                   Sales Forecast
                 </h3>
               </div>
-              <span className="text-2xl">📈</span>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowAllItems(true)}
+                  className="text-xs font-semibold text-amber-600 hover:underline dark:text-amber-400"
+                >
+                  View all items →
+                </button>
+                <span className="text-2xl">📈</span>
+              </div>
             </div>
 
             {!demand.available ? (
               <NoData reason={demand.reason} />
             ) : (
               <div className="space-y-2">
-                {(demand.items || []).map((it, i) => (
-                  <div key={i} className="flex items-center justify-between rounded-xl border border-amber-100 bg-amber-50/50 px-4 py-3 dark:border-amber-900/30 dark:bg-amber-950/20">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{it.item}</p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        Stock: {it.quantity} · Reorder: {it.reorder_level}
-                      </p>
+                {(demand.items || []).map((it, i) => {
+                  // ✅ quantity/reorder_level was rendered as plain text with no
+                  // comparison — a Stock:0 row and a Stock:46 row looked identical
+                  // even though one needs restocking now and the other doesn't.
+                  const needsReorder = Number(it.quantity) < Number(it.reorder_level);
+                  // ✅ Items with no real sales history now come through as
+                  // available:false instead of a fabricated number — show that
+                  // plainly rather than a bare "≈ —" that looks like a glitch.
+                  const noHistory = it.available === false;
+                  return (
+                    <div key={i} className="flex items-center justify-between rounded-xl border border-amber-100 bg-amber-50/50 px-4 py-3 dark:border-amber-900/30 dark:bg-amber-950/20">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{it.item}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Stock: {it.quantity} · Reorder: {it.reorder_level}
+                        </p>
+                        <span
+                          className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                            needsReorder
+                              ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
+                              : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                          }`}
+                        >
+                          {needsReorder ? "🚩 Reorder now" : "✓ Adequate"}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        {noHistory ? (
+                          <span className="text-xs italic text-slate-400">No sales data yet</span>
+                        ) : (
+                          <>
+                            <span className="font-outfit text-2xl font-extrabold text-amber-600 dark:text-amber-400">
+                              ≈ {it.forecast_units != null ? Number(it.forecast_units).toFixed(0) : "—"}
+                            </span>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400">units / next week</p>
+                            {it.forecast_revenue != null && (
+                              <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                                ≈ Rs {Number(it.forecast_revenue).toLocaleString("en-LK")}
+                              </p>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="font-outfit text-2xl font-extrabold text-amber-600 dark:text-amber-400">
-                        ≈ {it.forecast_units != null ? Number(it.forecast_units).toFixed(0) : "—"}
-                      </span>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400">units / next week</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -416,10 +693,18 @@ export default function PredictionsDashboard() {
               <div className="flex items-center space-x-2">
                 <CategoryChip label="Purchasing" tone="orange" />
                 <h3 className="font-outfit text-lg font-semibold text-slate-900 dark:text-slate-100">
-                  Buy or Wait
+                  Should I Buy?
                 </h3>
               </div>
-              <span className="text-2xl">🛒</span>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowAllProcurement(true)}
+                  className="text-xs font-semibold text-orange-600 hover:underline dark:text-orange-400"
+                >
+                  View all items →
+                </button>
+                <span className="text-2xl">🛒</span>
+              </div>
             </div>
 
             {!procurement.available ? (
@@ -510,6 +795,9 @@ export default function PredictionsDashboard() {
           <div className="mt-5 border-t border-slate-100 pt-3 dark:border-slate-800" />
         </div>
       </div>
+
+      <SalesSummaryModal open={showAllItems} onClose={() => setShowAllItems(false)} />
+      <ProcurementSummaryModal open={showAllProcurement} onClose={() => setShowAllProcurement(false)} />
     </div>
   );
 }

@@ -17,7 +17,6 @@ import DetailDialog from "@/components/common/DetailDialog";
 const COLS = [
   { key: "item_name", label: "Item" },
   { key: "quantity", label: "Qty" },
-  { key: "selected_supplier_name", label: "Supplier" },
   { key: "total_cost", label: "Total Cost" },
   { key: "status", label: "Status" },
   { key: "actions", label: "" },
@@ -42,7 +41,6 @@ export default function ProcurementPage() {
 
   const rows = filtered.map(item => ({
     ...item,
-    selected_supplier_name: item.selected_supplier_name ?? "—",
     total_cost: formatCurrency(item.total_cost),
     status: <StatusBadge status={item.status} />,
     actions: (
