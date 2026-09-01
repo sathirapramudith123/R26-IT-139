@@ -134,7 +134,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
       if (!v.source_of_funds) er.source_of_funds = "Source of funds is required for deposits.";
       if (v.source_of_funds === "OTHER" && !v.source_other.trim()) er.source_other = "Please specify the source of funds.";
     }
-    // client-side float guard (backend enforces too)
+    
     if (floatMsg?.type === "error") er.amount = "Insufficient float in the selected bank for this deposit.";
 
     if (Object.keys(er).length) { setErrors(er); return; }
