@@ -497,7 +497,7 @@ export default function PredictionsDashboard() {
       {/* At-a-glance strip */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-xs font-medium text-slate-500">Loan readiness</p>
+          <p className="text-xs font-medium text-slate-500">Credit Score</p>
           <p className="mt-1 text-lg font-bold text-slate-800 dark:text-slate-100">
             {creditApproved ? "✅ Ready" : "⚠️ Needs work"}
           </p>
@@ -693,7 +693,7 @@ export default function PredictionsDashboard() {
               <div className="flex items-center space-x-2">
                 <CategoryChip label="Purchasing" tone="orange" />
                 <h3 className="font-outfit text-lg font-semibold text-slate-900 dark:text-slate-100">
-                  Buy or Wait
+                  Should I Buy?
                 </h3>
               </div>
               <div className="flex items-center gap-3">
