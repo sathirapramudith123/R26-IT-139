@@ -539,7 +539,7 @@ export default function PredictionsDashboard() {
               <div className="flex items-center space-x-2">
                 <CategoryChip label="Money" tone="teal" />
                 <h3 className="font-outfit text-lg font-semibold text-slate-900 dark:text-slate-100">
-                  Loan Readiness
+                  Credit Score
                 </h3>
               </div>
               <span className="text-2xl">💳</span>
