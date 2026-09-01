@@ -29,9 +29,9 @@ const SOURCE_OF_FUNDS = [
 ];
 
 const HEALTH_COLORS = {
-  HEALTHY:         "text-emerald-400",
-  LOW_ALERT:       "text-amber-400",
-  CRITICAL_ALERT:  "text-red-400",
+  HEALTHY:         "text-emerald-600 dark:text-emerald-400",
+  LOW_ALERT:       "text-amber-600 dark:text-amber-400",
+  CRITICAL_ALERT:  "text-red-600 dark:text-red-400",
 };
 
 export default function AgencyBankingForm({ initialData = {}, agencyId = null }) {
@@ -168,39 +168,39 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
   }
 
   const getInputClass = k =>
-    `w-full rounded-xl border bg-slate-950/50 pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 transition-all ${
+    `w-full rounded-xl border bg-white dark:bg-slate-950/50 pl-10 pr-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 transition-all ${
       errors[k]
         ? "border-red-500/50 focus:border-red-500 focus:ring-red-500/20"
-        : "border-slate-800 focus:border-teal-500/50 focus:ring-teal-500/20"
+        : "border-slate-300 dark:border-slate-800 focus:border-teal-500/50 focus:ring-teal-500/20"
     }`;
 
   const selectClass =
-    "w-full rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-2.5 text-sm text-slate-100 focus:border-teal-500/50 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all";
+    "w-full rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/50 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-teal-500/50 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all";
 
   return (
     <form onSubmit={handleSubmit} noValidate
-      className="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-xl p-6 md:p-8 shadow-2xl space-y-6">
+      className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur-xl p-6 md:p-8 shadow-2xl space-y-6">
       {serverError && (
-        <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 p-3.5 text-sm text-red-400">
+        <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-50 dark:bg-red-500/10 p-3.5 text-sm text-red-600 dark:text-red-400">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{serverError}</span>
         </div>
       )}
 
       {/* Bank selector + live float panel */}
-      <div className="rounded-xl border border-slate-800 bg-slate-950/40 p-4">
+      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 p-4">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <FormField label="Agent Bank (Float Account)"
             hint={banks.length === 0 && !loadingBanks ? "Add a bank in 'My Banks' first" : "Which float account funds this transaction"}>
             <div className="relative">
-              <Landmark className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <Landmark className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
               <select className={`${selectClass} pl-10`} value={v.agent_bank_id}
                 onChange={e => set("agent_bank_id", e.target.value)}>
-                <option value="" className="bg-slate-900">
+                <option value="" className="bg-white dark:bg-slate-900">
                   {loadingBanks ? "Loading banks…" : "— No bank (skip float) —"}
                 </option>
                 {banks.map(b => (
-                  <option key={b.id} value={b.id} className="bg-slate-900 text-slate-100">
+                  <option key={b.id} value={b.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
                     {b.bank_name} — {formatCurrency(b.float_balance)}
                   </option>
                 ))}
@@ -209,43 +209,43 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
           </FormField>
 
           {selectedBank && (
-            <div className="flex flex-col justify-center rounded-xl bg-slate-900/60 px-4 py-3 text-sm">
+            <div className="flex flex-col justify-center rounded-xl bg-slate-100 dark:bg-slate-900/60 px-4 py-3 text-sm">
               {/* Float */}
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Current float</span>
-                <span className="font-semibold text-slate-100">{formatCurrency(selectedBank.float_balance)}</span>
+                <span className="text-slate-500 dark:text-slate-400">Current float</span>
+                <span className="font-semibold text-slate-900 dark:text-slate-100">{formatCurrency(selectedBank.float_balance)}</span>
               </div>
               {floatAfter !== null && (
                 <div className="mt-1 flex items-center justify-between">
-                  <span className="text-slate-400">Float after {v.transaction_type === "cash_deposit" ? "↓" : "↑"}</span>
-                  <span className={`font-semibold ${floatAfter < Number(selectedBank.float_floor) ? "text-amber-400" : "text-emerald-400"}`}>
+                  <span className="text-slate-500 dark:text-slate-400">Float after {v.transaction_type === "cash_deposit" ? "↓" : "↑"}</span>
+                  <span className={`font-semibold ${floatAfter < Number(selectedBank.float_floor) ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
                     {formatCurrency(floatAfter)}
                   </span>
                 </div>
               )}
-              <div className="my-2 border-t border-slate-700/60" />
+              <div className="my-2 border-t border-slate-300/60 dark:border-slate-700/60" />
               {/* Cash on hand (shared global pool) */}
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Cash on hand (pool)</span>
-                <span className="font-semibold text-slate-100">{cashPool ? formatCurrency(cashPool.cash_on_hand) : "—"}</span>
+                <span className="text-slate-500 dark:text-slate-400">Cash on hand (pool)</span>
+                <span className="font-semibold text-slate-900 dark:text-slate-100">{cashPool ? formatCurrency(cashPool.cash_on_hand) : "—"}</span>
               </div>
               {cashAfter !== null && (
                 <div className="mt-1 flex items-center justify-between">
-                  <span className="text-slate-400">Cash after {v.transaction_type === "cash_deposit" ? "↑" : "↓"}</span>
-                  <span className={`font-semibold ${cashAfter < 0 ? "text-red-400" : "text-emerald-400"}`}>
+                  <span className="text-slate-500 dark:text-slate-400">Cash after {v.transaction_type === "cash_deposit" ? "↑" : "↓"}</span>
+                  <span className={`font-semibold ${cashAfter < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}>
                     {formatCurrency(cashAfter)}
                   </span>
                 </div>
               )}
-              <div className="my-2 border-t border-slate-700/60" />
+              <div className="my-2 border-t border-slate-300/60 dark:border-slate-700/60" />
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Health</span>
-                <span className={`font-semibold ${HEALTH_COLORS[selectedBank.float_health] || "text-slate-300"}`}>
+                <span className="text-slate-500 dark:text-slate-400">Health</span>
+                <span className={`font-semibold ${HEALTH_COLORS[selectedBank.float_health] || "text-slate-600 dark:text-slate-300"}`}>
                   {(selectedBank.float_health || "—").replace("_", " ")}
                 </span>
               </div>
               {floatMsg && (
-                <p className={`mt-2 text-xs ${floatMsg.type === "error" ? "text-red-400" : "text-amber-400"}`}>
+                <p className={`mt-2 text-xs ${floatMsg.type === "error" ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"}`}>
                   {floatMsg.text}
                 </p>
               )}
@@ -257,7 +257,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <FormField label="Customer Name" error={errors.customer_name} required>
           <div className="relative">
-            <User className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <User className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
             <input className={getInputClass("customer_name")} value={v.customer_name}
               onChange={e => set("customer_name", e.target.value)} placeholder="e.g. Nimal Perera" />
           </div>
@@ -265,7 +265,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
 
         <FormField label="Customer Phone" error={errors.customer_phone} required>
           <div className="relative">
-            <Phone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <Phone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
             <input className={getInputClass("customer_phone")} value={v.customer_phone}
               onChange={e => set("customer_phone", e.target.value)} placeholder="0771234567" />
           </div>
@@ -274,7 +274,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
         {/* NEW: Customer NIC */}
         <FormField label="Customer NIC" hint="Used for daily transaction-count limits (max 5/day)">
           <div className="relative">
-            <CreditCard className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <CreditCard className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
             <input className={getInputClass("customer_nic")} value={v.customer_nic}
               onChange={e => set("customer_nic", e.target.value)} placeholder="e.g. 199012345678" />
           </div>
@@ -283,15 +283,15 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
         <FormField label="Transaction Type" required>
           <select className={selectClass} value={v.transaction_type}
             onChange={e => set("transaction_type", e.target.value)}>
-            {AGENCY_TRANSACTION_TYPES.map(o => (
-              <option key={o.value} value={o.value} className="bg-slate-900 text-slate-100">{o.label}</option>
+            {AGENCY_TRANSACTION_TYPES.filter(o => o.value !== "fund_transfer").map(o => (
+              <option key={o.value} value={o.value} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{o.label}</option>
             ))}
           </select>
         </FormField>
 
         <FormField label="Account Number" error={errors.account_number} required>
           <div className="relative">
-            <CreditCard className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <CreditCard className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
             <input className={getInputClass("account_number")} value={v.account_number}
               onChange={e => set("account_number", e.target.value)} placeholder="e.g. 8001234567" />
           </div>
@@ -302,9 +302,9 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
             hint="Required for deposits (AML record)">
             <select className={selectClass} value={v.source_of_funds}
               onChange={e => set("source_of_funds", e.target.value)}>
-              <option value="" className="bg-slate-900">— Select source —</option>
+              <option value="" className="bg-white dark:bg-slate-900">— Select source —</option>
               {SOURCE_OF_FUNDS.map(o => (
-                <option key={o.value} value={o.value} className="bg-slate-900 text-slate-100">{o.label}</option>
+                <option key={o.value} value={o.value} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{o.label}</option>
               ))}
             </select>
           </FormField>
@@ -321,7 +321,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
           hint={limit ? `Daily limit: ${formatCurrency(limit)}` : undefined}
           required>
           <div className="relative">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 select-none">Rs.</span>
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 dark:text-slate-500 select-none">Rs.</span>
             <input className={getInputClass("amount")} type="number" min="0.01" step="0.01"
               value={v.amount} onChange={e => handleAmountChange(e.target.value)} placeholder="0.00" />
           </div>
@@ -329,7 +329,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
 
         <FormField label="Service Fee (LKR)" hint="Charge for customer">
           <div className="relative">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 select-none">Rs.</span>
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 dark:text-slate-500 select-none">Rs.</span>
             <input className={getInputClass("service_fee")} type="number" min="0" step="0.01"
               value={v.service_fee} onChange={e => set("service_fee", e.target.value)} placeholder="0.00" />
           </div>
@@ -337,7 +337,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
 
         <FormField label="Commission (LKR)" hint="Bank agent payout">
           <div className="relative">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 select-none">Rs.</span>
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 dark:text-slate-500 select-none">Rs.</span>
             <input className={getInputClass("commission")} type="number" min="0" step="0.01"
               value={v.commission} onChange={e => set("commission", e.target.value)} placeholder="0.00" />
           </div>
@@ -347,7 +347,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
           <FormField label="Status">
             <select className={selectClass} value={v.status} onChange={e => set("status", e.target.value)}>
               {STATUSES.map(s => (
-                <option key={s} value={s} className="bg-slate-900 text-slate-100">
+                <option key={s} value={s} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
                   {s.charAt(0).toUpperCase() + s.slice(1)}
                 </option>
               ))}
@@ -356,10 +356,10 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
         )}
       </div>
 
-      <div className="flex items-center justify-end gap-3 border-t border-slate-800/80 pt-6">
+      <div className="flex items-center justify-end gap-3 border-t border-slate-200 dark:border-slate-800/80 pt-6">
         <Link href="/dashboard/agency-banking">
           <Button variant="secondary" type="button"
-            className="rounded-xl border border-slate-800 bg-slate-950/50 px-5 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-slate-100 transition-all">
+            className="rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/50 px-5 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 transition-all">
             Cancel
           </Button>
         </Link>
