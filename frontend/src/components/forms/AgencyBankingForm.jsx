@@ -109,12 +109,12 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
     const amt = Number(v.amount);
     if (v.transaction_type === "cash_deposit") {
       floatAfter = bal - amt;         // float down
-      cashAfter = cash + amt;         // cash up
+      cashAfter = cash + amt;        
       if (floatAfter < 0) floatMsg = { type: "error", text: "Insufficient float to fund this deposit." };
       else if (floatAfter < Number(selectedBank.float_floor)) floatMsg = { type: "warn", text: "Float will drop below floor — top-up recommended." };
     } else if (v.transaction_type === "cash_withdrawal") {
       floatAfter = bal + amt;         
-      cashAfter = cash - amt;         // cash down
+      cashAfter = cash - amt;        
       if (cashAfter < 0) floatMsg = { type: "error", text: "Insufficient cash on hand to pay out this withdrawal." };
       else if (floatAfter > Number(selectedBank.float_ceiling)) floatMsg = { type: "warn", text: "Float will exceed ceiling — schedule a sweep." };
     }
