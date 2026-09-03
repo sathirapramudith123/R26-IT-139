@@ -327,7 +327,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
           </div>
         </FormField>
 
-        <FormField label="Service Fee (LKR)" hint="Charge for customer">
+        <FormField label="Service Fee (LKR)" hint="">
           <div className="relative">
             <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 dark:text-slate-500 select-none">Rs.</span>
             <input className={getInputClass("service_fee")} type="number" min="0" step="0.01"
