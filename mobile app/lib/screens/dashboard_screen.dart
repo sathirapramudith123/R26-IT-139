@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../config/modules.dart';
 import '../core/theme.dart';
 import '../core/api.dart';
 import '../services/auth_service.dart';
+import '../widgets/gradient_stat_card.dart';
+import '../widgets/module_tile.dart';
 import 'auth/login_screen.dart';
 import 'crud/list_screen.dart';
 import 'notifications_screen.dart';
@@ -114,7 +117,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           child: const Center(child: Text("🌿", style: TextStyle(fontSize: 22))),
                         ),
                         const SizedBox(width: 10),
-                        const Text("Lanka-Link", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
+                        Text("Lanka-Link", style: GoogleFonts.nunito(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
                         const Spacer(),
 
                         // ---- Notification bell with unread badge ----
@@ -173,7 +176,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ]),
                       const SizedBox(height: 18),
-                      const Text("Ayubowan 👋", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
+                      Text("Ayubowan 👋", style: GoogleFonts.nunito(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800)),
                       const SizedBox(height: 4),
                       Text("Here's your Lanka-Link today.", style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 14)),
                     ],
@@ -189,23 +192,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.55,
                   ),
                   delegate: SliverChildListDelegate([
-                    _metricCard(
+                    GradientStatCard(
                       label: "Total Income",
                       value: loading ? "…" : _money(income),
                       gradient: const [Color(0xFF0D7566), Color(0xFF0891A5)],
                     ),
-                    _metricCard(
+                    GradientStatCard(
                       label: "Total Expense",
                       value: loading ? "…" : _money(expense),
                       gradient: const [Color(0xFFF59E0B), Color(0xFFEF4444)],
                     ),
-                    _metricCard(
+                    GradientStatCard(
                       label: "Net Profit",
                       value: loading ? "…" : _money(income - expense),
                       gradient: const [Color(0xFF059669), Color(0xFF0D7566)],
                       onTap: _openIncomeStatement,
                     ),
-                    _metricCard(
+                    GradientStatCard(
                       label: "Low Stock Items",
                       value: loading ? "…" : "$lowStock",
                       gradient: const [Color(0xFF1E3A5F), Color(0xFF1E40AF)],
@@ -215,10 +218,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
 
               // ---- Section label ----
-              const SliverToBoxAdapter(
+              SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(24, 12, 24, 4),
-                  child: Text("Modules", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
+                  child: Text("Modules", style: GoogleFonts.nunito(fontSize: 16, fontWeight: FontWeight.w800)),
                 ),
               ),
 
@@ -230,126 +233,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     crossAxisCount: 2, mainAxisSpacing: 14, crossAxisSpacing: 14, childAspectRatio: 1.15,
                   ),
                   delegate: SliverChildListDelegate([
-                    ...modules.map((m) => _Tile(
-                          icon: m.icon, title: m.title, isDark: isDark, teal: teal,
+                    ...modules.map((m) => ModuleTile(
+                          icon: m.icon, title: m.title,
                           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ListScreen(module: m))),
                         )),
-                    _Tile(
-                      icon: "📊", title: "Financial Statement", isDark: isDark, teal: teal,
+                    ModuleTile(
+                      icon: "📊", title: "Financial Statement",
                       onTap: _openIncomeStatement,
                     ),
-                    _Tile(
-                      icon: "🤖", title: "Predictions", isDark: isDark, teal: teal, highlight: true,
+                    ModuleTile(
+                      icon: "🤖", title: "Predictions", highlight: true,
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PredictionsHubScreen())),
                     ),
                   ]),
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _metricCard({
-    required String label,
-    required String value,
-    required List<Color> gradient,
-    VoidCallback? onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: gradient,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: gradient.first.withOpacity(0.35),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.white.withOpacity(0.9),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  if (onTap != null)
-                    const Icon(Icons.arrow_forward_ios, size: 12, color: Colors.white70),
-                ],
-              ),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  fontFamily: "Nunito",
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Tile extends StatelessWidget {
-  final String icon, title;
-  final VoidCallback onTap;
-  final bool isDark, highlight;
-  final Color teal;
-  const _Tile({required this.icon, required this.title, required this.onTap, required this.isDark, required this.teal, this.highlight = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(22),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: highlight ? teal.withOpacity(isDark ? 0.22 : 0.10) : Theme.of(context).cardTheme.color,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: isDark ? KadeColors.borderDark : KadeColors.borderLight),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                height: 44, width: 44,
-                decoration: BoxDecoration(
-                  color: highlight ? teal.withOpacity(0.18) : (isDark ? Colors.white10 : const Color(0xFFF3ECE0)),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Center(child: Text(icon, style: const TextStyle(fontSize: 22))),
-              ),
-              const Spacer(),
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, fontFamily: "Nunito")),
             ],
           ),
         ),
