@@ -99,6 +99,7 @@ class _JournalScreenState extends State<JournalScreen> {
         const SizedBox(height: 14),
         ...months.map((m) => Card(
               margin: const EdgeInsets.only(bottom: 10),
+              clipBehavior: Clip.antiAlias,
               child: ListTile(
                 leading: const Icon(Icons.calendar_month, color: KadeColors.teal),
                 title: Text(_pretty(m["month"]), style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -123,6 +124,7 @@ class _JournalScreenState extends State<JournalScreen> {
           final txnCount = ((d["entries"] as List).length / 2).round();
           return Card(
             margin: const EdgeInsets.only(bottom: 8),
+            clipBehavior: Clip.antiAlias,
             child: ListTile(
               leading: const Icon(Icons.event_note, color: KadeColors.teal),
               title: Text("${d["date"]}", style: const TextStyle(fontWeight: FontWeight.w600)),
