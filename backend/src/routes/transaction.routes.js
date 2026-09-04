@@ -7,12 +7,12 @@ const router = Router();
 
 router.use(auth);
 
+router.get("/journal", ctrl.journal);
 
 router.post("/", ctrl.create);
 router.get("/", ctrl.getAll);
 router.get("/:id", validateId, ctrl.getOne);
 router.put("/:id", validateId, ctrl.update);
 router.delete("/:id", validateId, ctrl.remove);
-router.get("/journal", ctrl.journal); 
 
 export default router;

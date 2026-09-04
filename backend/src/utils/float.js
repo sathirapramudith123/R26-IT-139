@@ -3,12 +3,9 @@ import { randomUUID } from "crypto";
 
 const num = (v) => Number(v || 0);
 
-const DAILY_START_CASH = 75000;   // pool resets to this each new day
-const RESERVE_FLOOR    = 50000;   // top-up can only use cash ABOVE this
+const DAILY_START_CASH = 75000;   
+const RESERVE_FLOOR    = 50000; 
 
-/* -------------------------------------------------------------------------- */
-/*  Float health (bank-wise, unchanged)                                       */
-/* -------------------------------------------------------------------------- */
 export function floatHealth(bank) {
   const floor = num(bank.float_floor);
   if (floor <= 0) return "HEALTHY";
@@ -26,17 +23,13 @@ export async function getBank(userId, agentBankId) {
   return data;
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Global cash pool (one physical drawer per user)                           */
-/* -------------------------------------------------------------------------- */
 
-// Get the user's cash pool, lazily creating it and applying the daily reset.
 export async function getCashPool(userId) {
   let { data, error } = await supabase
     .from("agent_cash_pool").select("*").eq("user_id", userId).maybeSingle();
   if (error) throw error;
 
-  // create on first use
+  
   if (!data) {
     const ins = await supabase.from("agent_cash_pool")
       .insert([{ user_id: userId, cash_on_hand: DAILY_START_CASH,
@@ -47,7 +40,7 @@ export async function getCashPool(userId) {
     return ins.data;
   }
 
-  // daily reset: if last reset was before today, reset cash to day_start_cash
+
   const today = new Date().toISOString().slice(0, 10);
   if ((data.last_reset_date || "").slice(0, 10) < today) {
     const upd = await supabase.from("agent_cash_pool")
@@ -76,11 +69,7 @@ export async function addCashToPool(userId, amount) {
   return { ok: true, cashAfter: after };
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Transaction-time check                                                    */
-/*    Deposit    -> float DOWN, pool cash UP                                   */
-/*    Withdrawal -> float UP,   pool cash DOWN  (block if pool can't cover)    */
-/* -------------------------------------------------------------------------- */
+
 export function checkFloat(bank, pool, type, amount) {
   const t = String(type || "").toUpperCase();
   const amt = num(amount);
