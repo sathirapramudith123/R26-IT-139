@@ -5,10 +5,10 @@ import { validateId } from "../middlewares/validate.middleware.js";
 
 const router = Router();
 
-// Auth middleware එක හරහා user authentication පරීක්ෂා කරයි
 router.use(auth);
 
-// Transaction Routes
+router.get("/journal", ctrl.journal);
+
 router.post("/", ctrl.create);
 router.get("/", ctrl.getAll);
 router.get("/:id", validateId, ctrl.getOne);
