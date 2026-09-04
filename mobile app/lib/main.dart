@@ -20,7 +20,9 @@ class MyApp extends StatelessWidget {
           darkTheme: buildDarkTheme(),
           themeMode: mode,
           // App opens on the animated splash, which then routes to Login.
-          home: SplashScreen(next: () => const LoginScreen()),
+          home: SplashScreen(
+            duration: const Duration(seconds: 6),
+            next: () => const LoginScreen()),
         );
       },
     );

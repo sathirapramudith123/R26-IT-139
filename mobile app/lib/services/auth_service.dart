@@ -1,3 +1,4 @@
+import 'dart:convert';
 import '../core/api.dart';
 
 class AuthService {
@@ -12,4 +13,18 @@ class AuthService {
   }
 
   static void logout() => Api.token = null;
+
+  static Map<String, dynamic>? get currentUser {
+    final token = Api.token;
+    if (token == null) return null;
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+      final normalized = base64Url.normalize(parts[1]);
+      final decoded = utf8.decode(base64Url.decode(normalized));
+      return jsonDecode(decoded) as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
 }
