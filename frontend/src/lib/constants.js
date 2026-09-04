@@ -8,6 +8,7 @@ export const NAV_GROUPS = {
 export const NAV_ITEMS = [
   { label: "Dashboard",      href: "/dashboard",                icon: "🏠", group: "overview"   },
   { label: "Transactions",   href: "/dashboard/transactions",   icon: "💳", group: "finance"    },
+  { label: "Journal",        href: "/dashboard/journal",        icon: "📒", group: "finance" },
   { label: "Inventory",      href: "/dashboard/inventory",      icon: "📦", group: "finance"    },
   { label: "Procurement",    href: "/dashboard/procurement",    icon: "🛒", group: "finance"    },
   { label: "Agency Banking", href: "/dashboard/agency-banking", icon: "🏦", group: "finance"    },

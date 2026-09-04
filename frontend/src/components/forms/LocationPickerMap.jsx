@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useRef, useState, useId } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaflet";
+import { useEffect, useRef, useState, useId, useMemo } from "react";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -51,7 +51,12 @@ function ClickHandler({ onPick }) {
 // Used by the Procurement form to plot suppliers of the selected item
 // (highlight=true on the nearest one) — SupplierForm just doesn't pass this,
 // so nothing changes there.
-export default function LocationPickerMap({ coords, onPick, extraMarkers = [] }) {
+//
+// routeTo: optional { lat, lng } — the delivery/journey destination. When
+// given (or derivable from a highlighted extraMarker), an actual road route
+// from `coords` to that point is fetched from the public OSRM routing API
+// and drawn on the map as a line that follows real roads.
+export default function LocationPickerMap({ coords, onPick, extraMarkers = [], routeTo, showRoute = true }) {
   const center = coords ? [coords.lat, coords.lng] : [6.9147, 79.9727]; // Malabe default
 
   // "Map container is being reused" fix:
@@ -67,6 +72,52 @@ export default function LocationPickerMap({ coords, onPick, extraMarkers = [] })
     return () => setReady(false);
   }, []);
 
+  // If no explicit routeTo was passed, fall back to the highlighted
+  // (nearest) supplier marker, if there is one.
+  const destination = routeTo || extraMarkers.find(m => m.highlight);
+
+  const [routeCoords, setRouteCoords] = useState(null);
+  const [routeDistanceKm, setRouteDistanceKm] = useState(null);
+  const [routeError, setRouteError] = useState(null);
+
+  useEffect(() => {
+    if (!showRoute || !coords || !destination) {
+      setRouteCoords(null);
+      setRouteDistanceKm(null);
+      setRouteError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setRouteError(null);
+
+    const url = `https://router.project-osrm.org/route/v1/driving/${coords.lng},${coords.lat};${destination.lng},${destination.lat}?overview=full&geometries=geojson`;
+
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        if (cancelled) return;
+        const route = data?.routes?.[0];
+        if (!route) {
+          setRouteError("No route found");
+          setRouteCoords(null);
+          return;
+        }
+        // GeoJSON gives [lng, lat] pairs — Leaflet wants [lat, lng].
+        const latLngs = route.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+        setRouteCoords(latLngs);
+        setRouteDistanceKm((route.distance / 1000).toFixed(1));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setRouteError("Couldn't load route");
+          setRouteCoords(null);
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, [showRoute, coords?.lat, coords?.lng, destination?.lat, destination?.lng]);
+
   if (!ready) {
     // placeholder while the map initialises (keeps layout stable)
     return (
@@ -77,28 +128,45 @@ export default function LocationPickerMap({ coords, onPick, extraMarkers = [] })
   }
 
   return (
-    <MapContainer
-      key={uid}                    /* fresh container per mount -> no reuse */
-      center={center}
-      zoom={coords ? 15 : 13}
-      className="h-72 w-full rounded-xl"
-      scrollWheelZoom={true}
-    >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      />
-      <ClickHandler onPick={onPick} />
-      {coords && <Marker position={[coords.lat, coords.lng]} icon={markerIcon} />}
-      {extraMarkers.map((m, i) => (
-        <Marker
-          key={i}
-          position={[m.lat, m.lng]}
-          icon={m.highlight ? nearestSupplierIcon : m.cheapest ? cheapestSupplierIcon : supplierIcon}
-        >
-          {m.label && <Popup>{m.label}</Popup>}
-        </Marker>
-      ))}
-    </MapContainer>
+    <div className="relative">
+      {(routeDistanceKm || routeError) && (
+        <div className="absolute right-3 top-3 z-[1000] rounded-lg border border-slate-200 bg-white/95 px-3 py-1.5 text-xs font-medium shadow-sm dark:border-slate-700 dark:bg-slate-900/95">
+          {routeDistanceKm ? (
+            <span className="text-teal-700 dark:text-teal-400">🚗 {routeDistanceKm} km</span>
+          ) : (
+            <span className="text-slate-500 dark:text-slate-400">{routeError}</span>
+          )}
+        </div>
+      )}
+      <MapContainer
+        key={uid}                    /* fresh container per mount -> no reuse */
+        center={center}
+        zoom={coords ? 15 : 13}
+        className="h-72 w-full rounded-xl"
+        scrollWheelZoom={true}
+      >
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        />
+        <ClickHandler onPick={onPick} />
+        {coords && <Marker position={[coords.lat, coords.lng]} icon={markerIcon} />}
+        {extraMarkers.map((m, i) => (
+          <Marker
+            key={i}
+            position={[m.lat, m.lng]}
+            icon={m.highlight ? nearestSupplierIcon : m.cheapest ? cheapestSupplierIcon : supplierIcon}
+          >
+            {m.label && <Popup>{m.label}</Popup>}
+          </Marker>
+        ))}
+        {routeCoords && (
+          <Polyline
+            positions={routeCoords}
+            pathOptions={{ color: "#0d9488", weight: 4, opacity: 0.8 }}
+          />
+        )}
+      </MapContainer>
+    </div>
   );
 }
