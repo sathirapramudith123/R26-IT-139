@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 // Adjust these imports/class names to match your actual screens.
 import '../screens/dashboard_screen.dart';
 import '../screens/predictions/predictions_hub_screen.dart';
-import '../screens/notifications_screen.dart';
+import '../screens/settings_screen.dart';
+import '../screens/profile_screen.dart';
 
 // Module screens (shown inside the Menu grid, not on the bar).
 import '../screens/agency_banking/agency_banking_form_screen.dart';
@@ -28,7 +29,8 @@ class _MainNavigationState extends State<MainNavigation> {
     DashboardScreen(),
     PredictionsHubScreen(),
     MenuScreen(),
-    NotificationsScreen(),
+    SettingsScreen(),
+    ProfileScreen(),
   ];
 
   @override
@@ -59,14 +61,14 @@ class _MainNavigationState extends State<MainNavigation> {
             label: 'Menu',
           ),
           NavigationDestination(
-            // Wrap in a Badge and wire the count to notification_service.dart.
-            // Hide the badge when the count is zero.
-            icon: Badge(
-              label: Text('3'),
-              child: Icon(Icons.notifications_outlined),
-            ),
-            selectedIcon: Icon(Icons.notifications),
-            label: 'Alerts',
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Profile',
           ),
         ],
       ),

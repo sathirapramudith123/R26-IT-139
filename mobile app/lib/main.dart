@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/theme.dart';
+import 'screens/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
 
 void main() => runApp(const MyApp());
@@ -18,7 +19,10 @@ class MyApp extends StatelessWidget {
           theme: buildLightTheme(),
           darkTheme: buildDarkTheme(),
           themeMode: mode,
-          home: const LoginScreen(),
+          // App opens on the animated splash, which then routes to Login.
+          home: SplashScreen(
+            duration: const Duration(seconds: 6),
+            next: () => const LoginScreen()),
         );
       },
     );

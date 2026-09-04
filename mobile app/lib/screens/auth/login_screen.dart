@@ -35,7 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            const Text("🌿", style: TextStyle(fontSize: 48)),
+            Image.asset("assets/icon/app_icon.png", width: 100, height: 100),
             const Text("Lanka-Link", style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
             const Text("Sign in to your account", style: TextStyle(color: Colors.grey)),
             const SizedBox(height: 24),
