@@ -173,7 +173,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
         child: Padding(
           padding: const EdgeInsets.all(18),
           child: Image.asset(
-            "assets/images/app_icon.png",
+            "assets/icon/app_icon.png",
             fit: BoxFit.contain,
             errorBuilder: (_, __, ___) => const Center(
               child: Text("assets/images/app_icon.png", style: TextStyle(fontSize: 56)),
