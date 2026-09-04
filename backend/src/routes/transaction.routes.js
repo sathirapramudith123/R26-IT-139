@@ -8,7 +8,6 @@ const router = Router();
 router.use(auth);
 
 router.get("/journal", ctrl.journal);
-
 router.post("/", ctrl.create);
 router.get("/", ctrl.getAll);
 router.get("/:id", validateId, ctrl.getOne);
