@@ -1,6 +1,7 @@
 import { supabase } from "../config/supabase.js";
 import { toClient, toClientList, up } from "../utils/mappers.js";
 import { consumeStock, receiveStock, hasEnoughStock } from "../utils/stock.js";
+import { buildJournal, journalTotals } from "../utils/doubleEntry.js";
 
 const TABLE = "transactions";
 const ID = "transaction_id";
@@ -76,6 +77,80 @@ async function revertTransaction(userId, oldRow, reason) {
     }
   }
 }
+
+// ── Double-entry Journal (DEAD CLIC) with date filtering ──────────────────
+// GET /transactions/journal                → all, grouped by month
+// GET /transactions/journal?year=2026&month=9   → that month's entries
+// GET /transactions/journal?date=2026-09-15     → that day's entries
+export const journal = async (req, res, next) => {
+  try {
+    const { year, month, date } = req.query;
+
+    let q = supabase.from(TABLE).select("*").eq("user_id", req.user.id);
+
+    // day filter
+    if (date) {
+      const start = new Date(`${date}T00:00:00`);
+      const end = new Date(start); end.setDate(end.getDate() + 1);
+      q = q.gte("created_at", start.toISOString()).lt("created_at", end.toISOString());
+    } else if (year && month) {
+      const y = Number(year), m = Number(month);
+      const start = new Date(y, m - 1, 1);
+      const end = new Date(y, m, 1);
+      q = q.gte("created_at", start.toISOString()).lt("created_at", end.toISOString());
+    }
+
+    q = q.order("created_at", { ascending: true });
+    const { data, error } = await q;
+    if (error) throw error;
+
+    const txns = (data || []).map((t) => ({
+      id: t.transaction_id,
+      created_at: t.created_at,
+      transaction_type: t.transaction_type,
+      payment_method: t.payment_method,
+      amount: t.amount,
+      category: t.category,
+      description: t.description,
+    }));
+
+    // Build double-entry journal rows (DR/CR) from the transactions
+    const rows = buildJournal(txns);
+    const totals = journalTotals(rows);
+
+    // Group by day for the drill-down UI
+    const byDay = {};
+    for (const r of rows) {
+      const day = String(r.date).slice(0, 10);
+      (byDay[day] ||= []).push(r);
+    }
+    const days = Object.keys(byDay).sort().map((day) => ({
+      date: day,
+      entries: byDay[day],
+      ...journalTotals(byDay[day]),
+    }));
+
+    // Also give available months (for the month picker) across ALL transactions
+    let months = [];
+    if (!year && !month && !date) {
+      const monthSet = {};
+      for (const t of txns) {
+        const ym = String(t.created_at).slice(0, 7); // YYYY-MM
+        monthSet[ym] = (monthSet[ym] || 0) + 1;
+      }
+      months = Object.keys(monthSet).sort().reverse()
+        .map((ym) => ({ month: ym, count: monthSet[ym] }));
+    }
+
+    res.json({
+      filter: date ? { date } : (year && month ? { year: Number(year), month: Number(month) } : null),
+      totals,               // { total_debit, total_credit, balanced }
+      entries: rows,        // flat DR/CR rows
+      days,                 // grouped by day (each with its own totals)
+      months,               // available months (only when no filter)
+    });
+  } catch (e) { next(e); }
+};
 
 // 1. Get All
 export const getAll = async (req, res, next) => {

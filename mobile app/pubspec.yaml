@@ -37,11 +37,14 @@ dependencies:
   pdf: ^3.13.0
   printing: ^5.15.0
 
-
   # Map (free, no Google API key) + location
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
   geolocator: ^13.0.1
+
+  # Nunito font for the Kade design system (theme.dart) — fetched/cached
+  # automatically, no need to bundle .ttf files ourselves.
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:
@@ -96,6 +99,8 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+  # (Nunito is supplied at runtime via the google_fonts package instead —
+  # see theme.dart — so no local font asset entry is needed here.)
 
 
 # add this section at the bottom of the file (not indented under flutter:)
