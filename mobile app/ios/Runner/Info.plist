@@ -26,6 +26,13 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Required by geolocator (used for "Use My Location" and the
+	     distance/time-to-supplier feature). iOS refuses to show the
+	     location permission prompt at all without these strings. -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Lanka-Link needs your location to show distance and directions to suppliers and agents.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Lanka-Link needs your location to show distance and directions to suppliers and agents.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

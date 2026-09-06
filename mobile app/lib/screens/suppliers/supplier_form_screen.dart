@@ -2,16 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme.dart';
 import '../../services/crud_service.dart';
+import '../common/location_picker_map.dart';
 import '../inventory/inventory_form_screen.dart' show fieldLabel, errorBox, saveButton;
-
-// Sri Lankan districts — Delivery Location dropdown (web එකට ගැලපෙන්න)
-const List<String> kDeliveryLocations = [
-  "Colombo", "Gampaha", "Kalutara", "Kandy", "Matale", "Nuwara Eliya",
-  "Galle", "Matara", "Hambantota", "Jaffna", "Kilinochchi", "Mannar",
-  "Vavuniya", "Mullaitivu", "Batticaloa", "Ampara", "Trincomalee",
-  "Kurunegala", "Puttalam", "Anuradhapura", "Polonnaruwa", "Badulla",
-  "Monaragala", "Ratnapura", "Kegalle",
-];
 
 class SupplierFormScreen extends StatefulWidget {
   final Map<String, dynamic>? item;
@@ -27,12 +19,17 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
   final companyCtrl = TextEditingController();
   final contactCtrl = TextEditingController();
   final emailCtrl = TextEditingController();
-  final addressCtrl = TextEditingController();
+  // Delivery location text — auto-filled from the map pin (via reverse
+  // geocoding or a picked search suggestion), but still editable by hand.
+  // This is what the backend stores as `delivery_location` now; a separate
+  // free-text address is no longer collected (see supplier.controller.js).
+  final deliveryLocationCtrl = TextEditingController();
   final deliveryCtrl = TextEditingController();
   final leadTimeCtrl = TextEditingController();
   final qtyCtrl = TextEditingController();
 
-  String? deliveryLocation; // unit_price + status අයින් — delivery location එකතු
+  double? latitude;
+  double? longitude;
   bool saving = false;
   String? error;
 
@@ -46,12 +43,12 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
     companyCtrl.text = it?["company_name"]?.toString() ?? "";
     contactCtrl.text = it?["contact_number"]?.toString() ?? "";
     emailCtrl.text = it?["email"]?.toString() ?? "";
-    addressCtrl.text = it?["address"]?.toString() ?? "";
+    deliveryLocationCtrl.text = it?["delivery_location"]?.toString() ?? "";
+    latitude = (it?["latitude"] as num?)?.toDouble();
+    longitude = (it?["longitude"] as num?)?.toDouble();
     deliveryCtrl.text = it?["delivery_cost"]?.toString() ?? "";
-    leadTimeCtrl.text = it?["delivery_lead_time"]?.toString() ?? it?["lead_time"]?.toString() ?? "";
+    leadTimeCtrl.text = it?["lead_time_days"]?.toString() ?? it?["delivery_lead_time"]?.toString() ?? it?["lead_time"]?.toString() ?? "";
     qtyCtrl.text = it?["available_quantity"]?.toString() ?? it?["quantity"]?.toString() ?? "";
-    final dl = it?["delivery_location"]?.toString();
-    deliveryLocation = (dl != null && dl.isNotEmpty) ? dl : null;
   }
 
   @override
@@ -60,7 +57,7 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
     companyCtrl.dispose();
     contactCtrl.dispose();
     emailCtrl.dispose();
-    addressCtrl.dispose();
+    deliveryLocationCtrl.dispose();
     deliveryCtrl.dispose();
     leadTimeCtrl.dispose();
     qtyCtrl.dispose();
@@ -100,10 +97,11 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
       "contact_number": phone,
       "company_name": companyCtrl.text.trim(),
       "email": email,
-      "address": addressCtrl.text.trim(),
-      "delivery_location": deliveryLocation, // NEW
+      "delivery_location": deliveryLocationCtrl.text.trim(),
+      "latitude": latitude,
+      "longitude": longitude,
       "delivery_cost": deliveryCtrl.text.trim().isNotEmpty ? (num.tryParse(deliveryCtrl.text.trim()) ?? 0) : 0,
-      "delivery_lead_time": leadTimeCtrl.text.trim().isNotEmpty ? (int.tryParse(leadTimeCtrl.text.trim()) ?? 1) : 1,
+      "lead_time_days": leadTimeCtrl.text.trim().isNotEmpty ? (int.tryParse(leadTimeCtrl.text.trim()) ?? 1) : 1,
       "available_quantity": qtyCtrl.text.trim().isNotEmpty ? (num.tryParse(qtyCtrl.text.trim()) ?? 0) : 0,
       // unit_price + status form එකෙන් තව යවන්නෙ නෑ (backend defaults)
     };
@@ -178,23 +176,24 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Address"),
+            fieldLabel("Delivery Location"),
+            LocationPickerMap(
+              initialLat: latitude,
+              initialLng: longitude,
+              height: 240,
+              onPick: (lat, lng) => setState(() {
+                latitude = lat;
+                longitude = lng;
+              }),
+              onAddress: (addr) => setState(() => deliveryLocationCtrl.text = addr),
+            ),
+            const SizedBox(height: 10),
             TextField(
-              controller: addressCtrl,
+              controller: deliveryLocationCtrl,
               enabled: !saving,
               maxLines: 2,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(hintText: "Enter address"),
-            ),
-            const SizedBox(height: 16),
-
-            // NEW: Delivery Location dropdown
-            fieldLabel("Delivery Location"),
-            DropdownButtonFormField<String>(
-              value: kDeliveryLocations.contains(deliveryLocation) ? deliveryLocation : null,
-              hint: const Text("Select delivery location…"),
-              items: kDeliveryLocations.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
-              onChanged: saving ? null : (v) => setState(() => deliveryLocation = v),
+              decoration: const InputDecoration(hintText: "Address (auto-filled from the map — edit if needed)"),
             ),
             const SizedBox(height: 16),
 

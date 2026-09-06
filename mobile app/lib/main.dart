@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/theme.dart';
 import 'screens/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
 
-void main() => runApp(const MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Loads .env at the project root into dotenv.env — used by
+  // location_picker_map.dart / supplier_distance_map.dart for the
+  // Google Maps Places & Directions API key. Must finish before runApp,
+  // since those widgets read dotenv.env the moment they build.
+  await dotenv.load(fileName: ".env");
+  runApp(const MyApp());
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -21,7 +30,7 @@ class MyApp extends StatelessWidget {
           themeMode: mode,
           // App opens on the animated splash, which then routes to Login.
           home: SplashScreen(
-            duration: const Duration(seconds: 6),
+            duration: const Duration(seconds: 4),
             next: () => const LoginScreen()),
         );
       },
