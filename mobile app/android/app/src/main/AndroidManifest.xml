@@ -6,6 +6,12 @@
         android:name="${applicationName}"
         android:usesCleartextTraffic="true"
         android:icon="@mipmap/ic_launcher">
+        <!-- TODO: replace with your real Android Google Maps API key
+             (Google Cloud Console → Credentials → the key restricted to
+             this app's package name + SHA-1). Required by google_maps_flutter. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="YOUR_ANDROID_GOOGLE_MAPS_API_KEY"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"

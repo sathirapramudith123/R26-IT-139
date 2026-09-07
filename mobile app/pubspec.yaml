@@ -37,10 +37,12 @@ dependencies:
   pdf: ^3.13.0
   printing: ^5.15.0
 
-  # Map (free, no Google API key) + location
-  flutter_map: ^7.0.2
-  latlong2: ^0.9.1
+  # Google Maps + Places search + Directions (distance/time) + location
+  google_maps_flutter: ^2.9.0
+  http: ^1.2.2
+  flutter_polyline_points: ^2.1.0
   geolocator: ^13.0.1
+  flutter_dotenv: ^5.2.1
 
   # Nunito font for the Kade design system (theme.dart) — fetched/cached
   # automatically, no need to bundle .ttf files ourselves.
@@ -71,6 +73,7 @@ flutter:
 
   assets:
     - assets/icon/app_icon.png
+    - .env
 
   # To add assets to your application, add an assets section, like this:
   # assets:

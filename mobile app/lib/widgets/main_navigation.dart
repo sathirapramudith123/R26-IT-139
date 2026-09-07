@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/theme.dart';
 
 // Adjust these imports/class names to match your actual screens.
 import '../screens/dashboard_screen.dart';
@@ -86,32 +87,32 @@ class MenuScreen extends StatelessWidget {
     final items = <_MenuItem>[
       _MenuItem(
         'Agency Banking',
-        Icons.account_balance,
+        Icons.account_balance_outlined,
         () => const AgencyBankingFormScreen(),
       ),
       _MenuItem(
         'Inventory',
-        Icons.inventory_2,
+        Icons.inventory_2_outlined,
         () => const InventoryFormScreen(),
       ),
       _MenuItem(
         'Procurement',
-        Icons.shopping_cart,
+        Icons.shopping_cart_outlined,
         () => const ProcurementFormScreen(),
       ),
       _MenuItem(
         'Suppliers',
-        Icons.local_shipping,
+        Icons.handshake_outlined,
         () => const SupplierFormScreen(),
       ),
       _MenuItem(
         'Transactions',
-        Icons.receipt_long,
+        Icons.receipt_long_outlined,
         () => const TransactionFormScreen(),
       ),
       _MenuItem(
         'Reports',
-        Icons.bar_chart,
+        Icons.bar_chart_outlined,
         () => const IncomeStatementScreen(),
       ),
     ];
@@ -123,24 +124,44 @@ class MenuScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         mainAxisSpacing: 16,
         crossAxisSpacing: 16,
+        childAspectRatio: 1.15,
         children: items.map((item) {
-          return Card(
-            clipBehavior: Clip.antiAlias,
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          final teal = isDark ? KadeColors.tealDark : KadeColors.teal;
+
+          return Material(
+            color: Colors.transparent,
             child: InkWell(
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => item.builder()),
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(item.icon, size: 40),
-                  const SizedBox(height: 12),
-                  Text(
-                    item.label,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ],
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardTheme.color,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: isDark ? KadeColors.borderDark : KadeColors.borderLight),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      height: 40,
+                      width: 40,
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white10 : KadeColors.surfaceMutedLight,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(item.icon, size: 20, color: teal),
+                    ),
+                    const Spacer(),
+                    Text(
+                      item.label,
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                  ],
+                ),
               ),
             ),
           );

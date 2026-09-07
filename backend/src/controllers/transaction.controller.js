@@ -1,7 +1,7 @@
 import { supabase } from "../config/supabase.js";
 import { toClient, toClientList, up } from "../utils/mappers.js";
 import { consumeStock, receiveStock, hasEnoughStock } from "../utils/stock.js";
-import { buildJournal, journalTotals } from "../utils/doubleEntry.js";
+import { buildJournal, journalTotals, buildGoodsSummary, buildProfitAndLoss } from "../utils/doubleEntry.js";
 
 const TABLE = "transactions";
 const ID = "transaction_id";
@@ -84,12 +84,21 @@ async function revertTransaction(userId, oldRow, reason) {
 // GET /transactions/journal?date=2026-09-15     → that day's entries
 export const journal = async (req, res, next) => {
   try {
-    const { year, month, date } = req.query;
+    const { year, month, date, from, to } = req.query;
 
     let q = supabase.from(TABLE).select("*").eq("user_id", req.user.id);
 
-    // day filter
-    if (date) {
+    // date-range filter (from-to) takes priority, then single day, then month
+    if (from || to) {
+      if (from) {
+        const start = new Date(`${from}T00:00:00`);
+        q = q.gte("created_at", start.toISOString());
+      }
+      if (to) {
+        const end = new Date(`${to}T00:00:00`); end.setDate(end.getDate() + 1);
+        q = q.lt("created_at", end.toISOString());
+      }
+    } else if (date) {
       const start = new Date(`${date}T00:00:00`);
       const end = new Date(start); end.setDate(end.getDate() + 1);
       q = q.gte("created_at", start.toISOString()).lt("created_at", end.toISOString());
@@ -104,7 +113,9 @@ export const journal = async (req, res, next) => {
     const { data, error } = await q;
     if (error) throw error;
 
-    const txns = (data || []).map((t) => ({
+    // Full rows (with items[]) for goods summary + P&L; light rows for journal
+    const fullTxns = data || [];
+    const txns = fullTxns.map((t) => ({
       id: t.transaction_id,
       created_at: t.created_at,
       transaction_type: t.transaction_type,
@@ -118,6 +129,10 @@ export const journal = async (req, res, next) => {
     const rows = buildJournal(txns);
     const totals = journalTotals(rows);
 
+    // Goods movement summary (sold / bought) + Profit & Loss statement
+    const goods = buildGoodsSummary(fullTxns);
+    const profitLoss = buildProfitAndLoss(fullTxns);
+
     // Group by day for the drill-down UI
     const byDay = {};
     for (const r of rows) {
@@ -130,9 +145,9 @@ export const journal = async (req, res, next) => {
       ...journalTotals(byDay[day]),
     }));
 
-    // Also give available months (for the month picker) across ALL transactions
+    // Available months (for the month picker) across ALL transactions
     let months = [];
-    if (!year && !month && !date) {
+    if (!year && !month && !date && !from && !to) {
       const monthSet = {};
       for (const t of txns) {
         const ym = String(t.created_at).slice(0, 7); // YYYY-MM
@@ -143,11 +158,15 @@ export const journal = async (req, res, next) => {
     }
 
     res.json({
-      filter: date ? { date } : (year && month ? { year: Number(year), month: Number(month) } : null),
+      filter: (from || to) ? { from, to }
+        : date ? { date }
+        : (year && month ? { year: Number(year), month: Number(month) } : null),
       totals,               // { total_debit, total_credit, balanced }
       entries: rows,        // flat DR/CR rows
       days,                 // grouped by day (each with its own totals)
       months,               // available months (only when no filter)
+      goods,                // { items:[{item, sold_qty, bought_qty, net_qty, ...}], totals }
+      profit_loss: profitLoss,  // Trading + P&L with account names
     });
   } catch (e) { next(e); }
 };

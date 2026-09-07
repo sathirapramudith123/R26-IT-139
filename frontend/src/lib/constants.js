@@ -6,16 +6,16 @@ export const NAV_GROUPS = {
 };
 
 export const NAV_ITEMS = [
-  { label: "Dashboard",      href: "/dashboard",                icon: "🏠", group: "overview"   },
-  { label: "Transactions",   href: "/dashboard/transactions",   icon: "💳", group: "finance"    },
-  { label: "Journal",        href: "/dashboard/journal",        icon: "📒", group: "finance" },
-  { label: "Inventory",      href: "/dashboard/inventory",      icon: "📦", group: "finance"    },
-  { label: "Procurement",    href: "/dashboard/procurement",    icon: "🛒", group: "finance"    },
-  { label: "Agency Banking", href: "/dashboard/agency-banking", icon: "🏦", group: "finance"    },
-  { label: "My Banks",       href: "/dashboard/my-banks",       icon: "🏛️", group: "finance"    },
-  { label: "Suppliers",      href: "/dashboard/suppliers",      icon: "🤝", group: "operations" },
-  { label: "Predictions",    href: "/dashboard/predictions",    icon: "🤖", group: "operations" },
-  { label: "Profile",        href: "/dashboard/profile",        icon: "👤", group: "account"    },
+  { label: "Dashboard",      href: "/dashboard",                icon: "LayoutDashboard", group: "overview"   },
+  { label: "Transactions",   href: "/dashboard/transactions",   icon: "CreditCard",      group: "finance"    },
+  { label: "Journal",        href: "/dashboard/journal",        icon: "BookOpen",        group: "finance"    },
+  { label: "Inventory",      href: "/dashboard/inventory",      icon: "Package",         group: "finance"    },
+  { label: "Procurement",    href: "/dashboard/procurement",    icon: "ShoppingCart",    group: "finance"    },
+  { label: "Agency Banking", href: "/dashboard/agency-banking", icon: "Landmark",        group: "finance"    },
+  { label: "My Banks",       href: "/dashboard/my-banks",       icon: "Building2",       group: "finance"    },
+  { label: "Suppliers",      href: "/dashboard/suppliers",      icon: "Handshake",       group: "operations" },
+  { label: "Predictions",    href: "/dashboard/predictions",    icon: "Bot",             group: "operations" },
+  { label: "Profile",        href: "/dashboard/profile",        icon: "User",            group: "account"    },
 ];
 
 export const TRANSACTION_TYPES = [
