@@ -53,19 +53,21 @@ export default function TransactionsPage() {
       transaction_type: titleCase(item.transaction_type || ""),
       flow: (
         <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-          isCredit ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+          isCredit
+            ? "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300"
+            : "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300"
         }`}>
           {isCredit ? "Credit" : "Debit"}
         </span>
       ),
       amount: (
-        <span className={`font-semibold ${isCredit ? "text-green-600" : "text-red-600"}`}>
+        <span className={`font-semibold ${isCredit ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
           {isCredit ? "+" : "-"} {formatCurrency(item.amount)}
         </span>
       ),
       payment_method: titleCase(item.payment_method || ""),
-      category: item.category || "—",
-      created_at: formatDate(item.created_at),
+      category: item.category ? item.category : <span className="text-slate-400">—</span>,
+      created_at: <span className="text-slate-500 dark:text-slate-400">{formatDate(item.created_at)}</span>,
       actions: (
         <div className="flex gap-2">
           <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => setViewItem(item)}>View</Button>

@@ -22,8 +22,17 @@ class _ListScreenState extends State<ListScreen> {
   bool loading = true;
   String? error;
 
+  final searchCtrl = TextEditingController();
+  String query = "";
+
   @override
   void initState() { super.initState(); _load(); }
+
+  @override
+  void dispose() {
+    searchCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _load() async {
     setState(() { loading = true; error = null; });
@@ -36,7 +45,7 @@ class _ListScreenState extends State<ListScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(KadeRadius.lg)),
         title: const Text("Delete?"),
         content: const Text("This cannot be undone."),
         actions: [
@@ -55,6 +64,21 @@ class _ListScreenState extends State<ListScreen> {
   }
 
   void _snack(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
+
+  // Searches across every column shown in the list (title + subtitle
+  // fields) — case-insensitive substring match, purely client-side since
+  // the list is already loaded in memory.
+  List<Map<String, dynamic>> get _filteredItems {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return items;
+    final cols = widget.module.listColumns;
+    return items.where((it) {
+      for (final k in cols) {
+        if (_display(k, it[k]).toLowerCase().contains(q)) return true;
+      }
+      return false;
+    }).toList();
+  }
 
   Future<void> _openForm([Map<String, dynamic>? item]) async {
     Widget screen;
@@ -132,7 +156,7 @@ class _ListScreenState extends State<ListScreen> {
     showDialog(
       context: context,
       builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(KadeRadius.lg)),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -142,8 +166,7 @@ class _ListScreenState extends State<ListScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("Details",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
+                  Text("Details", style: Theme.of(context).textTheme.titleLarge),
                   IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
                 ],
               ),
@@ -156,7 +179,7 @@ class _ListScreenState extends State<ListScreen> {
                         margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
-                          color: isDark ? Colors.white10 : const Color(0xFFF3ECE0),
+                          color: isDark ? Colors.white10 : KadeColors.surfaceMutedLight,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
@@ -209,88 +232,120 @@ class _ListScreenState extends State<ListScreen> {
         foregroundColor: Colors.white,
         onPressed: () => _openForm(),
         icon: const Icon(Icons.add),
-        label: const Text("Add", style: TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito")),
+        label: const Text("Add", style: TextStyle(fontWeight: FontWeight.w600)),
       ),
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(error!, style: const TextStyle(color: KadeColors.terra)),
-                  ),
-                )
-              : items.isEmpty
-                  ? _empty()
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
-                        itemCount: items.length,
-                        itemBuilder: (_, i) {
-                          final it = items[i];
-                          final title = "${it[cols.first] ?? "—"}";
-                          final subtitle = cols
-                              .skip(1)
-                              .map((k) => _display(k, it[k]))
-                              .join("  ·  ");
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).cardTheme.color,
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(
-                                  color: isDark ? KadeColors.borderDark : KadeColors.borderLight),
-                            ),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                              onTap: () => _viewDetails(it),
-                              leading: Container(
-                                height: 42, width: 42,
-                                decoration: BoxDecoration(
-                                  color: teal.withOpacity(0.12),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Center(
-                                    child: Text(widget.module.icon,
-                                        style: const TextStyle(fontSize: 20))),
-                              ),
-                              title: Text(title,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w700, fontFamily: "Nunito")),
-                              subtitle: Text(subtitle,
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      color: Theme.of(context).textTheme.bodySmall?.color)),
-                              trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                                IconButton(
-                                    icon: const Icon(Icons.visibility_outlined, size: 20),
-                                    onPressed: () => _viewDetails(it)),
-                                IconButton(
-                                    icon: const Icon(Icons.edit_outlined, size: 20),
-                                    onPressed: () => _openForm(it)),
-                                IconButton(
-                                    icon: const Icon(Icons.delete_outline,
-                                        size: 20, color: KadeColors.terra),
-                                    onPressed: () => _delete("${it["id"]}")),
-                              ]),
-                            ),
-                          );
-                        },
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: TextField(
+              controller: searchCtrl,
+              onChanged: (v) => setState(() => query = v),
+              decoration: InputDecoration(
+                hintText: "Search ${widget.module.title.toLowerCase()}…",
+                isDense: true,
+                prefixIcon: const Icon(Icons.search, size: 20),
+                suffixIcon: query.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.close, size: 18),
+                        onPressed: () => setState(() {
+                          searchCtrl.clear();
+                          query = "";
+                        }),
                       ),
-                    ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: loading
+                ? const Center(child: CircularProgressIndicator())
+                : error != null
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Text(error!, style: const TextStyle(color: KadeColors.terra)),
+                        ),
+                      )
+                    : _filteredItems.isEmpty
+                        ? _empty()
+                        : RefreshIndicator(
+                            onRefresh: _load,
+                            child: ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 90),
+                              itemCount: _filteredItems.length,
+                              itemBuilder: (_, i) {
+                                final it = _filteredItems[i];
+                                final title = "${it[cols.first] ?? "—"}";
+                                final subtitle = cols
+                                    .skip(1)
+                                    .map((k) => _display(k, it[k]))
+                                    .join("  ·  ");
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).cardTheme.color,
+                                    borderRadius: BorderRadius.circular(KadeRadius.md),
+                                    border: Border.all(
+                                        color: isDark ? KadeColors.borderDark : KadeColors.borderLight),
+                                  ),
+                                  child: ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                                    onTap: () => _viewDetails(it),
+                                    leading: Container(
+                                      height: 40, width: 40,
+                                      decoration: BoxDecoration(
+                                        color: teal.withOpacity(0.10),
+                                        borderRadius: BorderRadius.circular(KadeRadius.sm),
+                                      ),
+                                      child: Icon(widget.module.icon, size: 20, color: teal),
+                                    ),
+                                    title: Text(title,
+                                        style: const TextStyle(fontWeight: FontWeight.w600)),
+                                    subtitle: Text(subtitle,
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            color: Theme.of(context).textTheme.bodySmall?.color)),
+                                    trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                                      IconButton(
+                                          icon: const Icon(Icons.visibility_outlined, size: 20),
+                                          onPressed: () => _viewDetails(it)),
+                                      IconButton(
+                                          icon: const Icon(Icons.edit_outlined, size: 20),
+                                          onPressed: () => _openForm(it)),
+                                      IconButton(
+                                          icon: const Icon(Icons.delete_outline,
+                                              size: 20, color: KadeColors.terra),
+                                          onPressed: () => _delete("${it["id"]}")),
+                                    ]),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _empty() => Center(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text(widget.module.icon, style: const TextStyle(fontSize: 52)),
-          const SizedBox(height: 12),
-          Text("No ${widget.module.title.toLowerCase()} yet",
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
-          const SizedBox(height: 6),
-          Text("Tap + to add one.",
-              style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color)),
-        ]),
-      );
+  Widget _empty() {
+    final searching = query.trim().isNotEmpty;
+    return Center(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(searching ? Icons.search_off : widget.module.icon,
+            size: 52, color: Theme.of(context).textTheme.bodySmall?.color),
+        const SizedBox(height: 12),
+        Text(
+          searching ? "No matches found" : "No ${widget.module.title.toLowerCase()} yet",
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: 6),
+        Text(
+          searching ? "Try a different search term." : "Tap + to add one.",
+          style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
+        ),
+      ]),
+    );
+  }
 }

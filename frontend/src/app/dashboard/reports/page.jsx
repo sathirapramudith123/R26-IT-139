@@ -2,6 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import useAuthGuard from "@/hooks/useAuthGuard";
 import PageHeader from "@/components/common/PageHeader";
 import Button from "@/components/ui/Button";
@@ -14,6 +15,7 @@ import { downloadIncomeStatementPdf } from "@/lib/reportPdf";
 
 export default function ReportsPage() {
   useAuthGuard();
+  const router = useRouter();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -37,6 +39,7 @@ export default function ReportsPage() {
 
   return (
     <div className="page-container">
+      {/* Original layout — with a Back button on the right of the action group */}
       <PageHeader
         title="Income & Expense Statement"
         description="Revenue, costs, and net profit."
@@ -50,6 +53,7 @@ export default function ReportsPage() {
               ⬇ PDF
             </Button>
             <Button variant="secondary" onClick={load}>↻ Refresh</Button>
+            <Button variant="secondary" onClick={() => router.back()}>← Back</Button>
           </div>
         }
       />

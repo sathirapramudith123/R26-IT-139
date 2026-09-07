@@ -43,3 +43,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Environment variables — holds the real Google Maps API key, never commit.
+# Keep .env.example (with a placeholder value) checked in instead.
+.env
+.env
+.env.local
+.env.*.local
+*.key
