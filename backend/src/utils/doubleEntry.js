@@ -118,3 +118,94 @@ export function journalTotals(rows) {
     balanced: Math.abs(totalDebit - totalCredit) < 0.01,
   };
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Goods movement summary — what was sold / bought (from items[] in txns)     */
+/* -------------------------------------------------------------------------- */
+export function buildGoodsSummary(transactions) {
+  // per item: sold qty, bought qty, sales value, purchase value
+  const map = {};
+  const norm = (s) => String(s || "").trim();
+
+  const push = (name, field, qty, value) => {
+    const key = norm(name);
+    if (!key) return;
+    const g = (map[key] ||= { item: key, sold_qty: 0, bought_qty: 0, sales_value: 0, purchase_value: 0 });
+    g[field] += qty;
+    if (field === "sold_qty") g.sales_value += value;
+    if (field === "bought_qty") g.purchase_value += value;
+  };
+
+  for (const t of transactions || []) {
+    const type = up(t.transaction_type);
+    const lines = (Array.isArray(t.items) && t.items.length)
+      ? t.items
+      : (t.item_name ? [{ item_name: t.item_name, quantity: t.quantity, unit_price: t.amount }] : []);
+
+    for (const l of lines) {
+      const qty = num(l.quantity);
+      if (qty <= 0) continue;
+      const lineValue = num(l.unit_price ?? l.cost_price) * qty || 0;
+      if (type === "SALE")     push(l.item_name, "sold_qty",   qty, lineValue || num(t.amount));
+      if (type === "PURCHASE") push(l.item_name, "bought_qty", qty, lineValue);
+    }
+  }
+
+  const items = Object.values(map).map((g) => ({
+    ...g,
+    net_qty: g.bought_qty - g.sold_qty,   // + = stock grew, − = stock shrank
+  })).sort((a, b) => (b.sold_qty + b.bought_qty) - (a.sold_qty + a.bought_qty));
+
+  return {
+    items,
+    total_sold_qty:   items.reduce((s, g) => s + g.sold_qty, 0),
+    total_bought_qty: items.reduce((s, g) => s + g.bought_qty, 0),
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Profit & Loss statement (Trading + P&L) with account names                 */
+/* -------------------------------------------------------------------------- */
+export function buildProfitAndLoss(transactions) {
+  let sales = 0, purchases = 0, cogs = 0;
+  const expenses = {};   // by category
+
+  for (const t of transactions || []) {
+    const type = up(t.transaction_type);
+    const amt = num(t.amount);
+
+    if (type === "SALE") {
+      sales += amt;
+      // COGS from items[] cost_price snapshot (set by FIFO at sale time)
+      const lines = Array.isArray(t.items) ? t.items : [];
+      for (const l of lines) {
+        cogs += num(l.cost_price) * num(l.quantity);
+      }
+    } else if (type === "PURCHASE") {
+      purchases += amt;
+    } else if (type === "EXPENSE") {
+      const cat = (t.category || "General").trim();
+      expenses[cat] = (expenses[cat] || 0) + amt;
+    }
+  }
+
+  const grossProfit = sales - cogs;                       // Trading result
+  const totalExpenses = Object.values(expenses).reduce((s, v) => s + v, 0);
+  const netProfit = grossProfit - totalExpenses;          // P&L result
+
+  return {
+    // Trading account
+    sales:          +sales.toFixed(2),
+    cost_of_goods:  +cogs.toFixed(2),
+    gross_profit:   +grossProfit.toFixed(2),
+    // P&L account
+    expenses: Object.entries(expenses)
+      .map(([name, amount]) => ({ account: `${name} Expense A/C`, amount: +amount.toFixed(2) }))
+      .sort((a, b) => b.amount - a.amount),
+    total_expenses: +totalExpenses.toFixed(2),
+    net_profit:     +netProfit.toFixed(2),
+    is_profit:      netProfit >= 0,
+    // extra context
+    total_purchases: +purchases.toFixed(2),
+  };
+}
