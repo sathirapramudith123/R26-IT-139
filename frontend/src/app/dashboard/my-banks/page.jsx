@@ -9,6 +9,33 @@ import {
   ArrowDownLeft, ArrowUpRight,
 } from "lucide-react";
 
+/* Count-up: eases a number 0 -> target over `duration` ms (easeOutCubic). */
+function useCountUp(target, duration = 1200) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    const end = Number(target) || 0;
+    if (end === 0) { setVal(0); return; }
+    let raf;
+    const start = performance.now();
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setVal(end * eased);
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else setVal(end);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return val;
+}
+
+/* Small animated currency number for the summary cards. */
+function CountCurrency({ value, className = "" }) {
+  const v = useCountUp(value);
+  return <span className={className}>{formatCurrency(Math.round(v))}</span>;
+}
+
 const RISK_TIERS = [
   { value: "LOW",    label: "Low volume / rural" },
   { value: "MEDIUM", label: "Medium volume" },
@@ -67,7 +94,7 @@ export default function MyBanksPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-xs font-medium text-slate-500">Total Float (all banks)</p>
-          <p className="mt-1 font-outfit text-2xl font-bold text-teal-600 dark:text-teal-400">{formatCurrency(totalFloat)}</p>
+          <p className="mt-1 font-outfit text-2xl font-bold text-teal-600 dark:text-teal-400"><CountCurrency value={totalFloat} /></p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-start justify-between">
@@ -78,13 +105,13 @@ export default function MyBanksPage() {
             </button>
           </div>
           <p className="mt-1 font-outfit text-2xl font-bold text-slate-800 dark:text-slate-200">
-            {cashPool ? formatCurrency(cashPool.cash_on_hand) : "—"}
+            {cashPool ? <CountCurrency value={cashPool.cash_on_hand} /> : "—"}
           </p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-xs font-medium text-slate-500">Available for Top-up</p>
           <p className="mt-1 font-outfit text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-            {cashPool ? formatCurrency(cashPool.available_for_topup) : "—"}
+            {cashPool ? <CountCurrency value={cashPool.available_for_topup} /> : "—"}
           </p>
           {cashPool && <p className="mt-0.5 text-[10px] text-slate-400">{formatCurrency(cashPool.reserve_floor)} reserved for daily ops</p>}
         </div>
