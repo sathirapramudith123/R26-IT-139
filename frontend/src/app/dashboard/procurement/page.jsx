@@ -41,7 +41,7 @@ export default function ProcurementPage() {
 
   const rows = filtered.map(item => ({
     ...item,
-    total_cost: formatCurrency(item.total_cost),
+    total_cost: <span className="font-medium text-slate-800 dark:text-slate-200">{formatCurrency(item.total_cost)}</span>,
     status: <StatusBadge status={item.status} />,
     actions: (
       <div className="flex gap-2">
@@ -66,7 +66,7 @@ export default function ProcurementPage() {
 
        <DetailDialog
         open={!!viewItem}
-        title={viewItem?.name || "Procument"}
+        title={viewItem?.item_name || "Procurement Order"}
         data={viewItem}
         onClose={() => setViewItem(null)}
       />

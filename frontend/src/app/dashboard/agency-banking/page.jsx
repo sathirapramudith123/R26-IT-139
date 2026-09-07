@@ -23,6 +23,34 @@ const COLS = [
   { key: "actions", label: "" },
 ];
 
+/* Count-up: eases a number 0 -> target over `duration` ms (easeOutCubic). */
+function useCountUp(target, duration = 1200) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    const end = Number(target) || 0;
+    if (end === 0) { setVal(0); return; }
+    let raf;
+    const start = performance.now();
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setVal(end * eased);
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else setVal(end);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return val;
+}
+
+/* Animated stat value — money=true formats as currency, else plain integer. */
+function CountStat({ value, money, className = "" }) {
+  const v = useCountUp(value);
+  const shown = money ? formatCurrency(Math.round(v)) : Math.round(v).toLocaleString();
+  return <span className={className}>{shown}</span>;
+}
+
 export default function AgencyBankingPage() {
   useAuthGuard();
   const { items, summary, loading, error, fetchAll } = useAgencyBanking();
@@ -62,12 +90,15 @@ export default function AgencyBankingPage() {
       {summary && (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {[
-            ["Transactions", summary.total_transactions, "text-slate-800"],
-            ["Volume", formatCurrency(summary.total_amount), "text-slate-800"],
-            ["Service Fees", formatCurrency(summary.total_service_fees), "text-blue-600"],
-            ["Commission", formatCurrency(summary.total_commission), "text-emerald-600"],
-          ].map(([l, v, c]) => (
-            <Card key={l}><p className="text-xs font-medium text-slate-400">{l}</p><p className={`mt-1 text-xl font-bold ${c}`}>{v}</p></Card>
+            ["Transactions", summary.total_transactions, "text-slate-800 dark:text-slate-100", false],
+            ["Volume", summary.total_amount, "text-slate-800 dark:text-slate-100", true],
+            ["Service Fees", summary.total_service_fees, "text-blue-600 dark:text-blue-400", true],
+            ["Commission", summary.total_commission, "text-emerald-600 dark:text-emerald-400", true],
+          ].map(([l, v, c, money]) => (
+            <Card key={l}>
+              <p className="text-xs font-medium text-slate-400">{l}</p>
+              <p className={`mt-1 text-xl font-bold ${c}`}><CountStat value={v} money={money} /></p>
+            </Card>
           ))}
         </div>
       )}
