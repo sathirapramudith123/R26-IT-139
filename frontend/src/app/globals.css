@@ -49,6 +49,8 @@ a { @apply text-inherit no-underline; }
 .dark .text-slate-400 { color: #64748b; }
 
 .dark .bg-white     { background-color: #0f172a; }
+/* inputs must stay slate-800, not the near-black bg-white override */
+.dark .input-field, .dark .select-field { background-color: #1e293b; }
 .dark .bg-slate-50  { background-color: #1e293b; }
 .dark .bg-slate-100 { background-color: #1e293b; }
 
