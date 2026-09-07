@@ -1,11 +1,33 @@
 // src/components/reports/IncomeStatement.jsx
 "use client";
 
+import { useState, useEffect } from "react";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import Card from "@/components/ui/Card";
 import { formatCurrency } from "@/lib/formatters";
 
 const num = (v) => Number(v || 0);
+
+/* Count-up: eases a number 0 -> target over `duration` ms (easeOutCubic). */
+function useCountUp(target, duration = 1200) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    const end = Number(target) || 0;
+    if (end === 0) { setVal(0); return; }
+    let raf;
+    const start = performance.now();
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setVal(end * eased);
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else setVal(end);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return val;
+}
 
 /**
  * Consumes the SAME server-computed contract as the Flutter app:
@@ -39,11 +61,11 @@ export default function IncomeStatement({ data }) {
     <div className="space-y-6">
       {/* Summary tiles */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Tile label="Total Revenue" value={formatCurrency(revenue)} />
-        <Tile label="Gross Profit" value={formatCurrency(grossProfit)} />
+        <Tile label="Total Revenue" amount={revenue} />
+        <Tile label="Gross Profit" amount={grossProfit} />
         <Tile
           label={isProfit ? "Net Profit" : "Net Loss"}
-          value={formatCurrency(netProfit)}
+          amount={netProfit}
           sub={`Margin: ${margin.toFixed(1)}%`}
           valueClass={posNeg}
         />
@@ -94,13 +116,16 @@ export default function IncomeStatement({ data }) {
   );
 }
 
-function Tile({ label, value, sub, valueClass = "" }) {
+function Tile({ label, amount, sub, valueClass = "" }) {
+  const animated = useCountUp(amount);
   return (
     <Card>
       <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
         {label}
       </p>
-      <p className={`mt-2 text-2xl font-bold ${valueClass}`}>{value}</p>
+      <p className={`mt-2 text-2xl font-bold tabular-nums ${valueClass}`}>
+        {formatCurrency(Math.round(animated))}
+      </p>
       {sub && <p className="mt-1 text-sm text-gray-500">{sub}</p>}
     </Card>
   );

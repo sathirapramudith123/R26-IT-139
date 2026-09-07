@@ -66,8 +66,8 @@ export default function TransactionsPage() {
         </span>
       ),
       payment_method: titleCase(item.payment_method || ""),
-      category: item.category || "—",
-      created_at: formatDate(item.created_at),
+      category: item.category ? item.category : <span className="text-slate-400">—</span>,
+      created_at: <span className="text-slate-500 dark:text-slate-400">{formatDate(item.created_at)}</span>,
       actions: (
         <div className="flex gap-2">
           <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => setViewItem(item)}>View</Button>
