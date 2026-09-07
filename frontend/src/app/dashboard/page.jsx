@@ -80,8 +80,8 @@ function SkyScene({ phase }) {
         </div>
       )}
 
-      {/* MOUNTAINS — layered for depth (all daytime + evening) */}
-      {!isNight && (
+      {/* MOUNTAINS — morning + afternoon only */}
+      {(phase === "morning" || phase === "afternoon") && (
         <div className="mountains">
           <svg viewBox="0 0 500 130" preserveAspectRatio="none" className="mtn-svg">
             <path className="mtn-far"   d="M0 130 L120 55 L210 100 L300 40 L400 95 L500 60 L500 130 Z" />
@@ -103,6 +103,25 @@ function SkyScene({ phase }) {
             </svg>
           </div>
         </>
+      )}
+
+      {/* ===== EVENING — sun setting into the sea ===== */}
+      {phase === "evening" && (
+        <div className="sea-scene">
+          <svg viewBox="0 0 500 130" preserveAspectRatio="none" className="sea-svg">
+            {/* sea water */}
+            <rect x="0" y="86" width="500" height="44" className="sea-water" />
+            {/* horizon line highlight */}
+            <rect x="0" y="86" width="500" height="2" className="sea-horizon" />
+            {/* shimmering sun reflection column on the water */}
+            <path className="reflect r1" d="M232 88 Q250 130 268 88 Z" />
+            <path className="reflect r2" d="M240 88 Q250 120 260 88 Z" />
+            <path className="reflect r3" d="M245 88 Q250 108 255 88 Z" />
+            {/* gentle wave lines */}
+            <path className="wave w1" d="M0 100 q25 -5 50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0" />
+            <path className="wave w2" d="M0 112 q25 -4 50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0" />
+          </svg>
+        </div>
       )}
 
       {/* CLOUDS (day) */}
@@ -132,8 +151,9 @@ function SkyScene({ phase }) {
           animation: spin 40s linear infinite; }
         .sun-morning   { top: 34px; right: 74px; animation: sunrise 3s ease-out both; }
         .sun-afternoon { top: 24px; right: 96px; animation: fadein 1.2s ease both; }
-        .sun-evening   { top: 66px; right: 66px; animation: setdown 2.4s ease-out both; }
+        .sun-evening   { top: 40px; right: 210px; animation: seaset 3.2s ease-out both; }
         @keyframes sunrise { from { transform: translateY(96px) scale(.85); opacity: 0; } 45% { opacity: 1; } to { transform: translateY(0) scale(1); opacity: 1; } }
+        @keyframes seaset { from { transform: translateY(-30px); opacity: 0; } 35% { opacity: 1; } to { transform: translateY(46px); opacity: 1; } }
         @keyframes setdown { from { transform: translateY(-46px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes fadein  { from { opacity: 0; transform: scale(.8); } to { opacity: 1; transform: scale(1); } }
         @keyframes pulse   { 0%,100% { transform: scale(1); opacity: .8; } 50% { transform: scale(1.18); opacity: 1; } }
@@ -148,6 +168,22 @@ function SkyScene({ phase }) {
         .night .mtn-nfar   { fill: rgba(99,102,241,0.25); animation: layerUp 1.6s ease both; }
         .night .mtn-nfront { fill: rgba(15,23,42,0.9);    animation: layerUp 1.9s ease both; }
         @keyframes layerUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* ===== EVENING SEA ===== */
+        .sea-scene { position: absolute; inset: 0; }
+        .sea-svg { position: absolute; bottom: 0; width: 100%; height: 60%; }
+        .sea-water   { fill: url(#seaGrad); }
+        .sea-water   { fill: rgba(30,27,75,0.55); animation: fadein 1.2s ease both; }
+        .sea-horizon { fill: rgba(253,224,71,0.6); animation: fadein 1.4s ease both; }
+        .reflect { animation: shimmer 2.6s ease-in-out infinite; }
+        .r1 { fill: rgba(251,146,60,0.45); }
+        .r2 { fill: rgba(251,191,36,0.55); animation-delay: .3s; }
+        .r3 { fill: rgba(253,224,71,0.7);  animation-delay: .6s; }
+        @keyframes shimmer { 0%,100% { opacity: .3; transform: scaleX(1); } 50% { opacity: .85; transform: scaleX(1.25); } }
+        .wave { fill: none; stroke: rgba(255,255,255,0.18); stroke-width: 1.4; }
+        .w1 { animation: wavemove 6s linear infinite; }
+        .w2 { animation: wavemove 8s linear infinite; opacity: .6; }
+        @keyframes wavemove { from { transform: translateX(0); } to { transform: translateX(-100px); } }
 
         /* ---------- MOON ---------- */
         .moon { position: absolute; top: 32px; right: 74px; width: 56px; height: 56px; border-radius: 9999px;
