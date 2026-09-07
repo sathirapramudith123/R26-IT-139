@@ -4,7 +4,6 @@ import '../../core/theme.dart';
 import '../../core/api.dart';
 import '../../services/crud_service.dart';
 import '../inventory/inventory_form_screen.dart' show fieldLabel, errorBox, saveButton;
-import '../suppliers/supplier_form_screen.dart' show kDeliveryLocations;
 import '../common/location_picker_map.dart';   // <-- path එක ඔයාගෙ folder එකට හදාගන්න
 
 const List<String> _units = ["kg", "g", "l", "ml", "unit", "box", "carton"];
@@ -32,7 +31,9 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
   late String prNo;
   DateTime? orderDate;
   DateTime? arrivalDate;
-  String? deliveryLocation;
+  // Delivery location text — auto-filled from the map pin (search pick or
+  // reverse geocoding), but still editable by hand.
+  final deliveryLocationCtrl = TextEditingController();
   double? _lat;   // map coords
   double? _lng;
   final noteCtrl = TextEditingController();
@@ -67,7 +68,7 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
     orderDate = _parse(it?["order_date"] ?? it?["date"]) ?? DateTime.now();
     arrivalDate = _parse(it?["arrival_date"]);
     final dl = it?["delivery_location"]?.toString();
-    deliveryLocation = (dl != null && dl.isNotEmpty) ? dl : null;
+    deliveryLocationCtrl.text = (dl != null && dl.isNotEmpty) ? dl : "";
     noteCtrl.text = it?["special_note"]?.toString() ?? "";
     status = (it?["status"]?.toString().isNotEmpty ?? false) ? it!["status"].toString() : "pending";
 
@@ -119,6 +120,7 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
     noteCtrl.dispose();
     qtyCtrl.dispose();
     costCtrl.dispose();
+    deliveryLocationCtrl.dispose();
     super.dispose();
   }
 
@@ -177,15 +179,15 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
     FocusScope.of(context).unfocus();
 
     if (items.isEmpty) { setState(() => error = "Add at least one item."); return; }
-    if (deliveryLocation == null || deliveryLocation!.isEmpty) {
-      setState(() => error = "Select a delivery location."); return;
+    if (deliveryLocationCtrl.text.trim().isEmpty) {
+      setState(() => error = "Pick a delivery location on the map."); return;
     }
     if (arrivalDate == null) { setState(() => error = "Select the arrival date."); return; }
 
     final payload = <String, dynamic>{
       "procurement_no": prNo,
       "date": orderDate?.toIso8601String().substring(0, 10),
-      "delivery_location": deliveryLocation,
+      "delivery_location": deliveryLocationCtrl.text.trim(),
       "coords": (_lat != null && _lng != null) ? {"lat": _lat, "lng": _lng} : null,
       "arrival_date": arrivalDate?.toIso8601String().substring(0, 10),
       "special_note": noteCtrl.text.trim(),
@@ -342,21 +344,21 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
             ),
             const SizedBox(height: 16),
 
-            // ── Delivery location (dropdown) ──
+            // ── Delivery location (map pin, with search + auto-filled address) ──
             fieldLabel("Delivery Location *"),
-            DropdownButtonFormField<String>(
-              value: kDeliveryLocations.contains(deliveryLocation) ? deliveryLocation : null,
-              hint: const Text("Select delivery location…"),
-              items: kDeliveryLocations.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
-              onChanged: saving ? null : (v) => setState(() => deliveryLocation = v),
-            ),
-            const SizedBox(height: 12),
-
-            // ── Map picker (exact point — optional) ──
             LocationPickerMap(
               initialLat: _lat,
               initialLng: _lng,
               onPick: (lat, lng) => setState(() { _lat = lat; _lng = lng; }),
+              onAddress: (addr) => setState(() => deliveryLocationCtrl.text = addr),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: deliveryLocationCtrl,
+              enabled: !saving,
+              maxLines: 2,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(hintText: "Address (auto-filled from the map — edit if needed)"),
             ),
             const SizedBox(height: 16),
 
