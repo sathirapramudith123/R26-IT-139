@@ -1,9 +1,10 @@
+import 'package:flutter/material.dart';
 import '../models/field_config.dart';
 import '../models/module_config.dart';
 
 const modules = <ModuleConfig>[
   ModuleConfig(
-    title: "Transactions", path: "/transactions", icon: "💳",
+    title: "Transactions", path: "/transactions", icon: Icons.receipt_long_outlined,
     listColumns: ["transaction_type", "amount", "payment_method"],
     fields: [
       FieldConfig("transaction_type", "Type", type: "select", required: true,
@@ -22,7 +23,7 @@ const modules = <ModuleConfig>[
     ],
   ),
   ModuleConfig(
-    title: "Inventory", path: "/inventory", icon: "📦",
+    title: "Inventory", path: "/inventory", icon: Icons.inventory_2_outlined,
     // unit_price -> cost_price (weighted average cost පෙන්නන්න)
     listColumns: ["name", "quantity", "cost_price"],
     fields: [
@@ -44,7 +45,7 @@ const modules = <ModuleConfig>[
     ],
   ),
   ModuleConfig(
-    title: "Suppliers", path: "/suppliers", icon: "🤝",
+    title: "Suppliers", path: "/suppliers", icon: Icons.handshake_outlined,
     // unit_price -> delivery_location (list එකේ පෙන්නන්න)
     listColumns: ["name", "contact_number", "delivery_location"],
     fields: [
@@ -64,7 +65,7 @@ const modules = <ModuleConfig>[
     ],
   ),
   ModuleConfig(
-    title: "Procurement", path: "/procurement", icon: "🛒",
+    title: "Procurement", path: "/procurement", icon: Icons.shopping_cart_outlined,
     listColumns: ["item_name", "quantity", "status"],
     fields: [
       FieldConfig("item_name", "Item Name",
@@ -88,7 +89,7 @@ const modules = <ModuleConfig>[
     ],
   ),
   ModuleConfig(
-    title: "Agency Banking", path: "/agency-banking", icon: "🏦",
+    title: "Agency Banking", path: "/agency-banking", icon: Icons.account_balance_outlined,
     listColumns: ["customer_name", "transaction_type", "amount"],
     fields: [
       FieldConfig("customer_name", "Customer Name", required: true),

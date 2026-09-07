@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../core/theme.dart';
 
 /// A square-ish tile in the dashboard's module grid (Transactions,
 /// Inventory, Predictions, etc). Set [highlight] for a tinted "featured"
 /// look (used for Predictions on the dashboard).
 class ModuleTile extends StatelessWidget {
-  final String icon;
+  final IconData icon;
   final String title;
   final VoidCallback onTap;
   final bool highlight;
@@ -28,30 +27,30 @@ class ModuleTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: highlight ? teal.withOpacity(isDark ? 0.22 : 0.10) : Theme.of(context).cardTheme.color,
-            borderRadius: BorderRadius.circular(22),
+            color: highlight ? teal.withOpacity(isDark ? 0.20 : 0.08) : Theme.of(context).cardTheme.color,
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: isDark ? KadeColors.borderDark : KadeColors.borderLight),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                height: 44,
-                width: 44,
+                height: 40,
+                width: 40,
                 decoration: BoxDecoration(
-                  color: highlight ? teal.withOpacity(0.18) : (isDark ? Colors.white10 : const Color(0xFFF3ECE0)),
-                  borderRadius: BorderRadius.circular(14),
+                  color: highlight ? teal.withOpacity(0.16) : (isDark ? Colors.white10 : KadeColors.surfaceMutedLight),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Center(child: Text(icon, style: const TextStyle(fontSize: 22))),
+                child: Icon(icon, size: 20, color: teal),
               ),
               const Spacer(),
               Text(
                 title,
-                style: GoogleFonts.nunito(fontWeight: FontWeight.w800, fontSize: 14),
+                style: Theme.of(context).textTheme.titleSmall,
               ),
             ],
           ),
