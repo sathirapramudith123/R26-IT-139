@@ -194,7 +194,7 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
   const cls = k => `input-field ${errors[k] ? "border-red-400 ring-2 ring-red-100" : ""}`;
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="card-elevated max-w-3xl space-y-5">
+    <form onSubmit={handleSubmit} noValidate className="card-elevated max-w-3xl mx-auto space-y-5">
       {serverError && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {serverError}

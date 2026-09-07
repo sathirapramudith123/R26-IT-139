@@ -288,7 +288,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
   const stockHint  = isPurchase ? "Stock is added automatically" : "Stock is deducted automatically";
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="card-elevated max-w-4xl space-y-5">
+    <form onSubmit={handleSubmit} noValidate className="card-elevated max-w-4xl mx-auto space-y-5">
       {serverError && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{serverError}</div>
       )}
