@@ -1,6 +1,5 @@
 "use client";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { NAV_ITEMS, NAV_GROUPS } from "@/lib/constants";
 import {
@@ -21,24 +20,6 @@ export default function Sidebar() {
 
   return (
     <aside className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:sticky md:top-20 md:w-64 dark:border-slate-800 dark:bg-slate-900">
-      {/* Brand */}
-      <div className="flex items-center gap-2.5 border-b border-slate-100 px-4 py-4 dark:border-slate-800">
-        <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 shadow-sm">
-          <Image
-            src="/lankalinklogo.png"
-            alt="Lanka-Link"
-            width={28}
-            height={28}
-            className="object-contain"
-            onError={(e) => { e.currentTarget.style.display = "none"; }}
-          />
-        </div>
-        <div>
-          <div className="font-outfit text-sm font-bold leading-none text-slate-900 dark:text-slate-100">Lanka-Link</div>
-          <div className="mt-0.5 text-[10px] text-slate-400">Smart Merchant</div>
-        </div>
-      </div>
-
       {/* Nav */}
       <nav className="space-y-5 p-3">
         {ORDER.map((group) => {
