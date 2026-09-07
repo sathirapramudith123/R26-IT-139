@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../config/modules.dart';
 import '../core/theme.dart';
 import '../core/api.dart';
@@ -93,7 +92,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onRefresh: _loadMetrics,
           child: CustomScrollView(
             slivers: [
-              // ---- Warm header ----
+              // ---- Header ----
               SliverToBoxAdapter(
                 child: Container(
                   width: double.infinity,
@@ -101,10 +100,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft, end: Alignment.bottomRight,
-                      colors: [teal, const Color(0xFF094F45)],
+                      colors: [teal, const Color(0xFF081B3A)],
                     ),
                     borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(36), bottomRight: Radius.circular(36),
+                      bottomLeft: Radius.circular(28), bottomRight: Radius.circular(28),
                     ),
                   ),
                   child: Column(
@@ -113,11 +112,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Row(children: [
                         Container(
                           height: 44, width: 44,
-                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.18), borderRadius: BorderRadius.circular(14)),
-                          child: const Center(child: Text("🌿", style: TextStyle(fontSize: 22))),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.14), borderRadius: BorderRadius.circular(12)),
+                          child: const Center(child: Icon(Icons.storefront_outlined, color: Colors.white, size: 24)),
                         ),
                         const SizedBox(width: 10),
-                        Text("Lanka-Link", style: GoogleFonts.nunito(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+                        Text("Lanka-Link", style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white)),
                         const Spacer(),
 
                         // ---- Notification bell with unread badge ----
@@ -176,7 +175,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ]),
                       const SizedBox(height: 18),
-                      Text("Ayubowan 👋", style: GoogleFonts.nunito(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800)),
+                      Text("Ayubowan 👋", style: Theme.of(context).textTheme.headlineLarge?.copyWith(color: Colors.white)),
                       const SizedBox(height: 4),
                       Text("Here's your Lanka-Link today.", style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 14)),
                     ],
@@ -195,23 +194,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     GradientStatCard(
                       label: "Total Income",
                       value: loading ? "…" : _money(income),
-                      gradient: const [Color(0xFF0D7566), Color(0xFF0891A5)],
+                      gradient: const [Color(0xFF14335E), Color(0xFF1E4785)],
                     ),
                     GradientStatCard(
                       label: "Total Expense",
                       value: loading ? "…" : _money(expense),
-                      gradient: const [Color(0xFFF59E0B), Color(0xFFEF4444)],
+                      gradient: const [Color(0xFF8A2E2E), Color(0xFF5C1E1E)],
                     ),
                     GradientStatCard(
                       label: "Net Profit",
                       value: loading ? "…" : _money(income - expense),
-                      gradient: const [Color(0xFF059669), Color(0xFF0D7566)],
+                      gradient: const [Color(0xFF1E7A46), Color(0xFF14522F)],
                       onTap: _openIncomeStatement,
                     ),
                     GradientStatCard(
                       label: "Low Stock Items",
                       value: loading ? "…" : "$lowStock",
-                      gradient: const [Color(0xFF1E3A5F), Color(0xFF1E40AF)],
+                      gradient: const [Color(0xFF37415A), Color(0xFF232B3D)],
                     ),
                   ]),
                 ),
@@ -221,7 +220,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
-                  child: Text("Modules", style: GoogleFonts.nunito(fontSize: 16, fontWeight: FontWeight.w800)),
+                  child: Text("Modules", style: Theme.of(context).textTheme.titleMedium),
                 ),
               ),
 
@@ -238,11 +237,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ListScreen(module: m))),
                         )),
                     ModuleTile(
-                      icon: "📊", title: "Financial Statement",
+                      icon: Icons.bar_chart_outlined, title: "Financial Statement",
                       onTap: _openIncomeStatement,
                     ),
                     ModuleTile(
-                      icon: "🤖", title: "Predictions", highlight: true,
+                      icon: Icons.insights_outlined, title: "Predictions", highlight: true,
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PredictionsHubScreen())),
                     ),
                   ]),

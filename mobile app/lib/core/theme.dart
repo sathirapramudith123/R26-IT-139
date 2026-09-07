@@ -1,39 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// ---- Warm "Kade" palette ----
+// ---- Corporate "Kade" palette (navy/blue, banking-app style) ----
+// NOTE: field names are unchanged on purpose — every screen in the app
+// references these directly (KadeColors.teal, .tealDark, .terra, etc.), so
+// only the *values* change here. Renaming would break every other file.
 class KadeColors {
-  // shared brand
-  static const teal = Color(0xFF0D7566);
-  static const tealDark = Color(0xFF2BB39C);
-  static const amber = Color(0xFFE0912F);
-  static const terra = Color(0xFFC65D3B);
+  // shared brand — deep navy for light mode, a brighter corporate blue for
+  // dark mode (so it still reads clearly against a near-black background)
+  static const teal = Color(0xFF0F2C59);       // deep navy — primary (light)
+  static const tealDark = Color(0xFF4C8DFF);   // corporate blue — primary (dark)
+  static const amber = Color(0xFFB8860B);      // muted gold — warning accent
+  static const terra = Color(0xFFC62828);      // corporate red — error accent
 
   // semantic (used across both themes for status/state)
-  static const success = Color(0xFF3F9142);
-  static const successDark = Color(0xFF6BC96E);
+  static const success = Color(0xFF1E7A46);
+  static const successDark = Color(0xFF4CAF7D);
   static const danger = terra;        // reuse terra as the "error" accent
-  static const dangerDark = Color(0xFFE0836A);
+  static const dangerDark = Color(0xFFEF5350);
   static const warning = amber;       // reuse amber as the "warning" accent
-  static const warningDark = Color(0xFFF0AC5C);
+  static const warningDark = Color(0xFFFFC107);
   static const info = teal;
   static const infoDark = tealDark;
 
-  // light
-  static const bgLight = Color(0xFFFAF6EF);
+  // light — cool neutral grays instead of warm cream
+  static const bgLight = Color(0xFFF4F6F9);
   static const surfaceLight = Color(0xFFFFFFFF);
-  static const surfaceMutedLight = Color(0xFFF3EDE1);
-  static const borderLight = Color(0xFFECE3D5);
-  static const textLight = Color(0xFF2B2320);
-  static const textSoftLight = Color(0xFF6F635A);
+  static const surfaceMutedLight = Color(0xFFEDF1F7);
+  static const borderLight = Color(0xFFE0E6EE);
+  static const textLight = Color(0xFF1A2233);
+  static const textSoftLight = Color(0xFF5B6478);
 
-  // dark
-  static const bgDark = Color(0xFF1F1A17);
-  static const surfaceDark = Color(0xFF2A2420);
-  static const surfaceMutedDark = Color(0xFF332C26);
-  static const borderDark = Color(0xFF3D332C);
-  static const textDark = Color(0xFFF3EBE2);
-  static const textSoftDark = Color(0xFFB9AA9C);
+  // dark — near-black navy, premium fintech feel
+  static const bgDark = Color(0xFF0B1220);
+  static const surfaceDark = Color(0xFF141B2E);
+  static const surfaceMutedDark = Color(0xFF1C253B);
+  static const borderDark = Color(0xFF283249);
+  static const textDark = Color(0xFFEFF2F7);
+  static const textSoftDark = Color(0xFFA3ADC2);
 }
 
 // ---- Shared spacing & radius scale (reference these instead of raw numbers) ----
@@ -47,19 +51,19 @@ class KadeSpacing {
 }
 
 class KadeRadius {
-  static const sm = 12.0;
-  static const md = 16.0;
-  static const lg = 20.0; // matches CardTheme below
+  static const sm = 8.0;
+  static const md = 12.0;
+  static const lg = 16.0; // matches CardTheme below
   static const pill = 999.0;
 }
 
 TextTheme _buildTextTheme(Color primary, Color soft) {
   final base = TextTheme(
-    displayLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: primary, height: 1.2),
-    displayMedium: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: primary, height: 1.2),
+    displayLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.w700, color: primary, height: 1.2),
+    displayMedium: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: primary, height: 1.2),
     headlineLarge: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: primary, height: 1.25),
-    headlineMedium: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: primary, height: 1.3),
-    titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: primary),
+    headlineMedium: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: primary, height: 1.3),
+    titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: primary),
     titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: primary),
     titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primary),
     bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: primary, height: 1.5),
@@ -69,9 +73,12 @@ TextTheme _buildTextTheme(Color primary, Color soft) {
     labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: soft),
     labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: soft),
   );
-  // Applies the Nunito font (downloaded/cached by google_fonts) to every
-  // style above while keeping the sizes/weights/colors we set.
-  return GoogleFonts.nunitoTextTheme(base);
+  // Applies Inter (downloaded/cached by google_fonts) to every style above
+  // while keeping the sizes/weights/colors we set. Inter reads as clean and
+  // businesslike — the standard choice for fintech/enterprise apps (Stripe,
+  // Mercury, most banking dashboards) — versus Nunito's rounded, consumer
+  // feel from the old warm theme.
+  return GoogleFonts.interTextTheme(base);
 }
 
 ThemeData buildLightTheme() {
@@ -105,7 +112,7 @@ ThemeData buildLightTheme() {
       foregroundColor: KadeColors.textLight,
       elevation: 0,
       centerTitle: false,
-      titleTextStyle: GoogleFonts.nunito(fontSize: 20, fontWeight: FontWeight.w700, color: KadeColors.textLight),
+      titleTextStyle: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w700, color: KadeColors.textLight),
     ),
     elevatedButtonTheme: _elevatedButtonTheme(KadeColors.teal, Colors.white),
     outlinedButtonTheme: _outlinedButtonTheme(KadeColors.teal, KadeColors.borderLight),
@@ -146,7 +153,7 @@ ThemeData buildDarkTheme() {
       foregroundColor: KadeColors.textDark,
       elevation: 0,
       centerTitle: false,
-      titleTextStyle: GoogleFonts.nunito(fontSize: 20, fontWeight: FontWeight.w700, color: KadeColors.textDark),
+      titleTextStyle: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w700, color: KadeColors.textDark),
     ),
     elevatedButtonTheme: _elevatedButtonTheme(KadeColors.tealDark, KadeColors.bgDark),
     outlinedButtonTheme: _outlinedButtonTheme(KadeColors.tealDark, KadeColors.borderDark),
@@ -181,7 +188,7 @@ ElevatedButtonThemeData _elevatedButtonTheme(Color bg, Color fg) {
       elevation: 0,
       padding: const EdgeInsets.symmetric(horizontal: KadeSpacing.lg, vertical: KadeSpacing.md),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(KadeRadius.md)),
-      textStyle: GoogleFonts.nunito(fontSize: 15, fontWeight: FontWeight.w700),
+      textStyle: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600),
     ),
   );
 }
@@ -193,7 +200,7 @@ OutlinedButtonThemeData _outlinedButtonTheme(Color fg, Color border) {
       side: BorderSide(color: border),
       padding: const EdgeInsets.symmetric(horizontal: KadeSpacing.lg, vertical: KadeSpacing.md),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(KadeRadius.md)),
-      textStyle: GoogleFonts.nunito(fontSize: 15, fontWeight: FontWeight.w700),
+      textStyle: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600),
     ),
   );
 }
@@ -203,7 +210,7 @@ TextButtonThemeData _textButtonTheme(Color fg) {
     style: TextButton.styleFrom(
       foregroundColor: fg,
       padding: const EdgeInsets.symmetric(horizontal: KadeSpacing.sm, vertical: KadeSpacing.sm),
-      textStyle: GoogleFonts.nunito(fontSize: 14, fontWeight: FontWeight.w700),
+      textStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
     ),
   );
 }
@@ -211,7 +218,7 @@ TextButtonThemeData _textButtonTheme(Color fg) {
 SnackBarThemeData _snackBarTheme(Color fg, Color bg) {
   return SnackBarThemeData(
     backgroundColor: fg, // inverted for contrast, like most Material apps
-    contentTextStyle: GoogleFonts.nunito(color: bg, fontWeight: FontWeight.w600),
+    contentTextStyle: GoogleFonts.inter(color: bg, fontWeight: FontWeight.w600),
     behavior: SnackBarBehavior.floating,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(KadeRadius.sm)),
   );
@@ -220,7 +227,7 @@ SnackBarThemeData _snackBarTheme(Color fg, Color bg) {
 ChipThemeData _chipTheme(Color bg, Color fg, Color border) {
   return ChipThemeData(
     backgroundColor: bg,
-    labelStyle: GoogleFonts.nunito(color: fg, fontWeight: FontWeight.w600, fontSize: 12),
+    labelStyle: GoogleFonts.inter(color: fg, fontWeight: FontWeight.w600, fontSize: 12),
     side: BorderSide(color: border),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(KadeRadius.pill)),
     padding: const EdgeInsets.symmetric(horizontal: KadeSpacing.sm, vertical: 2),
