@@ -3,13 +3,38 @@ import '../config/modules.dart';
 import '../core/theme.dart';
 import '../core/api.dart';
 import '../services/auth_service.dart';
-import '../widgets/gradient_stat_card.dart';
 import '../widgets/module_tile.dart';
 import 'auth/login_screen.dart';
 import 'crud/list_screen.dart';
 import 'notifications_screen.dart';
 import 'predictions/predictions_hub_screen.dart';
 import 'reports/income_statement_screen.dart';
+import '../widgets/sky_scene.dart';
+
+/// Time-of-day theme — greeting, gradient colours and an icon that change by hour.
+class _TimeTheme {
+  final String greeting, sub;
+  final IconData icon;
+  final List<Color> hero;
+  const _TimeTheme(this.greeting, this.sub, this.icon, this.hero);
+}
+
+_TimeTheme _themeFor(int hour) {
+  if (hour >= 5 && hour < 12) {
+    return const _TimeTheme("Good morning", "A fresh start — here's your morning.",
+        Icons.wb_twilight, [Color(0xFFF59E0B), Color(0xFFEA580C), Color(0xFF0F766E)]);
+  }
+  if (hour >= 12 && hour < 17) {
+    return const _TimeTheme("Good afternoon", "The day's in full swing.",
+        Icons.wb_sunny, [Color(0xFF38BDF8), Color(0xFF0EA5E9), Color(0xFF0891B2)]);
+  }
+  if (hour >= 17 && hour < 21) {
+    return const _TimeTheme("Good evening", "Winding down — here's how today went.",
+        Icons.wb_twilight, [Color(0xFFF97316), Color(0xFFE11D48), Color(0xFF7C3AED)]);
+  }
+  return const _TimeTheme("Good night", "Late hours — a calm look at your numbers.",
+      Icons.nightlight_round, [Color(0xFF3730A3), Color(0xFF5B21B6), Color(0xFF0F172A)]);
+}
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -70,10 +95,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  String _money(double v) {
-    return "LKR ${v.toStringAsFixed(0)}";
-  }
-
   void _openIncomeStatement() {
     Navigator.push(
       context,
@@ -83,8 +104,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final teal = isDark ? KadeColors.tealDark : KadeColors.teal;
+    final tt = _themeFor(DateTime.now().hour);
 
     return Scaffold(
       body: SafeArea(
@@ -92,20 +112,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onRefresh: _loadMetrics,
           child: CustomScrollView(
             slivers: [
-              // ---- Header ----
+              // ---- Header (animated time-of-day sky scene) ----
               SliverToBoxAdapter(
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft, end: Alignment.bottomRight,
-                      colors: [teal, const Color(0xFF081B3A)],
+                child: Stack(
+                  children: [
+                    // animated sky behind everything
+                    Positioned.fill(
+                      child: SkyScene(phase: skyPhaseForHour(DateTime.now().hour), height: 190),
                     ),
-                    borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(28), bottomRight: Radius.circular(28),
+                    // subtle dark overlay for text legibility
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: const BorderRadius.only(
+                            bottomLeft: Radius.circular(28), bottomRight: Radius.circular(28)),
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                            colors: [Colors.black.withOpacity(0.10), Colors.black.withOpacity(0.28)],
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(24, 20, 24, 34),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -175,11 +205,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ]),
                       const SizedBox(height: 18),
-                      Text("Ayubowan 👋", style: Theme.of(context).textTheme.headlineLarge?.copyWith(color: Colors.white)),
+                      Text("${tt.greeting} 👋",
+                          style: Theme.of(context).textTheme.headlineLarge?.copyWith(color: Colors.white)),
                       const SizedBox(height: 4),
-                      Text("Here's your Lanka-Link today.", style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 14)),
+                      Text(tt.sub, style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 14)),
                     ],
                   ),
+                    ),
+                  ],
                 ),
               ),
 
@@ -191,25 +224,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.55,
                   ),
                   delegate: SliverChildListDelegate([
-                    GradientStatCard(
+                    _AnimatedStatCard(
                       label: "Total Income",
-                      value: loading ? "…" : _money(income),
+                      value: income,
+                      loading: loading,
                       gradient: const [Color(0xFF14335E), Color(0xFF1E4785)],
                     ),
-                    GradientStatCard(
+                    _AnimatedStatCard(
                       label: "Total Expense",
-                      value: loading ? "…" : _money(expense),
+                      value: expense,
+                      loading: loading,
                       gradient: const [Color(0xFF8A2E2E), Color(0xFF5C1E1E)],
                     ),
-                    GradientStatCard(
+                    _AnimatedStatCard(
                       label: "Net Profit",
-                      value: loading ? "…" : _money(income - expense),
+                      value: income - expense,
+                      loading: loading,
                       gradient: const [Color(0xFF1E7A46), Color(0xFF14522F)],
                       onTap: _openIncomeStatement,
                     ),
-                    GradientStatCard(
+                    _AnimatedStatCard(
                       label: "Low Stock Items",
-                      value: loading ? "…" : "$lowStock",
+                      value: lowStock.toDouble(),
+                      loading: loading,
+                      isCount: true,
                       gradient: const [Color(0xFF37415A), Color(0xFF232B3D)],
                     ),
                   ]),
@@ -249,6 +287,74 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+/// Gradient stat card whose number counts up from 0 to [value] on load.
+class _AnimatedStatCard extends StatelessWidget {
+  final String label;
+  final double value;
+  final bool loading;
+  final bool isCount;      // integer count (no LKR prefix)
+  final List<Color> gradient;
+  final VoidCallback? onTap;
+
+  const _AnimatedStatCard({
+    required this.label,
+    required this.value,
+    required this.loading,
+    required this.gradient,
+    this.isCount = false,
+    this.onTap,
+  });
+
+  String _fmt(double v) {
+    if (isCount) return v.round().toString();
+    final n = v.round();
+    final s = n.toString().replaceAllMapped(
+      RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',');
+    return "LKR $s";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(color: gradient.first.withOpacity(0.35), blurRadius: 16, offset: const Offset(0, 8)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label,
+                maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.9), fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            loading
+                ? const Text("…", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white))
+                : TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: value),
+                    duration: const Duration(milliseconds: 1200),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, v, _) => FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(_fmt(v),
+                          maxLines: 1,
+                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: "Nunito")),
+                    ),
+                  ),
+          ],
         ),
       ),
     );
