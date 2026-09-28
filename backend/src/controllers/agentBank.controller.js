@@ -1,6 +1,6 @@
 import { supabase } from "../config/supabase.js";
 import { toClient } from "../utils/mappers.js";
-import { topUpFloat, floatHealth, getBank, getCashPool, addCashToPool } from "../utils/float.js";
+import { topUpFloat, floatHealth, getBank, getCashPool, addCashToPool, isFloatInflow } from "../utils/float.js";
 
 const TABLE = "agent_banks";
 const ID = "agent_bank_id";
@@ -21,6 +21,16 @@ const toDb = (b) => ({
   alert_crit_pct: num(b.alert_crit_pct) || 20,
   is_active:      b.is_active === undefined ? true : Boolean(b.is_active),
 });
+
+// Update: only the fields the client actually sent (missing ones keep their DB value).
+// float_balance is not editable here — it changes only through top-ups and transactions,
+// so every change has a ledger entry.
+const UPDATABLE = ["bank_name", "bank_code", "risk_tier", "float_floor", "float_ceiling",
+                   "alert_low_pct", "alert_crit_pct", "is_active"];
+const toDbUpdate = (b) => {
+  const full = toDb(b);
+  return Object.fromEntries(UPDATABLE.filter((k) => b[k] !== undefined).map((k) => [k, full[k]]));
+};
 
 // health + utilization එක්ක client shape
 const shape = (row) => {
@@ -76,8 +86,11 @@ export const create = async (req, res, next) => {
 
 export const update = async (req, res, next) => {
   try {
+    if (req.body.float_balance !== undefined)
+      return res.status(400).json({ error: "Float balance can only change through top-ups and transactions." });
+
     const { data, error } = await supabase
-      .from(TABLE).update({ ...toDb(req.body), updated_at: new Date().toISOString() })
+      .from(TABLE).update({ ...toDbUpdate(req.body), updated_at: new Date().toISOString() })
       .eq(ID, req.params.id).eq("user_id", req.user.id).select().maybeSingle();
     if (error) throw error;
     if (!data) return res.status(404).json({ error: "Bank not found" });
@@ -148,12 +161,13 @@ export const ledger = async (req, res, next) => {
     if (error) throw error;
 
     // Agent Float leg only. Float effect derived from event type:
-    //   DEPOSIT -> float DOWN (out) | WITHDRAWAL/TOPUP -> float UP (in)
+    //   DEPOSIT / WITHDRAWAL_REVERSAL -> float DOWN (out)
+    //   WITHDRAWAL / TOPUP / DEPOSIT_REVERSAL -> float UP (in)
     let totalIn = 0, totalOut = 0;
     const rows = (data || [])
       .filter((r) => r.gl_account === "Agent Float")
       .map((r) => {
-        const inflow = r.event_type === "WITHDRAWAL" || r.event_type === "TOPUP";
+        const inflow = isFloatInflow(r.event_type);
         const amt = Number(r.amount);
         if (inflow) totalIn += amt; else totalOut += amt;
         return {
@@ -193,7 +207,7 @@ export const summary = async (req, res, next) => {
     const byBank = {};
     for (const r of ledgerRows || []) {
       const b = (byBank[r.agent_bank_id] ||= { credit: 0, debit: 0 });
-      const inflow = r.event_type === "WITHDRAWAL" || r.event_type === "TOPUP";
+      const inflow = isFloatInflow(r.event_type);
       if (inflow) b.credit += Number(r.amount); else b.debit += Number(r.amount);
     }
 

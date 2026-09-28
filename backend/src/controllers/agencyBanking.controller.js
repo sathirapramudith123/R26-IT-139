@@ -2,7 +2,9 @@ import { supabase } from "../config/supabase.js";
 import { toClient, up } from "../utils/mappers.js";
 import { notify } from "./notification.controller.js";
 import { predict } from "../utils/mlClient.js";
-import { getBank, getCashPool, checkFloat, applyFloat, floatHealth } from "../utils/float.js";
+import { buildAnomalyFeatures } from "../utils/features.js";
+import { getBank, getCashPool, checkFloat, applyFloat, floatHealth,
+         simulateReverse, reverseFloat } from "../utils/float.js";
 
 const TABLE = "agency_banking";
 const ID = "agency_banking_id";
@@ -118,15 +120,20 @@ async function checkLimit(userId, payload, excludeId = null) {
   return null;
 }
 
-async function runAnomaly(payload) {
+// Sends the same feature set the model was trained on (paysim.csv) —
+// see buildAnomalyFeatures(). z-score uses the user's last 50 transactions.
+async function runAnomaly(userId, payload, createdAt = null) {
   let result = { is_anomaly: false, anomaly_score: 0 };
   try {
-    const r = await predict("anomaly", {
-      amount: payload.amount, service_fee: payload.service_fee,
-      commission: payload.commission, tx_hour: payload.tx_hour,
-      channel: payload.channel, transaction_type: payload.transaction_type,
-    });
-    result = { is_anomaly: r.is_anomaly || r.prediction === -1, anomaly_score: r.anomaly_score || 0 };
+    const { data: history } = await supabase
+      .from(TABLE).select("amount")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    const txn = { ...payload, created_at: createdAt || new Date().toISOString() };
+    const r = await predict("anomaly", buildAnomalyFeatures(txn, [txn, ...(history || [])]));
+    result = { is_anomaly: r.prediction === 1, anomaly_score: Number(r.score) || 0 };
   } catch (mlErr) {
     console.error("ML Prediction Failed, proceeding with defaults:", mlErr.message);
   }
@@ -182,7 +189,7 @@ export const create = async (req, res, next) => {
     }
 
     // 3. ML anomaly + CBSL amount-based risk (hybrid, timestamp-free)
-    const mlResult = await runAnomaly(payload);
+    const mlResult = await runAnomaly(req.user.id, payload);
     const amtRisk = cbslAmountRisk(payload.transaction_type, payload.amount);
     // final flag = ML anomaly OR CBSL amount over limit
     const isAnomaly = mlResult.is_anomaly || amtRisk.flag;
@@ -243,14 +250,67 @@ export const update = async (req, res, next) => {
     const err = await checkLimit(req.user.id, payload, req.params.id);
     if (err) return res.status(400).json({ error: err });
 
-    const mlResult = await runAnomaly(payload);
+    const { data: old } = await supabase
+      .from(TABLE).select("*")
+      .eq(ID, req.params.id).eq("user_id", req.user.id).maybeSingle();
+    if (!old) return res.status(404).json({ error: "Transaction not found" });
+
+    // Float / cash: only records whose float was actually applied are re-balanced.
+    // Older records without a float movement keep their previous behaviour.
+    const oldApplied = Boolean(old.agent_bank_id && old.float_after != null);
+    const moneyChanged =
+      old.agent_bank_id !== payload.agent_bank_id ||
+      num(old.amount) !== num(payload.amount) ||
+      old.transaction_type !== payload.transaction_type;
+
+    let newFloatAfter = old.float_after ?? null;
+    if (oldApplied && moneyChanged) {
+      // 1) Validate everything first (no writes): undo old, then check new on those balances
+      const pool = await getCashPool(req.user.id);
+      const oldBank = await getBank(req.user.id, old.agent_bank_id);
+      const simPool = { ...pool };
+      let simOldBank = null;
+      if (oldBank) {
+        const r = simulateReverse(oldBank, pool, old.transaction_type, old.amount);
+        if (r.block) return res.status(400).json({ error: r.reason });
+        simPool.cash_on_hand = r.cashAfter;
+        simOldBank = { ...oldBank, float_balance: r.floatAfter };
+      }
+      if (payload.agent_bank_id) {
+        const target = payload.agent_bank_id === old.agent_bank_id && simOldBank
+          ? simOldBank
+          : await getBank(req.user.id, payload.agent_bank_id);
+        if (!target) return res.status(400).json({ error: "Selected bank not found." });
+        const fc = checkFloat(target, simPool, payload.transaction_type, payload.amount);
+        if (fc.block) return res.status(400).json({ error: fc.reason });
+      }
+
+      // 2) Write: reversal of the original entry, then the new movement
+      if (oldBank) {
+        await reverseFloat(req.user.id, oldBank, pool, old.transaction_type, old.amount,
+                           old[ID], "Edited — original entry reversed");
+      }
+      newFloatAfter = null;
+      if (payload.agent_bank_id) {
+        const [bank, freshPool] = await Promise.all([
+          getBank(req.user.id, payload.agent_bank_id),
+          getCashPool(req.user.id),
+        ]);
+        const r = await applyFloat(req.user.id, bank, freshPool, payload.transaction_type,
+                                   payload.amount, old[ID]);
+        newFloatAfter = r.floatAfter;
+      }
+    }
+
+    // original timestamp so weekday/day_of_month features stay correct on edit
+    const mlResult = await runAnomaly(req.user.id, payload, old.created_at);
     const amtRisk = cbslAmountRisk(payload.transaction_type, payload.amount);
     const isAnomaly = mlResult.is_anomaly || amtRisk.flag;
     const anomalyScore = Math.min(100, Math.max(Number(mlResult.anomaly_score) || 0, Math.round(amtRisk.ratio * 100)));
 
     const { data, error } = await supabase
       .from(TABLE).update({
-        ...payload, is_anomaly: isAnomaly,
+        ...payload, is_anomaly: isAnomaly, float_after: newFloatAfter,
         anomaly_score: anomalyScore, updated_at: new Date().toISOString(),
       }).eq(ID, req.params.id).eq("user_id", req.user.id).select().maybeSingle();
     if (error) throw error;
@@ -275,6 +335,21 @@ export const markSafe = async (req, res, next) => {
 
 export const remove = async (req, res, next) => {
   try {
+    const { data: old } = await supabase
+      .from(TABLE).select("*").eq(ID, req.params.id).eq("user_id", req.user.id).maybeSingle();
+    if (!old) return res.status(404).json({ error: "Transaction not found" });
+
+    // Undo the float / cash movement before the record goes away
+    if (old.agent_bank_id && old.float_after != null) {
+      const bank = await getBank(req.user.id, old.agent_bank_id);
+      if (bank) {
+        const pool = await getCashPool(req.user.id);
+        const r = await reverseFloat(req.user.id, bank, pool, old.transaction_type, old.amount,
+                                     old[ID], "Deleted — entry reversed");
+        if (r.block) return res.status(400).json({ error: r.reason });
+      }
+    }
+
     const { error } = await supabase
       .from(TABLE).delete().eq(ID, req.params.id).eq("user_id", req.user.id);
     if (error) throw error;

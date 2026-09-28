@@ -191,3 +191,65 @@ export async function topUpFloat(userId, bank, pool, amount, note = "Float top-u
 
   return { ok: true, block: false, floatAfter: float, cashAfter };
 }
+/* -------------------------------------------------------------------------- */
+/*  Reversal — undo what applyFloat() did (edit / delete of a transaction).   */
+/*  Ledger rows are never changed; an opposite entry is appended instead.     */
+/* -------------------------------------------------------------------------- */
+const FLOAT_IN_EVENTS = ["WITHDRAWAL", "TOPUP", "DEPOSIT_REVERSAL"];
+export const isFloatInflow = (eventType) => FLOAT_IN_EVENTS.includes(eventType);
+
+// Balances after undoing a movement — no DB writes
+export function simulateReverse(bank, pool, type, amount) {
+  const t = String(type || "").toUpperCase();
+  const amt = num(amount);
+  let float = num(bank.float_balance);
+  let cash = num(pool.cash_on_hand);
+
+  if (t.includes("DEPOSIT")) {            // original: float -amt, cash +amt
+    float += amt; cash -= amt;
+    if (cash < 0) {
+      return { ok: false, block: true,
+        reason: `Cannot undo this deposit — cash on hand (LKR ${num(pool.cash_on_hand).toLocaleString()}) ` +
+                `is less than LKR ${amt.toLocaleString()}.` };
+    }
+  } else if (t.includes("WITHDRAWAL")) {  // original: float +amt, cash -amt
+    float -= amt; cash += amt;
+    if (float < 0) {
+      return { ok: false, block: true,
+        reason: `Cannot undo this withdrawal — ${bank.bank_name} float (LKR ${num(bank.float_balance).toLocaleString()}) ` +
+                `is less than LKR ${amt.toLocaleString()}.` };
+    }
+  }
+  return { ok: true, block: false, floatAfter: float, cashAfter: cash };
+}
+
+export async function reverseFloat(userId, bank, pool, type, amount, agencyBankingId = null, note = null) {
+  const t = String(type || "").toUpperCase();
+  const isDep = t.includes("DEPOSIT");
+  if (!isDep && !t.includes("WITHDRAWAL")) return { ok: true, block: false }; // no float effect
+
+  const sim = simulateReverse(bank, pool, type, amount);
+  if (!sim.ok) return sim;
+
+  const base = { user_id: userId, agent_bank_id: bank.agent_bank_id,
+    agency_banking_id: agencyBankingId, journal_ref: randomUUID(), amount: num(amount), note,
+    event_type: isDep ? "DEPOSIT_REVERSAL" : "WITHDRAWAL_REVERSAL" };
+
+  // opposite GL directions of applyFloat()
+  const rows = isDep
+    ? [{ ...base, gl_account: "Agent Float",        gl_direction: "CR", float_after: sim.floatAfter },
+       { ...base, gl_account: "Agent Cash-on-Hand", gl_direction: "DR", float_after: null }]
+    : [{ ...base, gl_account: "Agent Cash-on-Hand", gl_direction: "CR", float_after: null },
+       { ...base, gl_account: "Agent Float",        gl_direction: "DR", float_after: sim.floatAfter }];
+
+  const { error: le } = await supabase.from("agent_float_ledger").insert(rows);
+  if (le) throw le;
+
+  const { error: be } = await supabase.from("agent_banks")
+    .update({ float_balance: sim.floatAfter, updated_at: new Date().toISOString() })
+    .eq("agent_bank_id", bank.agent_bank_id).eq("user_id", userId);
+  if (be) throw be;
+
+  await setPoolCash(userId, sim.cashAfter);
+  return { ok: true, block: false, floatAfter: sim.floatAfter, cashAfter: sim.cashAfter };
+}

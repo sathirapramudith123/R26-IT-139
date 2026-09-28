@@ -269,7 +269,32 @@ def predict(req: PredictRequest):
                 'rule_alerts': rule_alerts if rule_alerts else ['None'],
             }
 
-    
+        # Hybrid anomaly: Isolation Forest flag (training Step 4) feeds the champion model
+        elif comp_key == 'anomaly' and isinstance(bundle_or_model, dict) and 'iso_forest' in bundle_or_model:
+            champion = bundle_or_model['champion_model']
+            iso_cols = list(bundle_or_model['iso_num_cols'])
+
+            for c in iso_cols:
+                if features_dict.get(c) in (None, ''):
+                    features_dict[c] = 0.0
+            iso_X = pd.DataFrame([features_dict])[iso_cols]
+            iso_imp = bundle_or_model['iso_imputer'].transform(iso_X)
+            iso_flag = int(bundle_or_model['iso_forest'].predict(iso_imp)[0] == -1)
+            features_dict['unsupervised_anomaly_score'] = iso_flag
+
+            cols = list(getattr(champion, 'feature_names_in_', [])) or needed
+            X = pd.DataFrame([features_dict])[cols]
+            prob = float(champion.predict_proba(X)[0, 1])
+            is_anomaly = prob >= 0.5
+
+            return {
+                'component': 'anomaly',
+                'prediction': int(is_anomaly),
+                'is_anomaly': is_anomaly,
+                'score': round(prob * 100, 1),
+                'isolation_forest_flag': iso_flag,
+            }
+
         else:
             model = None
             if isinstance(bundle_or_model, dict):

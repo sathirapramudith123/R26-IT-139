@@ -299,7 +299,9 @@ export function buildAnomalyFeatures(txn, allTxns) {
     const sd = Math.sqrt(amounts.reduce((s, v) => s + (v - mean) ** 2, 0) / amounts.length);
     if (sd > 0) z = (num(txn.amount) - mean) / sd;
   }
-  const d = new Date(txn.created_at);
+  // Sri Lanka local time (server may run in UTC)
+  const d = new Date(new Date(txn.created_at || Date.now())
+    .toLocaleString("en-US", { timeZone: "Asia/Colombo" }));
   const type = String(txn.transaction_type || "").toLowerCase();
 
   // Map our transaction types to the training vocabulary (paysim.csv)
@@ -316,7 +318,7 @@ export function buildAnomalyFeatures(txn, allTxns) {
     amount_abs_rs:   Math.abs(num(txn.amount)),
     direction:       type.includes("deposit") ? "in" : "out",
     channel:         "agency_banking_agent",           // matches training vocabulary
-    weekday:         d.getDay(),
+    weekday:         (d.getDay() + 6) % 7,             // pandas convention: Monday=0 ... Sunday=6
     day_of_month:    d.getDate(),
     created_offline: txn.created_offline ? 1 : 0,
     amount_zscore:   zscore,

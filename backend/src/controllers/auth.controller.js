@@ -2,6 +2,10 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { supabase } from "../config/supabase.js";
+import { sendResetEmail } from "../utils/mailer.js";
+
+// Reset tokens are stored hashed, so a leaked DB row cannot be used to reset a password
+const hashToken = (t) => crypto.createHash("sha256").update(String(t)).digest("hex");
 
 const signToken = (u) =>
   jwt.sign({ id: u.user_id, email: u.email }, process.env.JWT_SECRET, {
@@ -65,21 +69,31 @@ export const forgotPassword = async (req, res, next) => {
     if (!email) return res.status(400).json({ error: "Email is required" });
 
     const { data: user } = await supabase
-      .from("users").select("user_id").eq("email", email).maybeSingle();
-    if (!user)
-      return res.json({ message: "If that email exists, a reset token was generated" });
+      .from("users").select("user_id, email").eq("email", email).maybeSingle();
+    // Same response whether or not the email exists, and the token is never
+    // returned to the caller — it must reach the user by email only.
+    const GENERIC = { message: "If that email exists, a reset link has been sent" };
+    if (!user) return res.json(GENERIC);
 
-    const reset_token = crypto.randomBytes(32).toString("hex");
+    const rawToken = crypto.randomBytes(32).toString("hex");   // sent by email only
+    const reset_token = hashToken(rawToken);                   // stored in the DB
     const reset_token_expiry = new Date(Date.now() + 3600_000).toISOString();
 
-    await supabase.from("users")
+    const { error } = await supabase.from("users")
       .update({ reset_token, reset_token_expiry })
       .eq("user_id", user.user_id);
+    if (error) throw error;
 
-    res.json({
-      message: "If that email exists, a reset token was generated",
-      resetToken: reset_token, 
-    });
+    const frontend = (process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/$/, "");
+    const link = `${frontend}/auth/reset-password?token=${rawToken}`;
+    try {
+      await sendResetEmail(user.email, link);
+    } catch (mailErr) {
+      // Don't reveal mail failures to the caller (would leak whether the email exists)
+      console.error("[mail] reset email failed:", mailErr.message);
+    }
+
+    res.json(GENERIC);
   } catch (e) { next(e); }
 };
 
@@ -92,15 +106,16 @@ export const resetPassword = async (req, res, next) => {
       return res.status(400).json({ error: "Password must be at least 6 characters" });
 
     const { data: user } = await supabase
-      .from("users").select("*").eq("reset_token", token).maybeSingle();
+      .from("users").select("*").eq("reset_token", hashToken(token)).maybeSingle();
 
     if (!user || !user.reset_token_expiry || new Date(user.reset_token_expiry) < new Date())
       return res.status(400).json({ error: "Invalid or expired reset token" });
 
     const password_hash = await bcrypt.hash(password, 10);
-    await supabase.from("users")
+    const { error } = await supabase.from("users")
       .update({ password_hash, reset_token: null, reset_token_expiry: null })
       .eq("user_id", user.user_id);
+    if (error) throw error;
 
     res.json({ message: "Password reset successful" });
   } catch (e) { next(e); }

@@ -31,6 +31,12 @@ function LoginContent() {
         </p>
       </div>
 
+      {searchParams.get("reset") === "1" && (
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/10 p-3 text-center text-sm text-emerald-700 dark:text-emerald-400">
+          Your password has been updated. Please sign in with your new password.
+        </div>
+      )}
+
       {/* Card */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur-xl p-8 shadow-2xl">
         <AuthForm
