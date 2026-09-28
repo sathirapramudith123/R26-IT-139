@@ -14,7 +14,6 @@ import { User, Phone, AlertCircle, Loader2, Landmark, CreditCard } from "lucide-
 
 const STATUSES = ["completed", "pending", "failed"];
 
-// Rural agent build -> fixed LOW-tier daily limits (no KYC dropdown)
 const DAILY_LIMITS = {
   cash_deposit: 50000, cash_withdrawal: 25000, fund_transfer: 50000,
 };
@@ -62,7 +61,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
     status:           initialData.status           ?? "completed",
   });
 
-  // Load agent banks for the selector
+  
   useEffect(() => {
     agentBankApi.list()
       .then((d) => {
@@ -110,12 +109,12 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
     const amt = Number(v.amount);
     if (v.transaction_type === "cash_deposit") {
       floatAfter = bal - amt;         // float down
-      cashAfter = cash + amt;         // cash up
+      cashAfter = cash + amt;        
       if (floatAfter < 0) floatMsg = { type: "error", text: "Insufficient float to fund this deposit." };
       else if (floatAfter < Number(selectedBank.float_floor)) floatMsg = { type: "warn", text: "Float will drop below floor — top-up recommended." };
     } else if (v.transaction_type === "cash_withdrawal") {
-      floatAfter = bal + amt;         // float up
-      cashAfter = cash - amt;         // cash down
+      floatAfter = bal + amt;         
+      cashAfter = cash - amt;        
       if (cashAfter < 0) floatMsg = { type: "error", text: "Insufficient cash on hand to pay out this withdrawal." };
       else if (floatAfter > Number(selectedBank.float_ceiling)) floatMsg = { type: "warn", text: "Float will exceed ceiling — schedule a sweep." };
     }
@@ -135,7 +134,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
       if (!v.source_of_funds) er.source_of_funds = "Source of funds is required for deposits.";
       if (v.source_of_funds === "OTHER" && !v.source_other.trim()) er.source_other = "Please specify the source of funds.";
     }
-    // client-side float guard (backend enforces too)
+    
     if (floatMsg?.type === "error") er.amount = "Insufficient float in the selected bank for this deposit.";
 
     if (Object.keys(er).length) { setErrors(er); return; }
