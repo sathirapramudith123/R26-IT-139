@@ -356,12 +356,23 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                SizedBox(
-                  width: 96,
+                Expanded(
+                  // takes a share of the row (a fixed width overflowed with longer unit names)
                   child: DropdownButtonFormField<String>(
                     value: itemUnit,
-                    decoration: InputDecoration(labelText: tr("Unit")),
-                    items: _units.map((u) => DropdownMenuItem(value: u, child: Text(tr(u)))).toList(),
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: tr("Unit"),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
+                    ),
+                    items: _units
+                        .map(
+                          (u) => DropdownMenuItem(
+                            value: u,
+                            child: Text(tr(u), overflow: TextOverflow.ellipsis),
+                          ),
+                        )
+                        .toList(),
                     onChanged: saving ? null : (u) => setState(() => itemUnit = u ?? "kg"),
                   ),
                 ),

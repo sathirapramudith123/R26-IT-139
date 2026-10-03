@@ -438,15 +438,22 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                SizedBox(
-                  width: 110,
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       fieldLabel(tr("Unit")),
                       DropdownButtonFormField<String>(
                         value: _units.contains(unit) ? unit : "unit",
-                        items: _units.map((o) => DropdownMenuItem(value: o, child: Text(tr(o)))).toList(),
+                        isExpanded: true,
+                        items: _units
+                            .map(
+                              (o) => DropdownMenuItem(
+                                value: o,
+                                child: Text(tr(o), overflow: TextOverflow.ellipsis),
+                              ),
+                            )
+                            .toList(),
                         onChanged: saving ? null : (v) => setState(() => unit = v ?? "unit"),
                       ),
                     ],
