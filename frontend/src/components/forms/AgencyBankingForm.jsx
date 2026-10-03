@@ -180,20 +180,21 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
   async function handleSubmit(e) {
     e.preventDefault();
     const er = {};
-    if (!v.customer_name.trim()) er.customer_name = "Customer name is required.";
-    if (!isValidPhone(v.customer_phone)) er.customer_phone = "Enter a valid Sri Lankan number.";
-    if (!v.amount || Number(v.amount) <= 0) er.amount = "Enter an amount greater than 0.";
+    if (!v.customer_name.trim()) er.customer_name = t("Customer name is required.");
+    if (!isValidPhone(v.customer_phone)) er.customer_phone = t("Enter a valid Sri Lankan number.");
+    if (!v.amount || Number(v.amount) <= 0) er.amount = t("Enter an amount greater than 0.");
     if (limit && Number(v.amount) > limit) {
       er.amount = `${t("Daily limit is")} ${formatCurrency(limit)}.`;
     }
-    if (!v.account_number.trim()) er.account_number = "Account number is required.";
+    if (!v.account_number.trim()) er.account_number = t("Account number is required.");
     if (v.transaction_type === "cash_deposit") {
-      if (!v.source_of_funds) er.source_of_funds = "Source of funds is required for deposits.";
+      if (!v.source_of_funds) er.source_of_funds = t("Source of funds is required for deposits.");
       if (v.source_of_funds === "OTHER" && !v.source_other.trim())
-        er.source_other = "Please specify the source of funds.";
+        er.source_other = t("Please specify the source of funds.");
     }
 
-    if (floatMsg?.type === "error") er.amount = "Insufficient float in the selected bank for this deposit.";
+    if (floatMsg?.type === "error")
+      er.amount = t("Insufficient float in the selected bank for this deposit.");
 
     if (Object.keys(er).length) {
       setErrors(er);

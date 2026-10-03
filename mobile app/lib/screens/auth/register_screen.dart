@@ -83,12 +83,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 12),
                     Text(
                       tr("Create account"),
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 30,
-                        fontWeight: FontWeight.w800,
-                        fontFamily: "Nunito",
-                      ),
+                      style: TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 6),
                     Text(
@@ -141,10 +136,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ),
 
-                      Text(
-                        tr("Full Name"),
-                        style: TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito"),
-                      ),
+                      Text(tr("Full Name"), style: TextStyle(fontWeight: FontWeight.w700)),
                       const SizedBox(height: 6),
                       TextField(
                         controller: fullName,
@@ -155,10 +147,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      Text(
-                        tr("Email"),
-                        style: TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito"),
-                      ),
+                      Text(tr("Email"), style: TextStyle(fontWeight: FontWeight.w700)),
                       const SizedBox(height: 6),
                       TextField(
                         controller: email,
@@ -170,10 +159,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      Text(
-                        tr("Password"),
-                        style: TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito"),
-                      ),
+                      Text(tr("Password"), style: TextStyle(fontWeight: FontWeight.w700)),
                       const SizedBox(height: 6),
                       TextField(
                         controller: password,
@@ -205,11 +191,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 )
                               : Text(
                                   tr("Create Account"),
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    fontFamily: "Nunito",
-                                  ),
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                                 ),
                         ),
                       ),
@@ -231,7 +213,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       onTap: () => Navigator.pop(context),
                       child: Text(
                         tr("Sign in"),
-                        style: TextStyle(color: teal, fontWeight: FontWeight.w800, fontFamily: "Nunito"),
+                        style: TextStyle(color: teal, fontWeight: FontWeight.w800),
                       ),
                     ),
                   ],

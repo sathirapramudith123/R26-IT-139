@@ -89,6 +89,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
   Timer? _debounce;
   List<_PlaceSuggestion> _suggestions = [];
   bool _searching = false;
+  String? _searchError; // shown under the search box when Google rejects the request
 
   Set<Polyline> _polylines = {};
   String? _routeDistanceKm;
@@ -188,14 +189,27 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
   void _onSearchChanged(String query) {
     _debounce?.cancel();
     if (query.trim().isEmpty) {
-      setState(() => _suggestions = []);
+      setState(() {
+        _suggestions = [];
+        _searchError = null;
+      });
       return;
     }
     _debounce = Timer(const Duration(milliseconds: 400), () => _fetchSuggestions(query));
   }
 
   Future<void> _fetchSuggestions(String query) async {
-    setState(() => _searching = true);
+    if (_kGoogleApiKey.isEmpty) {
+      setState(
+        () =>
+            _searchError = tr("Map search needs the Google Maps key — run with --dart-define-from-file=.env"),
+      );
+      return;
+    }
+    setState(() {
+      _searching = true;
+      _searchError = null;
+    });
     try {
       final uri = Uri.https("maps.googleapis.com", "/maps/api/place/autocomplete/json", {
         "input": query,
@@ -209,10 +223,21 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
             .toList();
         if (mounted) setState(() => _suggestions = preds);
       } else if (mounted) {
-        setState(() => _suggestions = []);
+        // ZERO_RESULTS is a normal "nothing found"; anything else is a key / API problem
+        setState(() {
+          _suggestions = [];
+          _searchError = data["status"] == "ZERO_RESULTS"
+              ? tr("No places found.")
+              : "${tr("Map search failed")}: ${data["status"]} — ${data["error_message"] ?? ""}";
+        });
       }
     } catch (_) {
-      if (mounted) setState(() => _suggestions = []);
+      if (mounted) {
+        setState(() {
+          _suggestions = [];
+          _searchError = tr("Map search failed — check the internet connection.");
+        });
+      }
     } finally {
       if (mounted) setState(() => _searching = false);
     }
@@ -403,6 +428,19 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
                           ),
                         ),
                       ),
+                      if (_searchError != null && _suggestions.isEmpty)
+                        Container(
+                          margin: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardColor,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            _searchError!,
+                            style: const TextStyle(color: KadeColors.terra, fontSize: 12),
+                          ),
+                        ),
                       if (_suggestions.isNotEmpty)
                         Container(
                           margin: const EdgeInsets.only(top: 4),

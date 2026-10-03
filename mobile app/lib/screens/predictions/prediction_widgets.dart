@@ -66,12 +66,7 @@ class RingGauge extends StatelessWidget {
             children: [
               Text(
                 tr(pct.toStringAsFixed(0)),
-                style: TextStyle(
-                  fontSize: size * 0.26,
-                  fontWeight: FontWeight.w800,
-                  fontFamily: "Nunito",
-                  color: color,
-                ),
+                style: TextStyle(fontSize: size * 0.26, fontWeight: FontWeight.w800, color: color),
               ),
               Text(tr("out of 100"), style: TextStyle(fontSize: 9, color: Colors.grey)),
             ],

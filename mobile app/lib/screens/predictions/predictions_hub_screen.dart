@@ -97,10 +97,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
                     tr(tag),
                     style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: tint),
                   ),
-                  Text(
-                    tr(title),
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: "Nunito"),
-                  ),
+                  Text(tr(title), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                 ],
               ),
               const Spacer(),
@@ -265,7 +262,6 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
-                          fontFamily: "Nunito",
                           color: KadeColors.amber,
                         ),
                       ),
@@ -352,7 +348,6 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
-                            fontFamily: "Nunito",
                             color: buy ? KadeColors.teal : Colors.grey,
                           ),
                         ),
@@ -416,7 +411,6 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
-                fontFamily: "Nunito",
                 color: flagged ? KadeColors.terra : KadeColors.teal,
               ),
             ),

@@ -88,10 +88,10 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
   async function handleSubmit(e) {
     e.preventDefault();
     const er = {};
-    if (!v.name.trim()) er.name = "Item name is required.";
-    if (!v.category) er.category = "Please select a category for AI forecasting.";
-    if (v.quantity === "" || Number(v.quantity) < 0) er.quantity = "Enter a valid quantity (0 or more).";
-    if (v.cost_price !== "" && Number(v.cost_price) < 0) er.cost_price = "Cost price cannot be negative.";
+    if (!v.name.trim()) er.name = t("Item name is required.");
+    if (!v.category) er.category = t("Please select a category for AI forecasting.");
+    if (v.quantity === "" || Number(v.quantity) < 0) er.quantity = t("Enter a valid quantity (0 or more).");
+    if (v.cost_price !== "" && Number(v.cost_price) < 0) er.cost_price = t("Cost price cannot be negative.");
 
     if (Object.keys(er).length) {
       setErrors(er);

@@ -90,10 +90,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ),
                     child: ListTile(
                       leading: Icon(_icon(type), color: _color(type)),
-                      title: Text(
-                        "${n["title"]}",
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito"),
-                      ),
+                      title: Text("${n["title"]}", style: const TextStyle(fontWeight: FontWeight.w700)),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [

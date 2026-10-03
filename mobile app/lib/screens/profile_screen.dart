@@ -81,12 +81,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 14),
                   Text(
                     tr(name),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      fontFamily: "Nunito",
-                    ),
+                    style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 4),
                   Text(email, style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 13)),

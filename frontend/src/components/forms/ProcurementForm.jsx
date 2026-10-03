@@ -274,10 +274,10 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
 
   function addItem() {
     const er = {};
-    if (!item.item_name.trim()) er.item_name = "Item name required.";
-    if (item.quantity === "" || Number(item.quantity) <= 0) er.quantity = "Enter a valid quantity.";
-    if (item.unit_cost === "" || Number(item.unit_cost) <= 0) er.unit_cost = "Enter the unit cost.";
-    if (!item.unit) er.unit = "Select a unit.";
+    if (!item.item_name.trim()) er.item_name = t("Item name required.");
+    if (item.quantity === "" || Number(item.quantity) <= 0) er.quantity = t("Enter a valid quantity.");
+    if (item.unit_cost === "" || Number(item.unit_cost) <= 0) er.unit_cost = t("Enter the unit cost.");
+    if (!item.unit) er.unit = t("Select a unit.");
 
     if (Object.keys(er).length) {
       setItemErrors(er);
@@ -342,8 +342,8 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
   async function handleSubmit(e) {
     e.preventDefault();
     const er = {};
-    if (items.length === 0) er.items = "Add at least one item.";
-    if (!location.trim()) er.location = "Location is required.";
+    if (items.length === 0) er.items = t("Add at least one item.");
+    if (!location.trim()) er.location = t("Location is required.");
 
     if (Object.keys(er).length) {
       setTopErrors(er);

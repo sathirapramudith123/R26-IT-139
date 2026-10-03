@@ -65,7 +65,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
       appBar: AppBar(
         title: Text(
           tr("Income & Expense Statement"),
-          style: TextStyle(fontFamily: "Nunito", fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
@@ -92,7 +92,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
                     Text(
                       tr(error!),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: KadeColors.terra, fontFamily: "Nunito"),
+                      style: const TextStyle(color: KadeColors.terra),
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(onPressed: _fetchStatement, child: Text(tr("Try Again"))),
@@ -122,7 +122,6 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w800,
-                            fontFamily: "Nunito",
                             color: netProfit >= 0 ? tealColor : KadeColors.terra,
                             letterSpacing: 1.1,
                           ),
@@ -133,7 +132,6 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.w900,
-                            fontFamily: "Nunito",
                             color: netProfit >= 0 ? tealColor : KadeColors.terra,
                           ),
                         ),
@@ -143,7 +141,6 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            fontFamily: "Nunito",
                             color: (netProfit >= 0 ? tealColor : KadeColors.terra).withOpacity(0.8),
                           ),
                         ),
@@ -164,7 +161,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
                         children: [
                           Text(
                             tr("Financial Summary"),
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: "Nunito"),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                           ),
                           const Divider(height: 24),
 
@@ -213,7 +210,6 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
             style: TextStyle(
               fontSize: isLarge ? 15 : 14,
               fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
-              fontFamily: "Nunito",
             ),
           ),
         ),
@@ -222,7 +218,6 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
           style: TextStyle(
             fontSize: isLarge ? 16 : 14,
             fontWeight: isBold ? FontWeight.w800 : FontWeight.w700,
-            fontFamily: "Nunito",
             color: color,
           ),
         ),

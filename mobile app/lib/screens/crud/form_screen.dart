@@ -151,7 +151,7 @@ class _FormScreenState extends State<FormScreen> {
                     )
                   : Text(
                       isEdit ? tr("Update") : tr("Save"),
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: "Nunito"),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                     ),
             ),
           ),
@@ -172,10 +172,7 @@ class _FormScreenState extends State<FormScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            tr(label),
-            style: const TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito"),
-          ),
+          Text(tr(label), style: const TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 6),
           if (isSelect && isDynamic && opts.isEmpty)
             TextField(

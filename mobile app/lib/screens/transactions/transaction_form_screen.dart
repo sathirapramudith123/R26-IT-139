@@ -415,11 +415,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       )
                     : Text(
                         isEdit ? tr("Update") : tr("Save"),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          fontFamily: "Nunito",
-                        ),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                       ),
               ),
             ),
@@ -431,10 +427,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
   Widget _label(String t) => Padding(
     padding: const EdgeInsets.only(bottom: 6),
-    child: Text(
-      tr(t),
-      style: const TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito"),
-    ),
+    child: Text(tr(t), style: const TextStyle(fontWeight: FontWeight.w700)),
   );
 
   List<Widget> _simpleSection() {

@@ -163,7 +163,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
 
     const units = parseFloat(v.quantity);
     if (!units || units <= 0) {
-      setErrors((p) => ({ ...p, quantity: "Enter how many units." }));
+      setErrors((p) => ({ ...p, quantity: t("Enter how many units.") }));
       return;
     }
 
@@ -226,14 +226,14 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
   async function handleSubmit(e) {
     e.preventDefault();
     const er = {};
-    if (usesItems && cart.length === 0) er.amount = "Add at least one item.";
+    if (usesItems && cart.length === 0) er.amount = t("Add at least one item.");
     if (!v.amount || Number(v.amount) <= 0) er.amount = er.amount || t("Enter an amount greater than 0.");
-    if (cfg.category && !v.category) er.category = "Please select a category.";
+    if (cfg.category && !v.category) er.category = t("Please select a category.");
 
     if (type === "transfer" && v.payment_method === "cash") {
-      er.payment_method = "Cash isn't allowed for Transfer transactions.";
+      er.payment_method = t("Cash isn't allowed for Transfer transactions.");
     } else if (type === "deposit" && v.payment_method !== "cash") {
-      er.payment_method = "Deposit must be paid via Cash.";
+      er.payment_method = t("Deposit must be paid via Cash.");
     }
 
     if (Object.keys(er).length) {

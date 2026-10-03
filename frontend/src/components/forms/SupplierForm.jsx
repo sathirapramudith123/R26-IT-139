@@ -63,11 +63,11 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
 
   function addSuppliedItem() {
     const er = {};
-    if (!supplyItem.item_name.trim()) er.item_name = "Item name is required.";
+    if (!supplyItem.item_name.trim()) er.item_name = t("Item name is required.");
     if (supplyItem.quantity === "" || Number(supplyItem.quantity) <= 0)
-      er.quantity = "Enter a valid quantity.";
+      er.quantity = t("Enter a valid quantity.");
     if (supplyItem.unit_price !== "" && Number(supplyItem.unit_price) < 0)
-      er.unit_price = "Unit price cannot be negative.";
+      er.unit_price = t("Unit price cannot be negative.");
     if (Object.keys(er).length) {
       setSupplyItemErrors(er);
       return;
@@ -107,7 +107,7 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
   // address with them.
   function handleLocate() {
     if (!navigator.geolocation) {
-      setErrors((p) => ({ ...p, location: "Geolocation isn't supported on this browser." }));
+      setErrors((p) => ({ ...p, location: t("Geolocation isn't supported on this browser.") }));
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -123,7 +123,7 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
       () =>
         setErrors((p) => ({
           ...p,
-          location: "Couldn't get your location. Try picking it on the map instead.",
+          location: t("Couldn't get your location. Try picking it on the map instead."),
         })),
       { enableHighAccuracy: true },
     );
@@ -149,27 +149,27 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
     const er = {};
 
     // 1. Basic Required Validation
-    if (!v.name.trim()) er.name = "Supplier name is required.";
+    if (!v.name.trim()) er.name = t("Supplier name is required.");
 
     // 2. Contact Number Format Check (Sri Lankan / General 9-10 Digits)
     const cleanPhone = v.contact_number.replace(/\D/g, "");
     if (!v.contact_number.trim()) {
-      er.contact_number = "Contact number is required.";
+      er.contact_number = t("Contact number is required.");
     } else if (cleanPhone.length < 9 || cleanPhone.length > 12) {
-      er.contact_number = "Enter a valid contact number (e.g. 0771234567).";
+      er.contact_number = t("Enter a valid contact number (e.g. 0771234567).");
     }
 
     // 3. Email Check
     if (v.email && !isValidEmail(v.email)) {
-      er.email = "Enter a valid email address.";
+      er.email = t("Enter a valid email address.");
     }
 
     // 4. Numeric Inputs Non-negative Validation
     if (v.delivery_cost !== "" && Number(v.delivery_cost) < 0) {
-      er.delivery_cost = "Delivery cost cannot be negative.";
+      er.delivery_cost = t("Delivery cost cannot be negative.");
     }
     if (v.lead_time_days !== "" && Number(v.lead_time_days) < 0) {
-      er.lead_time_days = "Lead time cannot be negative.";
+      er.lead_time_days = t("Lead time cannot be negative.");
     }
 
     // stop the submission when there are validation errors

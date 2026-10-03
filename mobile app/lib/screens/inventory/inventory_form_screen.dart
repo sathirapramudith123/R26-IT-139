@@ -38,6 +38,7 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
   String? supplierName;
   String unit = "unit";
   List<String> supplierOptions = [];
+  List<Map> suppliers = []; // full rows — items_supplied powers the item suggestions
   bool saving = false;
   bool loadingSuppliers = true;
   String? error;
@@ -62,7 +63,7 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
     quantityCtrl.text = it?["quantity"]?.toString() ?? "";
     reorderCtrl.text = it?["reorder_level"]?.toString() ?? "";
     costPriceCtrl.text = it?["cost_price"]?.toString() ?? it?["unit_price"]?.toString() ?? "";
-    leadTimeCtrl.text = it?["delivery_lead_time"]?.toString() ?? it?["lead_time"]?.toString() ?? "";
+    leadTimeCtrl.text = it?["lead_time_days"]?.toString() ?? "1";
     supplierName = it?["supplier_name"]?.toString();
     unit = (it?["unit"]?.toString().isNotEmpty ?? false) ? it!["unit"].toString() : "unit";
 
@@ -78,6 +79,7 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
   Future<void> _loadSuppliers() async {
     try {
       final data = await Api.get("/suppliers");
+      final rows = (data is List) ? data.whereType<Map>().toList() : <Map>[];
       final names = (data is List)
           ? data.map((e) => "${e["name"] ?? ""}").where((s) => s.isNotEmpty).toList()
           : <String>[];
@@ -86,6 +88,7 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
       }
       if (mounted) {
         setState(() {
+          suppliers = rows;
           supplierOptions = names;
           loadingSuppliers = false;
         });
@@ -98,6 +101,23 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
         });
       }
     }
+  }
+
+  // Items the selected supplier carries ([{item_name, quantity, unit, unit_price}])
+  List<Map> get _supplierItems {
+    final sup = suppliers.where((s) => s["name"] == supplierName);
+    final items = sup.isEmpty ? null : sup.first["items_supplied"];
+    return (items is List) ? items.whereType<Map>().toList() : <Map>[];
+  }
+
+  // Picking one of the supplier's items fills in the name, cost and unit (same as the web form)
+  void _useSupplierItem(Map it) {
+    setState(() {
+      nameCtrl.text = "${it["item_name"] ?? ""}";
+      if (it["unit_price"] is num) costPriceCtrl.text = "${it["unit_price"]}";
+      final u = "${it["unit"] ?? ""}";
+      if (units.contains(u)) unit = u;
+    });
   }
 
   @override
@@ -140,9 +160,7 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
       "unit": unit,
       "reorder_level": reorderCtrl.text.trim().isNotEmpty ? (num.tryParse(reorderCtrl.text.trim()) ?? 0) : 0,
       "cost_price": costPrice, // cost only (backend sets unit_price = cost)
-      "delivery_lead_time": leadTimeCtrl.text.trim().isNotEmpty
-          ? (int.tryParse(leadTimeCtrl.text.trim()) ?? 1)
-          : 1,
+      "lead_time_days": num.tryParse(leadTimeCtrl.text.trim()) ?? 1, // safety-stock reorder point
     };
 
     if (supplierName != null && supplierName!.isNotEmpty) {
@@ -176,7 +194,7 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text("${isEdit ? "Edit" : "New"} Inventory")),
+      appBar: AppBar(title: Text(isEdit ? tr("Edit Inventory Item") : tr("Add Inventory Item"))),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: ListView(
@@ -184,13 +202,45 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
           children: [
             if (error != null) ...[errorBox(error!), const SizedBox(height: 12)],
 
+            fieldLabel(tr("Supplier")),
+            DropdownButtonFormField<String>(
+              value: supplierOptions.contains(supplierName) ? supplierName : null,
+              hint: Text(
+                loadingSuppliers
+                    ? tr("Loading...")
+                    : (supplierOptions.isEmpty ? tr("No suppliers available") : tr("Select a supplier")),
+              ),
+              items: supplierOptions.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
+              onChanged: saving ? null : (v) => setState(() => supplierName = v),
+            ),
+            const SizedBox(height: 16),
+
             fieldLabel(tr("Item Name *")),
             TextField(
               controller: nameCtrl,
               enabled: !saving,
               textCapitalization: TextCapitalization.words,
-              decoration: InputDecoration(hintText: tr("Enter item name")),
+              decoration: InputDecoration(hintText: tr("e.g. Rice 5kg")),
             ),
+            if (_supplierItems.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.only(top: 6, left: 2),
+                child: Text(
+                  "${tr("Suggested from")} $supplierName: ${tr("pick one to auto-fill cost & unit")}",
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+              Wrap(
+                spacing: 6,
+                children: [
+                  for (final it in _supplierItems)
+                    ActionChip(
+                      label: Text("${it["item_name"] ?? ""}"),
+                      onPressed: saving ? null : () => _useSupplierItem(it),
+                    ),
+                ],
+              ),
+            ],
             const SizedBox(height: 16),
 
             fieldLabel(tr("Category *")),
@@ -203,42 +253,9 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
             Padding(
               padding: const EdgeInsets.only(top: 6, left: 2),
               child: Text(
-                tr("Required for AI demand forecasting"),
-                style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
+                tr("Required for AI Demand Forecasting"),
+                style: Theme.of(context).textTheme.bodySmall,
               ),
-            ),
-            const SizedBox(height: 16),
-
-            fieldLabel(tr("Supplier")),
-            DropdownButtonFormField<String>(
-              value: supplierOptions.contains(supplierName) ? supplierName : null,
-              hint: Text(
-                loadingSuppliers
-                    ? tr("Loading...")
-                    : (supplierOptions.isEmpty ? "No suppliers available" : "— Select Supplier —"),
-              ),
-              items: supplierOptions.map((o) => DropdownMenuItem(value: o, child: Text(tr(o)))).toList(),
-              onChanged: saving ? null : (v) => setState(() => supplierName = v),
-            ),
-            const SizedBox(height: 16),
-
-            fieldLabel(tr("Quantity *")),
-            TextField(
-              controller: quantityCtrl,
-              enabled: !saving,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-              decoration: const InputDecoration(hintText: "0.00"),
-            ),
-            const SizedBox(height: 16),
-
-            fieldLabel(tr("Reorder Level")),
-            TextField(
-              controller: reorderCtrl,
-              enabled: !saving,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-              decoration: InputDecoration(hintText: tr("Leave blank for auto (AI)")),
             ),
             const SizedBox(height: 16),
 
@@ -250,13 +267,36 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
             ),
             const SizedBox(height: 16),
 
+            fieldLabel(tr("Initial Quantity")),
+            TextField(
+              controller: quantityCtrl,
+              enabled: !saving,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+              decoration: const InputDecoration(hintText: "0"),
+            ),
+            const SizedBox(height: 16),
+
+            fieldLabel(tr("Reorder Level")),
+            TextField(
+              controller: reorderCtrl,
+              enabled: !saving,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+              decoration: InputDecoration(
+                hintText: tr("Default: Auto AI"),
+                helperText: tr("Alert threshold (Auto-calculated by AI if empty)"),
+              ),
+            ),
+            const SizedBox(height: 16),
+
             fieldLabel(tr("Unit Cost per Unit (LKR)")),
             TextField(
               controller: costPriceCtrl,
               enabled: !saving,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-              decoration: InputDecoration(hintText: "0.00", prefixText: tr("LKR ")),
+              decoration: InputDecoration(hintText: "0.00", helperText: tr("Buying price per unit")),
             ),
             const SizedBox(height: 16),
 
@@ -277,7 +317,7 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
             Padding(
               padding: const EdgeInsets.only(top: 6, left: 2),
               child: Text(
-                "Unit Cost × Quantity  =  ${(double.tryParse(costPriceCtrl.text.trim()) ?? 0).toStringAsFixed(2)} × ${(double.tryParse(quantityCtrl.text.trim()) ?? 0).toStringAsFixed(0)}",
+                "${tr("Unit Cost × Quantity")}  =  ${(double.tryParse(costPriceCtrl.text.trim()) ?? 0).toStringAsFixed(2)} × ${(double.tryParse(quantityCtrl.text.trim()) ?? 0).toStringAsFixed(0)}",
                 style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
               ),
             ),
@@ -289,7 +329,10 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
               enabled: !saving,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: InputDecoration(hintText: tr("e.g. 3 (used for safety stock)")),
+              decoration: InputDecoration(
+                hintText: "1",
+                helperText: tr("Expected delivery time (Used for Dynamic Safety Stock)"),
+              ),
             ),
             const SizedBox(height: 28),
 
@@ -304,10 +347,7 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
 // ── Shared helper widgets (also used by supplier_form_screen) ──
 Widget fieldLabel(String t) => Padding(
   padding: const EdgeInsets.only(bottom: 6),
-  child: Text(
-    tr(t),
-    style: const TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito"),
-  ),
+  child: Text(tr(t), style: const TextStyle(fontWeight: FontWeight.w700)),
 );
 
 Widget errorBox(String msg) => Container(
@@ -344,7 +384,7 @@ Widget saveButton(bool saving, bool isEdit, Color teal, VoidCallback onSave) => 
           )
         : Text(
             isEdit ? tr("Update") : tr("Save"),
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: "Nunito"),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
           ),
   ),
 );
