@@ -43,7 +43,7 @@ const QUICK_LINKS = [
       return t("Financial Reports");
     },
     icon: "📈",
-    color: "border-teal-200  hover:bg-teal-50   hover:text-teal-700",
+    color: "border-brand-200  hover:bg-brand-50   hover:text-brand-700",
   },
   {
     href: "/dashboard/inventory/alerts",
@@ -133,7 +133,7 @@ export default function AdminDashboard() {
       },
       value: userStats.agents,
       icon: "🏦",
-      gradient: "gradient-teal",
+      gradient: "gradient-brand",
     },
     {
       get label() {
@@ -212,7 +212,7 @@ export default function AdminDashboard() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm font-medium text-white/80">{m.label}</p>
-                    <p className="mt-1.5 font-outfit text-2xl font-bold text-white">{m.value}</p>
+                    <p className="mt-1.5 font-display text-2xl font-bold text-white">{m.value}</p>
                   </div>
                   <span className="text-3xl opacity-90">{m.icon}</span>
                 </div>
@@ -223,7 +223,7 @@ export default function AdminDashboard() {
           {/* Quick actions + user breakdown + financial summary */}
           <div className="grid gap-6 lg:grid-cols-3">
             <Card>
-              <h3 className="mb-4 font-outfit font-semibold text-slate-900">{t("Admin Actions")}</h3>
+              <h3 className="mb-4 font-display font-semibold text-slate-900">{t("Admin Actions")}</h3>
               <div className="grid grid-cols-2 gap-3">
                 {QUICK_LINKS.map((q) => (
                   <Link
@@ -239,12 +239,12 @@ export default function AdminDashboard() {
             </Card>
 
             <Card>
-              <h3 className="mb-4 font-outfit font-semibold text-slate-900">{t("User Breakdown")}</h3>
+              <h3 className="mb-4 font-display font-semibold text-slate-900">{t("User Breakdown")}</h3>
               <div className="space-y-3 mb-4">
                 {[
                   ["Admins", userStats.admins, "bg-purple-500"],
                   ["Bank Agents", userStats.agents, "bg-blue-500"],
-                  ["Merchants", userStats.merchants, "bg-teal-500"],
+                  ["Merchants", userStats.merchants, "bg-brand-500"],
                 ].map(([l, v, color]) => {
                   const pct = userStats.total ? Math.round((v / userStats.total) * 100) : 0;
                   return (
@@ -264,14 +264,14 @@ export default function AdminDashboard() {
               </div>
               <Link
                 href="/dashboard/admin/users"
-                className="text-center block text-sm font-medium text-teal-700 hover:underline"
+                className="text-center block text-sm font-medium text-brand-700 hover:underline"
               >
                 {t("Manage all users →")}
               </Link>
             </Card>
 
             <Card>
-              <h3 className="mb-4 font-outfit font-semibold text-slate-900">{t("Financial Summary")}</h3>
+              <h3 className="mb-4 font-display font-semibold text-slate-900">{t("Financial Summary")}</h3>
               <div className="space-y-2 mb-4">
                 {[
                   ["Total Income", summary?.income, "text-green-600"],
@@ -288,7 +288,7 @@ export default function AdminDashboard() {
               </div>
               <Link
                 href="/dashboard/ledger/reports"
-                className="text-center block text-sm font-medium text-teal-700 hover:underline"
+                className="text-center block text-sm font-medium text-brand-700 hover:underline"
               >
                 {t("Full reports →")}
               </Link>
@@ -306,10 +306,10 @@ export default function AdminDashboard() {
           {/* Recent registrations */}
           <Card>
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-outfit font-semibold text-slate-900">{t("Recent Registrations")}</h3>
+              <h3 className="font-display font-semibold text-slate-900">{t("Recent Registrations")}</h3>
               <Link
                 href="/dashboard/admin/users"
-                className="text-sm font-medium text-teal-700 hover:underline"
+                className="text-sm font-medium text-brand-700 hover:underline"
               >
                 {t("View all →")}
               </Link>
@@ -365,7 +365,7 @@ export default function AdminDashboard() {
           {lowStockItems.length > 0 && (
             <Card>
               <div className="mb-3 flex items-center justify-between">
-                <h3 className="font-outfit font-semibold text-slate-900">
+                <h3 className="font-display font-semibold text-slate-900">
                   {t("⚠️ Low Stock Alerts")}
                   <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">
                     {lowStockItems.length}
@@ -373,7 +373,7 @@ export default function AdminDashboard() {
                 </h3>
                 <Link
                   href="/dashboard/inventory/alerts"
-                  className="text-sm font-medium text-teal-700 hover:underline"
+                  className="text-sm font-medium text-brand-700 hover:underline"
                 >
                   {t("View all →")}
                 </Link>

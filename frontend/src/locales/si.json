@@ -916,5 +916,11 @@
   "items": "භාණ්ඩ",
   "Margin:": "ආන්තිකය:",
   "Volume": "පරිමාව",
-  "Service Fees": "සේවා ගාස්තු"
+  "Service Fees": "සේවා ගාස්තු",
+  "money in": "ලැබුණු මුදල්",
+  "money out": "ගිය මුදල්",
+  "to restock": "තොග පිරවීමට",
+  "Income minus expenses · tap for the statement": "ආදායම අඩු කළා වියදම් · ප්‍රකාශය බලන්න",
+  "Income Statement": "ආදායම් ප්‍රකාශය",
+  "Income minus expenses": "ආදායම අඩු කළා වියදම්"
 }

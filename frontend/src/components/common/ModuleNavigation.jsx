@@ -3,7 +3,7 @@ import Card from "@/components/ui/Card";
 export default function ModuleNavigation({ title = "Navigation", links = [] }) {
   return (
     <Card className="mb-6">
-      <h2 className="mb-4 font-outfit text-lg font-bold text-slate-900">{title}</h2>
+      <h2 className="mb-4 font-display text-lg font-bold text-slate-900">{title}</h2>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {links.map((link) => (
           <Link

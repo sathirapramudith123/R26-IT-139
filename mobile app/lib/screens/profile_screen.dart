@@ -48,9 +48,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final teal = isDark ? KadeColors.tealDark : KadeColors.teal;
-
     return Scaffold(
       body: SafeArea(
         child: ListView(
@@ -64,7 +61,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [teal, const Color(0xFF094F45)],
+                  colors: KadeColors.headerGradient,
                 ),
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(36),

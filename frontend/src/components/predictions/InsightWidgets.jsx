@@ -71,7 +71,7 @@ export function LoanReadinessGauge({ score }) {
         />
       </svg>
       <div className="absolute flex flex-col items-center justify-center text-center">
-        <span className={`font-outfit text-2xl font-black ${colorClass}`}>{pct.toFixed(0)}</span>
+        <span className={`font-display text-2xl font-black ${colorClass}`}>{pct.toFixed(0)}</span>
         <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
           {t("Score")}
         </span>
@@ -214,7 +214,7 @@ export const NoData = ({ reason }) => (
 
 export const CategoryChip = ({ label, tone }) => {
   const tones = {
-    teal: "bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-400",
+    brand: "bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-400",
     amber: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400",
     orange: "bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-400",
     blue: "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-400",

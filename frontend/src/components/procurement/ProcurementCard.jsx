@@ -12,7 +12,7 @@ export default function ProcurementCard({ item, onDelete, deleting }) {
     <div className="card hover:-translate-y-0.5 transition-all duration-200">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="font-outfit text-base font-semibold text-slate-900 truncate">
+          <h3 className="font-display text-base font-semibold text-slate-900 truncate">
             {item.item_name ?? t("Procurement Decision")}
           </h3>
           <p className="mt-0.5 text-xs text-slate-400">
@@ -41,7 +41,7 @@ export default function ProcurementCard({ item, onDelete, deleting }) {
           <span className="text-xs text-slate-500">{t("Score")}</span>
           <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
             <div
-              className="h-full rounded-full bg-teal-500"
+              className="h-full rounded-full bg-brand-500"
               style={{ width: `${Math.min(100, Number(item.final_score) || 0)}%` }}
             />
           </div>

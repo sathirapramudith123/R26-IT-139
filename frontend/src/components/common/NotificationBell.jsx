@@ -91,13 +91,13 @@ export default function NotificationBell() {
       {open && (
         <div className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
-            <span className="font-outfit text-sm font-bold text-slate-900 dark:text-slate-100">
+            <span className="font-display text-sm font-bold text-slate-900 dark:text-slate-100">
               {t("Notifications")}
             </span>
             {count > 0 && (
               <button
                 onClick={readAll}
-                className="text-xs font-semibold text-teal-700 hover:underline dark:text-teal-400"
+                className="text-xs font-semibold text-brand-700 hover:underline dark:text-brand-400"
               >
                 {t("Mark all read")}
               </button>
@@ -115,7 +115,7 @@ export default function NotificationBell() {
                   <div
                     onClick={() => readOne(n)}
                     className={`flex cursor-pointer gap-3 border-b border-slate-50 px-4 py-3 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800 ${
-                      !n.is_read ? "bg-teal-50/50 dark:bg-teal-950/20" : ""
+                      !n.is_read ? "bg-brand-50/50 dark:bg-brand-950/20" : ""
                     }`}
                   >
                     <span className="text-lg">{ICON[n.notification_type] || "ℹ️"}</span>
@@ -126,7 +126,7 @@ export default function NotificationBell() {
                         {timeAgo(n.created_at)}
                       </p>
                     </div>
-                    {!n.is_read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-teal-600" />}
+                    {!n.is_read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-600" />}
                   </div>
                 );
                 return n.link ? (

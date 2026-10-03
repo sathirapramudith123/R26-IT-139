@@ -75,7 +75,7 @@ function MiniSparkline({ values = [], predicted = [] }) {
   );
 }
 
-function PriceBar({ value, max, color = "bg-teal-500" }) {
+function PriceBar({ value, max, color = "bg-brand-500" }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   return (
     <div className="flex items-center gap-2">
@@ -164,7 +164,7 @@ export default function MLAnalyticsWidget() {
         <div className="flex items-center gap-3 mb-3">
           <span className="text-2xl">📊</span>
           <div>
-            <h3 className="font-outfit font-semibold text-slate-900">{t("Price Analytics")}</h3>
+            <h3 className="font-display font-semibold text-slate-900">{t("Price Analytics")}</h3>
             <p className="text-xs text-slate-400">
               {t("6 models · Linear Regression · K-Means · Demand Index")}
             </p>
@@ -196,7 +196,7 @@ export default function MLAnalyticsWidget() {
         <div className="flex items-center gap-3">
           <span className="text-2xl">🤖</span>
           <div>
-            <h3 className="font-outfit font-semibold text-slate-900">{t("Price Analytics")}</h3>
+            <h3 className="font-display font-semibold text-slate-900">{t("Price Analytics")}</h3>
             <p className="text-xs text-slate-400">
               {summary.date_count} {t("days ·")} {summary.item_count} {t("items ·")} {summary.date_range}
             </p>
@@ -233,7 +233,7 @@ export default function MLAnalyticsWidget() {
             className={`rounded-lg py-1.5 px-1 text-center transition
               ${
                 tab === t.key
-                  ? "bg-teal-700 text-white shadow-sm"
+                  ? "bg-brand-700 text-white shadow-sm"
                   : "bg-slate-100 text-slate-500 hover:bg-slate-200"
               }`}
           >
@@ -250,7 +250,7 @@ export default function MLAnalyticsWidget() {
           placeholder={t("Search item...")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-teal-400"
+          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-brand-400"
         />
       )}
 
@@ -331,7 +331,7 @@ export default function MLAnalyticsWidget() {
                     return (
                       <div key={i} className="flex-1 flex items-end">
                         <div
-                          className="w-full bg-teal-400 rounded-sm"
+                          className="w-full bg-brand-400 rounded-sm"
                           style={{ height: `${Math.max(10, pct)}%` }}
                         />
                       </div>
@@ -433,7 +433,7 @@ export default function MLAnalyticsWidget() {
                 >
                   <span className="text-xs text-slate-700">{r.item}</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-teal-700 font-medium">{r.best_market}</span>
+                    <span className="text-[10px] text-brand-700 font-medium">{r.best_market}</span>
                     <span className="text-[10px] font-bold text-slate-700">LKR {r.avg_price}</span>
                   </div>
                 </div>
@@ -456,7 +456,7 @@ export default function MLAnalyticsWidget() {
               <div key={s.item_name} className="rounded-xl border border-slate-100 bg-white p-3">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs font-semibold text-slate-800 capitalize">{s.item_name}</p>
-                  <span className="text-[10px] text-teal-700 font-medium">
+                  <span className="text-[10px] text-brand-700 font-medium">
                     {t("Cheapest:")} {s.cheapest_month}
                   </span>
                 </div>
@@ -490,10 +490,10 @@ export default function MLAnalyticsWidget() {
       {/* ── 6. MARKET COMPARISON ── */}
       {tab === "comparison" && (
         <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-          <div className="rounded-xl bg-teal-50 border border-teal-100 px-4 py-3">
-            <p className="text-xs font-semibold text-teal-800 mb-1">{t("Overall cheapest market")}</p>
-            <p className="text-base font-bold text-teal-700">{market_comparison?.overall_cheapest}</p>
-            <p className="text-[10px] text-teal-600 mt-0.5">
+          <div className="rounded-xl bg-brand-50 border border-brand-100 px-4 py-3">
+            <p className="text-xs font-semibold text-brand-800 mb-1">{t("Overall cheapest market")}</p>
+            <p className="text-base font-bold text-brand-700">{market_comparison?.overall_cheapest}</p>
+            <p className="text-[10px] text-brand-600 mt-0.5">
               {t("Most expensive:")} {market_comparison?.overall_expensive}
             </p>
           </div>
@@ -522,7 +522,7 @@ export default function MLAnalyticsWidget() {
                     ✗ {c.expensive_market} {t("— LKR")} {c.expensive_price}
                   </span>
                 </div>
-                <p className="text-[10px] text-teal-600 italic mt-1">{c.insight}</p>
+                <p className="text-[10px] text-brand-600 italic mt-1">{c.insight}</p>
               </div>
             );
           })}

@@ -58,7 +58,7 @@ export function downloadIncomeStatementPdf(data, { period = "" } = {}) {
       ],
     ],
     columnStyles: { 1: { halign: "right" } },
-    headStyles: { fillColor: [17, 153, 142] }, // teal
+    headStyles: { fillColor: [42, 91, 219] }, // brand blue
     styles: { fontSize: 11, cellPadding: 8 },
     theme: "grid",
   });

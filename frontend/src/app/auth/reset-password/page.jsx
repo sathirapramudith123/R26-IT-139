@@ -8,7 +8,7 @@ import { authApi } from "@/services/api/auth";
 
 import { t } from "@/lib/i18n";
 const inputClass =
-  "w-full rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/50 pl-10 pr-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:border-teal-500/50 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all";
+  "w-full rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/50 pl-10 pr-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:border-brand-500/50 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all";
 
 function ResetPasswordContent() {
   const router = useRouter();
@@ -42,7 +42,7 @@ function ResetPasswordContent() {
     <div className="w-full max-w-md space-y-6">
       {/* Header */}
       <div className="text-center space-y-2">
-        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 shadow-inner">
+        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20 shadow-inner">
           <KeyRound className="h-6 w-6" />
         </div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
@@ -62,7 +62,7 @@ function ResetPasswordContent() {
             </p>
             <Link
               href="/auth/forgot-password"
-              className="inline-flex w-full items-center justify-center rounded-xl bg-teal-600 hover:bg-teal-500 px-4 py-2.5 text-sm font-semibold text-white transition-all"
+              className="inline-flex w-full items-center justify-center rounded-xl bg-brand-600 hover:bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition-all"
             >
               {t("Request a new link")}
             </Link>
@@ -127,7 +127,7 @@ function ResetPasswordContent() {
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center rounded-xl bg-teal-600 hover:bg-teal-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-600/20 transition-all focus:outline-none focus:ring-2 focus:ring-teal-500/50 disabled:opacity-50"
+              className="flex w-full items-center justify-center rounded-xl bg-brand-600 hover:bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/20 transition-all focus:outline-none focus:ring-2 focus:ring-brand-500/50 disabled:opacity-50"
             >
               {loading ? (
                 <>
@@ -161,7 +161,7 @@ export default function ResetPasswordPage() {
       <Suspense
         fallback={
           <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-            <Loader2 className="h-5 w-5 animate-spin text-teal-600 dark:text-teal-400" />
+            <Loader2 className="h-5 w-5 animate-spin text-brand-600 dark:text-brand-400" />
             <span>{t("Loading...")}</span>
           </div>
         }

@@ -85,7 +85,7 @@ export function SalesSummaryModal({ open, onClose }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="font-outfit text-lg font-bold text-slate-900 dark:text-slate-100">
+          <h3 className="font-display text-lg font-bold text-slate-900 dark:text-slate-100">
             {t("All Items — Sales Summary")}
           </h3>
           <button
@@ -230,7 +230,7 @@ export function ProcurementSummaryModal({ open, onClose }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="font-outfit text-lg font-bold text-slate-900 dark:text-slate-100">
+          <h3 className="font-display text-lg font-bold text-slate-900 dark:text-slate-100">
             {t("All Items — Stock Status")}
           </h3>
           <button

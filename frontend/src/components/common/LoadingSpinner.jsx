@@ -3,7 +3,7 @@ export default function LoadingSpinner({ label = "Loading...", size = "md" }) {
   return (
     <div className="flex items-center justify-center gap-3 py-8 text-sm text-slate-500 dark:text-slate-400">
       <div
-        className={`${sizes[size]} animate-spin rounded-full border-2 border-slate-200 border-t-teal-600 dark:border-slate-700 dark:border-t-teal-400`}
+        className={`${sizes[size]} animate-spin rounded-full border-2 border-slate-200 border-t-brand-600 dark:border-slate-700 dark:border-t-brand-400`}
       />
       <span>{label}</span>
     </div>

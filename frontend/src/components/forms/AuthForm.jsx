@@ -43,7 +43,7 @@ export default function AuthForm({ mode = "login", onSubmit, loading, error }) {
     `w-full rounded-xl border bg-slate-950/50 pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 transition-all ${
       fieldErrors[k]
         ? "border-red-500/50 focus:border-red-500 focus:ring-red-500/20"
-        : "border-slate-800 focus:border-teal-500/50 focus:ring-teal-500/20"
+        : "border-slate-800 focus:border-brand-500/50 focus:ring-brand-500/20"
     }`;
 
   return (
@@ -104,7 +104,7 @@ export default function AuthForm({ mode = "login", onSubmit, loading, error }) {
         <div className="flex justify-end">
           <Link
             href="/auth/forgot-password"
-            className="text-xs text-teal-400 hover:text-teal-300 transition-colors"
+            className="text-xs text-brand-400 hover:text-brand-300 transition-colors"
           >
             {t("Forgot password?")}
           </Link>
@@ -114,7 +114,7 @@ export default function AuthForm({ mode = "login", onSubmit, loading, error }) {
       <Button
         type="submit"
         disabled={loading}
-        className="w-full justify-center bg-teal-600 hover:bg-teal-500 text-white font-semibold py-2.5 rounded-xl transition-all shadow-lg shadow-teal-600/20 disabled:opacity-50"
+        className="w-full justify-center bg-brand-600 hover:bg-brand-500 text-white font-semibold py-2.5 rounded-xl transition-all shadow-lg shadow-brand-600/20 disabled:opacity-50"
       >
         {loading
           ? isLogin
@@ -131,7 +131,7 @@ export default function AuthForm({ mode = "login", onSubmit, loading, error }) {
             {t("New here?")}{" "}
             <Link
               href="/auth/register"
-              className="font-medium text-teal-400 hover:text-teal-300 hover:underline transition-colors"
+              className="font-medium text-brand-400 hover:text-brand-300 hover:underline transition-colors"
             >
               {t("Create account")}
             </Link>
@@ -141,7 +141,7 @@ export default function AuthForm({ mode = "login", onSubmit, loading, error }) {
             {t("Already have an account?")}{" "}
             <Link
               href="/auth/login"
-              className="font-medium text-teal-400 hover:text-teal-300 hover:underline transition-colors"
+              className="font-medium text-brand-400 hover:text-brand-300 hover:underline transition-colors"
             >
               {t("Sign in")}
             </Link>

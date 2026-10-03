@@ -62,16 +62,13 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    final teal = KadeColors.teal;
-    final tealDark = KadeColors.tealDark;
-
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [teal, tealDark, const Color(0xFF063A34)],
+            colors: const [Color(0xFF1E46B8), KadeColors.teal, Color(0xFF4A8BF0)],
           ),
         ),
         child: Stack(

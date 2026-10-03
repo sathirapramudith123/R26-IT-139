@@ -102,7 +102,7 @@ class _SupplierDistanceMapState extends State<SupplierDistanceMap> {
           _polylines = {
             Polyline(
               polylineId: const PolylineId("route"),
-              color: const Color(0xFF0D9488),
+              color: KadeColors.teal,
               width: 4,
               points: points.map((p) => LatLng(p.latitude, p.longitude)).toList(),
             ),

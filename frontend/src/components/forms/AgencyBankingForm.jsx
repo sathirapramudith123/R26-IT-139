@@ -234,11 +234,11 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
     `w-full rounded-xl border bg-white dark:bg-slate-950/50 pl-10 pr-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 transition-all ${
       errors[k]
         ? "border-red-500/50 focus:border-red-500 focus:ring-red-500/20"
-        : "border-slate-300 dark:border-slate-800 focus:border-teal-500/50 focus:ring-teal-500/20"
+        : "border-slate-300 dark:border-slate-800 focus:border-brand-500/50 focus:ring-brand-500/20"
     }`;
 
   const selectClass =
-    "w-full rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/50 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-teal-500/50 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all";
+    "w-full rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/50 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-brand-500/50 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all";
 
   return (
     <form
@@ -542,7 +542,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
         <Button
           type="submit"
           disabled={saving}
-          className="inline-flex items-center justify-center rounded-xl bg-teal-600 hover:bg-teal-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-600/20 transition-all disabled:opacity-50"
+          className="inline-flex items-center justify-center rounded-xl bg-brand-600 hover:bg-brand-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/20 transition-all disabled:opacity-50"
         >
           {saving ? (
             <>

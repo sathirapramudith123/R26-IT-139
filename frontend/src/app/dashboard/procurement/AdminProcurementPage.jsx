@@ -15,8 +15,8 @@ export default function AdminProcurementPage() {
         )}
       />
 
-      <div className="rounded-xl border border-teal-100 bg-teal-50 px-4 py-3 text-xs text-teal-700 leading-relaxed">
-        <strong className="text-teal-800">{t("How it works:")}</strong>{" "}
+      <div className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-xs text-brand-700 leading-relaxed">
+        <strong className="text-brand-800">{t("How it works:")}</strong>{" "}
         {t(
           "Upload the daily price bulletin from the Hector Kobbekaduwa Agrarian Research and Training Institute. Once uploaded, merchants can open Procurement from their sidebar and run supplier recommendations — their prices will be benchmarked against the government wholesale average you uploaded here.",
         )}

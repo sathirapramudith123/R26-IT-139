@@ -68,7 +68,7 @@ export default function MerchantDashboard() {
       },
       value: formatCurrency(summary?.income),
       icon: "💰",
-      gradient: "gradient-teal",
+      gradient: "gradient-brand",
     },
     {
       get label() {
@@ -139,7 +139,7 @@ export default function MerchantDashboard() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm font-medium text-white/80">{m.label}</p>
-                    <p className="mt-1.5 font-outfit text-2xl font-bold text-white">{m.value}</p>
+                    <p className="mt-1.5 font-display text-2xl font-bold text-white">{m.value}</p>
                   </div>
                   <span className="text-3xl opacity-90">{m.icon}</span>
                 </div>
@@ -150,13 +150,13 @@ export default function MerchantDashboard() {
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Quick actions */}
             <div className="card">
-              <h3 className="mb-4 font-outfit font-semibold text-slate-900">{t("Quick Actions")}</h3>
+              <h3 className="mb-4 font-display font-semibold text-slate-900">{t("Quick Actions")}</h3>
               <div className="grid grid-cols-2 gap-3">
                 {QUICK_LINKS.map((q) => (
                   <Link
                     key={q.href}
                     href={q.href}
-                    className="flex flex-col items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3 text-center text-xs font-medium text-slate-700 transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700"
+                    className="flex flex-col items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3 text-center text-xs font-medium text-slate-700 transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
                   >
                     <span className="text-2xl">{q.icon}</span>
                     {q.label}
@@ -167,7 +167,7 @@ export default function MerchantDashboard() {
 
             {/* Recent activity */}
             <div className="card lg:col-span-2">
-              <h3 className="mb-4 font-outfit font-semibold text-slate-900">{t("Recent Activity")}</h3>
+              <h3 className="mb-4 font-display font-semibold text-slate-900">{t("Recent Activity")}</h3>
               {!recentActivity?.length ? (
                 <p className="text-sm text-slate-400">{t("No recent activity yet.")}</p>
               ) : (
@@ -203,7 +203,7 @@ export default function MerchantDashboard() {
               )}
               <Link
                 href="/dashboard/transactions"
-                className="mt-4 block text-center text-sm font-medium text-teal-700 hover:underline"
+                className="mt-4 block text-center text-sm font-medium text-brand-700 hover:underline"
               >
                 {t("View all transactions →")}
               </Link>

@@ -266,7 +266,7 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white10 : const Color(0xFFF3ECE0),
+                color: isDark ? Colors.white10 : KadeColors.surfaceMutedLight,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(

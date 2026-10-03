@@ -30,6 +30,9 @@ class KadeCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: color ?? cardTheme.color,
         borderRadius: BorderRadius.circular(KadeRadius.lg),
+        boxShadow: Theme.of(context).brightness == Brightness.dark
+            ? null
+            : const [BoxShadow(color: KadeColors.cardShadow, blurRadius: 16, offset: Offset(0, 6))],
         border: (cardTheme.shape is RoundedRectangleBorder)
             ? (cardTheme.shape as RoundedRectangleBorder).side.style == BorderStyle.none
                   ? null

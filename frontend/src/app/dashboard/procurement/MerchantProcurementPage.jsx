@@ -34,7 +34,7 @@ export default function MerchantProcurementPage() {
       {recentDecisions.length > 0 && (
         <Card>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-outfit font-semibold text-slate-900">{t("Recent Decisions")}</h3>
+            <h3 className="font-display font-semibold text-slate-900">{t("Recent Decisions")}</h3>
           </div>
           <div className="space-y-2">
             {recentDecisions.map((d) => (
@@ -71,7 +71,7 @@ export default function MerchantProcurementPage() {
                   {d.status}
                 </span>
                 <Link href={`/dashboard/procurement/${d.id}`} className="shrink-0">
-                  <span className="text-xs text-teal-600 hover:underline">{t("View →")}</span>
+                  <span className="text-xs text-brand-600 hover:underline">{t("View →")}</span>
                 </Link>
               </div>
             ))}

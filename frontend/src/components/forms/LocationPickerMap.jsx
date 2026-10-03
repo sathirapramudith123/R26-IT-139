@@ -143,7 +143,7 @@ export default function LocationPickerMap({ coords, onPick, extraMarkers = [], r
           <input
             type="text"
             placeholder={t("Search a place or address…")}
-            className="w-full rounded-lg border border-slate-200 bg-white/95 px-3 py-2 text-sm shadow-sm outline-none placeholder:text-slate-400 focus:border-teal-500 dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-100"
+            className="w-full rounded-lg border border-slate-200 bg-white/95 px-3 py-2 text-sm shadow-sm outline-none placeholder:text-slate-400 focus:border-brand-500 dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-100"
           />
         </Autocomplete>
       </div>
@@ -151,7 +151,7 @@ export default function LocationPickerMap({ coords, onPick, extraMarkers = [], r
       {(routeDistanceKm || routeError) && (
         <div className="absolute right-3 top-3 z-10 rounded-lg border border-slate-200 bg-white/95 px-3 py-1.5 text-xs font-medium shadow-sm dark:border-slate-700 dark:bg-slate-900/95">
           {routeDistanceKm ? (
-            <span className="text-teal-700 dark:text-teal-400">
+            <span className="text-brand-700 dark:text-brand-400">
               🚗 {routeDistanceKm} {t("km · ⏱")} {formatDuration(routeDurationMin)}
             </span>
           ) : (

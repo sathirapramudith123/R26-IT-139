@@ -96,7 +96,7 @@ export default function BankAgentDashboard() {
       },
       value: formatCurrency(todayVolume),
       icon: "💵",
-      gradient: "gradient-teal",
+      gradient: "gradient-brand",
     },
     {
       get label() {
@@ -180,7 +180,7 @@ export default function BankAgentDashboard() {
         <>
           {/* Agency banking metrics */}
           <div>
-            <h2 className="mb-3 font-outfit text-sm font-semibold uppercase tracking-wider text-slate-400">
+            <h2 className="mb-3 font-display text-sm font-semibold uppercase tracking-wider text-slate-400">
               {t("Agency Banking — Today")}
             </h2>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -189,7 +189,7 @@ export default function BankAgentDashboard() {
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="text-sm font-medium text-white/80">{m.label}</p>
-                      <p className="mt-1.5 font-outfit text-2xl font-bold text-white">{m.value}</p>
+                      <p className="mt-1.5 font-display text-2xl font-bold text-white">{m.value}</p>
                     </div>
                     <span className="text-3xl opacity-90">{m.icon}</span>
                   </div>
@@ -206,7 +206,7 @@ export default function BankAgentDashboard() {
 
           {/* Business metrics */}
           <div>
-            <h2 className="mb-3 font-outfit text-sm font-semibold uppercase tracking-wider text-slate-400">
+            <h2 className="mb-3 font-display text-sm font-semibold uppercase tracking-wider text-slate-400">
               {t("Business Overview")}
             </h2>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -215,7 +215,7 @@ export default function BankAgentDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs font-medium text-slate-400">{m.label}</p>
-                      <p className="mt-1 font-outfit text-xl font-bold text-slate-900">{m.value}</p>
+                      <p className="mt-1 font-display text-xl font-bold text-slate-900">{m.value}</p>
                     </div>
                     <span className="text-2xl opacity-70">{m.icon}</span>
                   </div>
@@ -227,13 +227,13 @@ export default function BankAgentDashboard() {
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Quick actions */}
             <Card>
-              <h3 className="mb-4 font-outfit font-semibold text-slate-900">{t("Quick Actions")}</h3>
+              <h3 className="mb-4 font-display font-semibold text-slate-900">{t("Quick Actions")}</h3>
               <div className="grid grid-cols-2 gap-3">
                 {QUICK_LINKS.map((q) => (
                   <Link
                     key={q.href}
                     href={q.href}
-                    className="flex flex-col items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3 text-center text-xs font-medium text-slate-700 transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700"
+                    className="flex flex-col items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3 text-center text-xs font-medium text-slate-700 transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
                   >
                     <span className="text-2xl">{q.icon}</span>
                     {q.label}
@@ -244,7 +244,7 @@ export default function BankAgentDashboard() {
 
             {/* Recent agency transactions */}
             <div className="card lg:col-span-2">
-              <h3 className="mb-4 font-outfit font-semibold text-slate-900">
+              <h3 className="mb-4 font-display font-semibold text-slate-900">
                 {t("Recent Agency Transactions")}
               </h3>
               {!recentAgency.length ? (
@@ -277,7 +277,7 @@ export default function BankAgentDashboard() {
               )}
               <Link
                 href="/dashboard/agency-banking"
-                className="mt-4 block text-center text-sm font-medium text-teal-700 hover:underline"
+                className="mt-4 block text-center text-sm font-medium text-brand-700 hover:underline"
               >
                 {t("View all agency transactions →")}
               </Link>

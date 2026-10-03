@@ -61,7 +61,7 @@ export default function InventoryCard({ item, onSold }) {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <h3 className="font-outfit font-semibold text-slate-900 truncate">{item.name}</h3>
+          <h3 className="font-display font-semibold text-slate-900 truncate">{item.name}</h3>
           <p className="text-xs text-slate-400">
             {item.category || "—"} · {item.supplier_name || "—"}
           </p>
@@ -90,7 +90,7 @@ export default function InventoryCard({ item, onSold }) {
       </div>
 
       {success && (
-        <div className="rounded-lg bg-teal-50 border border-teal-200 px-3 py-2 text-xs text-teal-700">
+        <div className="rounded-lg bg-brand-50 border border-brand-200 px-3 py-2 text-xs text-brand-700">
           {success}
         </div>
       )}
@@ -99,9 +99,9 @@ export default function InventoryCard({ item, onSold }) {
       {showForm && !isOut && (
         <form
           onSubmit={handleQuickSell}
-          className="rounded-xl bg-teal-50 border border-teal-100 p-3 space-y-2"
+          className="rounded-xl bg-brand-50 border border-brand-100 p-3 space-y-2"
         >
-          <p className="text-xs font-semibold text-teal-800">{t("Quick Sell")}</p>
+          <p className="text-xs font-semibold text-brand-800">{t("Quick Sell")}</p>
           <div className="flex items-center gap-2">
             <input
               type="number"

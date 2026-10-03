@@ -49,7 +49,7 @@ class RingGauge extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final pct = score.clamp(0, 100).toDouble();
     final color = pct >= 70 ? KadeColors.teal : (pct >= 40 ? KadeColors.amber : KadeColors.terra);
-    final track = isDark ? Colors.white10 : const Color(0xFFECE3D5);
+    final track = isDark ? Colors.white10 : KadeColors.surfaceMutedLight;
 
     return SizedBox(
       width: size,

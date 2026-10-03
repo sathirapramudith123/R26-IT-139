@@ -10,7 +10,7 @@ export default function Table({ columns = [], rows = [] }) {
             {columns.map((col) => (
               <th
                 key={col.key}
-                className="px-5 py-3.5 font-outfit text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-300"
+                className="px-5 py-3.5 font-display text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-300"
               >
                 {col.label}
               </th>

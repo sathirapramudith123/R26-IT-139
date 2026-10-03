@@ -51,7 +51,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [teal, const Color(0xFF094F45)],
+                    colors: KadeColors.headerGradient,
                   ),
                   borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(40),

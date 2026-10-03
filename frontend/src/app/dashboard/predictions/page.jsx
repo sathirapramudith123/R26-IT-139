@@ -98,8 +98,8 @@ export default function PredictionsDashboard() {
           <div>
             <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <CategoryChip label={t("Money")} tone="teal" />
-                <h3 className="font-outfit text-lg font-semibold text-slate-900 dark:text-slate-100">
+                <CategoryChip label={t("Money")} tone="brand" />
+                <h3 className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
                   {t("Credit Score")}
                 </h3>
               </div>
@@ -175,7 +175,7 @@ export default function PredictionsDashboard() {
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <CategoryChip label={t("Inventory")} tone="amber" />
-                <h3 className="font-outfit text-lg font-semibold text-slate-900 dark:text-slate-100">
+                <h3 className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
                   {t("Sales Forecast")}
                 </h3>
               </div>
@@ -224,7 +224,7 @@ export default function PredictionsDashboard() {
                           <span className="text-xs italic text-slate-400">{t("No sales data yet")}</span>
                         ) : (
                           <>
-                            <span className="font-outfit text-2xl font-extrabold text-amber-600 dark:text-amber-400">
+                            <span className="font-display text-2xl font-extrabold text-amber-600 dark:text-amber-400">
                               ≈ {it.forecast_units != null ? Number(it.forecast_units).toFixed(0) : "—"}
                             </span>
                             <p className="text-[10px] text-slate-500 dark:text-slate-400">
@@ -254,7 +254,7 @@ export default function PredictionsDashboard() {
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <CategoryChip label={t("Purchasing")} tone="orange" />
-                <h3 className="font-outfit text-lg font-semibold text-slate-900 dark:text-slate-100">
+                <h3 className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
                   {t("Should I Buy?")}
                 </h3>
               </div>
@@ -288,7 +288,7 @@ export default function PredictionsDashboard() {
                           </p>
                         </div>
                         <span
-                          className={`font-outfit rounded-xl px-3 py-1.5 text-sm font-bold ${
+                          className={`font-display rounded-xl px-3 py-1.5 text-sm font-bold ${
                             buy
                               ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
                               : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
@@ -319,7 +319,7 @@ export default function PredictionsDashboard() {
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <CategoryChip label={t("Security")} tone="blue" />
-                <h3 className="font-outfit text-lg font-semibold text-slate-900 dark:text-slate-100">
+                <h3 className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
                   {t("Account Activity")}
                 </h3>
               </div>
@@ -340,7 +340,7 @@ export default function PredictionsDashboard() {
                     </p>
                   </div>
                   <span
-                    className={`font-outfit rounded-xl px-3 py-1.5 text-sm font-bold ${
+                    className={`font-display rounded-xl px-3 py-1.5 text-sm font-bold ${
                       anomaly.prediction === 1
                         ? "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300"
                         : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"

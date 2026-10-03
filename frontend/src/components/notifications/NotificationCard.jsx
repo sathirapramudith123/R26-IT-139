@@ -16,16 +16,16 @@ export default function NotificationCard({ item, onMarkRead, onDelete }) {
 
   return (
     <Card
-      className={`border ${item.is_read ? "border-slate-200 dark:border-slate-800" : "border-teal-300 dark:border-teal-700"}`}
+      className={`border ${item.is_read ? "border-slate-200 dark:border-slate-800" : "border-brand-300 dark:border-brand-700"}`}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-outfit text-lg font-semibold text-slate-900 dark:text-slate-100">
+            <h3 className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
               {item.title}
             </h3>
             {!item.is_read && (
-              <span className="rounded-full bg-teal-600 px-2 py-0.5 text-xs font-semibold text-white">
+              <span className="rounded-full bg-brand-600 px-2 py-0.5 text-xs font-semibold text-white">
                 {t("New")}
               </span>
             )}

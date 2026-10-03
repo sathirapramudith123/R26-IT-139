@@ -48,7 +48,7 @@ export default function ProfilePage() {
   return (
     <div className="page-container space-y-6">
       {/* ===== Profile hero ===== */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-800 p-6 text-white shadow-lg sm:p-8">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 via-brand-500 to-brand-400 p-6 text-white shadow-lg sm:p-8">
         <div className="absolute -right-8 -top-10 h-40 w-40 rounded-full bg-white/10" />
         <div className="absolute -bottom-12 right-24 h-32 w-32 rounded-full bg-white/5" />
         <div className="relative flex flex-col items-center gap-4 sm:flex-row sm:items-center">
@@ -56,7 +56,7 @@ export default function ProfilePage() {
             {initials}
           </div>
           <div className="text-center sm:text-left">
-            <h1 className="font-outfit text-2xl font-bold sm:text-3xl">{name}</h1>
+            <h1 className="font-display text-2xl font-bold sm:text-3xl">{name}</h1>
             <p className="mt-1 flex items-center justify-center gap-1.5 text-sm text-white/80 sm:justify-start">
               <Mail className="h-4 w-4" /> {email}
             </p>
@@ -70,7 +70,7 @@ export default function ProfilePage() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* ===== Account details ===== */}
         <div className="lg:col-span-2">
-          <h2 className="mb-3 font-outfit text-lg font-bold text-slate-900 dark:text-slate-100">
+          <h2 className="mb-3 font-display text-lg font-bold text-slate-900 dark:text-slate-100">
             {t("Account Details")}
           </h2>
           <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
@@ -82,14 +82,14 @@ export default function ProfilePage() {
 
         {/* ===== Settings / actions ===== */}
         <div>
-          <h2 className="mb-3 font-outfit text-lg font-bold text-slate-900 dark:text-slate-100">
+          <h2 className="mb-3 font-display text-lg font-bold text-slate-900 dark:text-slate-100">
             {t("Settings")}
           </h2>
           <div className="space-y-3">
             {/* Theme toggle */}
             <button
               onClick={toggleTheme}
-              className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-teal-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-teal-700"
+              className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-brand-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-brand-700"
             >
               <span className="flex items-center gap-3">
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400">
@@ -106,7 +106,7 @@ export default function ProfilePage() {
               </span>
               {/* toggle pill */}
               <span
-                className={`relative h-6 w-11 rounded-full transition-colors ${dark ? "bg-teal-500" : "bg-slate-300"}`}
+                className={`relative h-6 w-11 rounded-full transition-colors ${dark ? "bg-brand-500" : "bg-slate-300"}`}
               >
                 <span
                   className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${dark ? "left-5" : "left-0.5"}`}
@@ -147,7 +147,7 @@ export default function ProfilePage() {
 function DetailRow({ icon: Icon, label, value, mono }) {
   return (
     <div className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-800/60">
-      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-teal-600 shadow-sm dark:bg-slate-900 dark:text-teal-400">
+      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-brand-600 shadow-sm dark:bg-slate-900 dark:text-brand-400">
         <Icon className="h-4 w-4" />
       </span>
       <div className="min-w-0 flex-1">

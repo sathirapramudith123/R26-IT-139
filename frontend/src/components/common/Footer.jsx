@@ -17,7 +17,7 @@ export default function Footer() {
               className="object-contain"
             />
           </div>
-          <span className="font-outfit text-sm font-semibold text-slate-700 dark:text-slate-200">
+          <span className="font-display text-sm font-semibold text-slate-700 dark:text-slate-200">
             {t("Lanka-Link")}
           </span>
         </div>

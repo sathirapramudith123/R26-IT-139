@@ -132,7 +132,7 @@ export default function MyBanksPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-outfit text-2xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">
             {t("My Banks")}
           </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -141,7 +141,7 @@ export default function MyBanksPage() {
         </div>
         <button
           onClick={() => setShowAdd(true)}
-          className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-600/20 hover:bg-teal-500 transition-all"
+          className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/20 hover:bg-brand-500 transition-all"
         >
           <Plus className="h-4 w-4" /> {t("Add Bank")}
         </button>
@@ -151,7 +151,7 @@ export default function MyBanksPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-xs font-medium text-slate-500">{t("Total Float (all banks)")}</p>
-          <p className="mt-1 font-outfit text-2xl font-bold text-teal-600 dark:text-teal-400">
+          <p className="mt-1 font-display text-2xl font-bold text-brand-600 dark:text-brand-400">
             <CountCurrency value={totalFloat} />
           </p>
         </div>
@@ -160,18 +160,18 @@ export default function MyBanksPage() {
             <p className="text-xs font-medium text-slate-500">{t("Cash on Hand (shared pool)")}</p>
             <button
               onClick={() => setShowAddCash(true)}
-              className="inline-flex items-center gap-1 rounded-lg bg-teal-50 px-2 py-1 text-[11px] font-semibold text-teal-700 hover:bg-teal-100 dark:bg-teal-950/50 dark:text-teal-400"
+              className="inline-flex items-center gap-1 rounded-lg bg-brand-50 px-2 py-1 text-[11px] font-semibold text-brand-700 hover:bg-brand-100 dark:bg-brand-950/50 dark:text-brand-400"
             >
               <Plus className="h-3 w-3" /> {t("Add Cash")}
             </button>
           </div>
-          <p className="mt-1 font-outfit text-2xl font-bold text-slate-800 dark:text-slate-200">
+          <p className="mt-1 font-display text-2xl font-bold text-slate-800 dark:text-slate-200">
             {cashPool ? <CountCurrency value={cashPool.cash_on_hand} /> : "—"}
           </p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-xs font-medium text-slate-500">{t("Available for Top-up")}</p>
-          <p className="mt-1 font-outfit text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+          <p className="mt-1 font-display text-2xl font-bold text-emerald-600 dark:text-emerald-400">
             {cashPool ? <CountCurrency value={cashPool.available_for_topup} /> : "—"}
           </p>
           {cashPool && (
@@ -208,8 +208,8 @@ export default function MyBanksPage() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 dark:bg-teal-950">
-                      <Landmark className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-950">
+                      <Landmark className="h-5 w-5 text-brand-600 dark:text-brand-400" />
                     </div>
                     <div>
                       <h3 className="font-semibold text-slate-900 dark:text-slate-100">{b.bank_name}</h3>
@@ -228,7 +228,7 @@ export default function MyBanksPage() {
                 {/* Float + cash */}
                 <div className="mt-4 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/40">
                   <p className="text-[11px] text-slate-500">{t("Float balance")}</p>
-                  <p className="font-outfit text-lg font-bold text-teal-600 dark:text-teal-400">
+                  <p className="font-display text-lg font-bold text-brand-600 dark:text-brand-400">
                     {formatCurrency(b.float_balance)}
                   </p>
                 </div>
@@ -274,7 +274,7 @@ export default function MyBanksPage() {
                   </button>
                   <button
                     onClick={() => setTopupBank(b)}
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-700 hover:bg-teal-100 dark:border-teal-900 dark:bg-teal-950/50 dark:text-teal-400 transition-all"
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-100 dark:border-brand-900 dark:bg-brand-950/50 dark:text-brand-400 transition-all"
                   >
                     <ArrowUpCircle className="h-4 w-4" /> {t("Top up")}
                   </button>
@@ -441,7 +441,7 @@ function AddBankModal({ onClose, onSaved }) {
         <button
           onClick={submit}
           disabled={saving}
-          className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-500 disabled:opacity-50"
         >
           {saving && <Loader2 className="h-4 w-4 animate-spin" />} {t("Add Bank")}
         </button>
@@ -509,7 +509,7 @@ function TopupModal({ bank, cashPool, onClose, onSaved }) {
         {Number(amount) > 0 && (
           <div className="mt-1 flex justify-between">
             <span className="text-slate-500">{t("Float after top-up")}</span>
-            <span className="font-semibold text-teal-600 dark:text-teal-400">{formatCurrency(newFloat)}</span>
+            <span className="font-semibold text-brand-600 dark:text-brand-400">{formatCurrency(newFloat)}</span>
           </div>
         )}
       </div>
@@ -534,7 +534,7 @@ function TopupModal({ bank, cashPool, onClose, onSaved }) {
         <button
           onClick={submit}
           disabled={saving}
-          className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-500 disabled:opacity-50"
         >
           {saving && <Loader2 className="h-4 w-4 animate-spin" />} {t("Top up")}
         </button>
@@ -562,7 +562,7 @@ function LedgerModal({ bank, onClose }) {
     <Modal title={`Float statement — ${bank.bank_name}`} onClose={onClose}>
       <div className="mb-3 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm dark:bg-slate-800/40">
         <span className="text-slate-500">{t("Current float")}</span>
-        <span className="font-bold text-teal-600 dark:text-teal-400">
+        <span className="font-bold text-brand-600 dark:text-brand-400">
           {formatCurrency(bank.float_balance)}
         </span>
       </div>
@@ -669,7 +669,7 @@ function AddCashModal({ cashPool, onClose, onSaved }) {
         {Number(amount) > 0 && (
           <div className="mt-1 flex justify-between">
             <span className="text-slate-500">{t("After adding")}</span>
-            <span className="font-semibold text-teal-600 dark:text-teal-400">{formatCurrency(after)}</span>
+            <span className="font-semibold text-brand-600 dark:text-brand-400">{formatCurrency(after)}</span>
           </div>
         )}
       </div>
@@ -694,7 +694,7 @@ function AddCashModal({ cashPool, onClose, onSaved }) {
         <button
           onClick={submit}
           disabled={saving}
-          className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-500 disabled:opacity-50"
         >
           {saving && <Loader2 className="h-4 w-4 animate-spin" />} {t("Add Cash")}
         </button>
@@ -712,7 +712,7 @@ function Modal({ title, onClose, children }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="font-outfit text-lg font-bold text-slate-900 dark:text-slate-100">{title}</h3>
+          <h3 className="font-display text-lg font-bold text-slate-900 dark:text-slate-100">{title}</h3>
           <button
             onClick={onClose}
             className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"

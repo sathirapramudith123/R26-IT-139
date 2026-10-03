@@ -32,9 +32,9 @@ export default function Navbar() {
               priority
             />
           </div>
-          <span className="font-outfit text-lg font-bold text-slate-900 dark:text-slate-100">
+          <span className="font-display text-lg font-bold text-slate-900 dark:text-slate-100">
             {t("Lanka")}
-            <span className="text-teal-700 dark:text-teal-400">{t("-Link")}</span>
+            <span className="text-brand-700 dark:text-brand-400">{t("-Link")}</span>
           </span>
         </Link>
         <nav className="flex items-center gap-2">

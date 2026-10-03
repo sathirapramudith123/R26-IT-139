@@ -76,7 +76,7 @@ export default function AdminPriceUploadWidget({ onUploaded }) {
       <div className="flex items-center gap-3">
         <span className="text-2xl">📤</span>
         <div>
-          <h3 className="font-outfit font-semibold text-slate-900">{t("Upload Price PDFs")}</h3>
+          <h3 className="font-display font-semibold text-slate-900">{t("Upload Price PDFs")}</h3>
           <p className="text-xs text-slate-400">
             {t("HKARTI daily or weekly bulletins · Select multiple files at once")}
           </p>
@@ -93,7 +93,7 @@ export default function AdminPriceUploadWidget({ onUploaded }) {
           onDrop={onDrop}
           onClick={() => fileRef.current?.click()}
           className={`cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-colors
-            ${dragging ? "border-teal-400 bg-teal-50" : "border-slate-200 hover:border-teal-300 hover:bg-slate-50"}`}
+            ${dragging ? "border-brand-400 bg-brand-50" : "border-slate-200 hover:border-brand-300 hover:bg-slate-50"}`}
         >
           <input
             ref={fileRef}
@@ -131,16 +131,16 @@ export default function AdminPriceUploadWidget({ onUploaded }) {
             </div>
             <div className="h-3 w-full rounded-full bg-slate-100 overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all duration-300 ${session.finished ? "bg-emerald-400" : "bg-teal-500"}`}
+                className={`h-full rounded-full transition-all duration-300 ${session.finished ? "bg-emerald-400" : "bg-brand-500"}`}
                 style={{ width: `${pct}%` }}
               />
             </div>
           </div>
 
           {!session.finished && (
-            <div className="flex items-center gap-2 rounded-lg bg-teal-50 border border-teal-100 px-3 py-2">
+            <div className="flex items-center gap-2 rounded-lg bg-brand-50 border border-brand-100 px-3 py-2">
               <span className="animate-spin text-sm">⏳</span>
-              <span className="text-xs text-teal-700 truncate">
+              <span className="text-xs text-brand-700 truncate">
                 {t("Parsing:")} <strong>{session.current}</strong>
               </span>
             </div>
@@ -198,15 +198,15 @@ export default function AdminPriceUploadWidget({ onUploaded }) {
                   {r.filename.replace(".pdf", "").slice(-25)}
                 </span>
                 <span className="text-slate-400">{r.date || "—"}</span>
-                <span className={`text-right font-medium ${r.error ? "text-red-500" : "text-teal-700"}`}>
+                <span className={`text-right font-medium ${r.error ? "text-red-500" : "text-brand-700"}`}>
                   {r.error ? r.error.slice(0, 20) : `${r.saved} rows`}
                 </span>
               </div>
             ))}
             {!session.finished && (
-              <div className="grid grid-cols-3 text-[10px] px-3 py-1.5 bg-teal-50">
-                <span className="text-teal-600 truncate">⏳ {session.current?.slice(-25)}</span>
-                <span className="text-teal-400">processing...</span>
+              <div className="grid grid-cols-3 text-[10px] px-3 py-1.5 bg-brand-50">
+                <span className="text-brand-600 truncate">⏳ {session.current?.slice(-25)}</span>
+                <span className="text-brand-400">processing...</span>
                 <span></span>
               </div>
             )}
@@ -222,7 +222,7 @@ export default function AdminPriceUploadWidget({ onUploaded }) {
               </button>
               <button
                 onClick={() => priceDataApi.downloadCsv()}
-                className="flex-1 rounded-xl border border-teal-200 bg-teal-50 py-2 text-xs font-medium text-teal-700 hover:bg-teal-100 transition"
+                className="flex-1 rounded-xl border border-brand-200 bg-brand-50 py-2 text-xs font-medium text-brand-700 hover:bg-brand-100 transition"
               >
                 {t("⬇ Export CSV")}
               </button>

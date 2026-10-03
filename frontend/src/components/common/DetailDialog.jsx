@@ -224,7 +224,7 @@ function TransactionDetail({ data }) {
           {isCredit ? t("Credit (money in)") : t("Debit (money out)")}
         </span>
         <p
-          className={`mt-2 font-outfit text-3xl font-extrabold ${
+          className={`mt-2 font-display text-3xl font-extrabold ${
             isCredit ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
           }`}
         >
@@ -300,9 +300,9 @@ function InventoryDetail({ data }) {
           low ? "bg-rose-50 dark:bg-rose-950/40" : "bg-emerald-50 dark:bg-emerald-950/40"
         }`}
       >
-        <p className="font-outfit text-lg font-bold text-slate-800 dark:text-slate-100">{data.name}</p>
+        <p className="font-display text-lg font-bold text-slate-800 dark:text-slate-100">{data.name}</p>
         <p
-          className={`mt-1 font-outfit text-3xl font-extrabold ${
+          className={`mt-1 font-display text-3xl font-extrabold ${
             low ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"
           }`}
         >
@@ -378,7 +378,7 @@ export default function DetailDialog({ open, title, data, onClose }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="font-outfit text-lg font-bold text-slate-900 dark:text-slate-100">{title}</h3>
+          <h3 className="font-display text-lg font-bold text-slate-900 dark:text-slate-100">{title}</h3>
           <button onClick={onClose} className="btn-ghost !px-3 !py-1.5 text-base">
             ✕
           </button>

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { priceDataApi } from "@/services/api/priceData.api";
 
 import { t } from "@/lib/i18n";
-function PriceBar({ value, max, color = "bg-teal-500" }) {
+function PriceBar({ value, max, color = "bg-brand-500" }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   return (
     <div className="flex items-center gap-2">
@@ -49,7 +49,7 @@ export default function MarketPriceWidget() {
         <div className="flex items-center gap-3 mb-3">
           <span className="text-2xl">🏛</span>
           <div>
-            <h3 className="font-outfit font-semibold text-slate-900 text-sm">{t("Market Price Data")}</h3>
+            <h3 className="font-display font-semibold text-slate-900 text-sm">{t("Market Price Data")}</h3>
             <p className="text-xs text-slate-400">{t("HKARTI Wholesale Prices")}</p>
           </div>
         </div>
@@ -70,13 +70,13 @@ export default function MarketPriceWidget() {
         <div className="flex items-center gap-3">
           <span className="text-2xl">🏛</span>
           <div>
-            <h3 className="font-outfit font-semibold text-slate-900">{t("Market Price Data")}</h3>
+            <h3 className="font-display font-semibold text-slate-900">{t("Market Price Data")}</h3>
             <p className="text-xs text-slate-400">
               {t("HKARTI Wholesale Prices ·")} {data.report_date} · {data.total_items} items
             </p>
           </div>
         </div>
-        <span className="rounded-full bg-teal-50 border border-teal-200 px-2 py-0.5 text-xs font-medium text-teal-700">
+        <span className="rounded-full bg-brand-50 border border-brand-200 px-2 py-0.5 text-xs font-medium text-brand-700">
           {t("Live")}
         </span>
       </div>
@@ -85,7 +85,7 @@ export default function MarketPriceWidget() {
         {(data.market_summary || []).slice(0, 3).map((m) => (
           <div key={m.market} className="rounded-xl bg-slate-50 px-3 py-2 text-center">
             <p className="text-xs font-medium text-slate-600 truncate">{m.market}</p>
-            <p className="text-sm font-bold text-teal-700">LKR {m.avg_price}</p>
+            <p className="text-sm font-bold text-brand-700">LKR {m.avg_price}</p>
             <p className="text-[10px] text-slate-400">avg</p>
           </div>
         ))}
@@ -113,7 +113,7 @@ export default function MarketPriceWidget() {
           placeholder={t("Search item...")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-teal-400"
+          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-brand-400"
         />
       )}
 
@@ -135,7 +135,7 @@ export default function MarketPriceWidget() {
               <PriceBar
                 value={item.cheapest_price}
                 max={maxPrice}
-                color={item.price_spread > 100 ? "bg-amber-400" : "bg-teal-500"}
+                color={item.price_spread > 100 ? "bg-amber-400" : "bg-brand-500"}
               />
               <div className="flex justify-between text-[10px] text-slate-400 mt-0.5">
                 <span>

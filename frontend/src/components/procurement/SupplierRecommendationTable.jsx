@@ -64,12 +64,12 @@ export default function SupplierRecommendationTable({ results = [], requestData 
       )}
 
       <div className="flex items-center justify-between">
-        <h2 className="font-outfit text-lg font-semibold text-slate-800">
+        <h2 className="font-display text-lg font-semibold text-slate-800">
           {results.length} supplier{results.length !== 1 ? "s" : ""} found
         </h2>
         <div className="flex items-center gap-2">
           {hasMarketData && (
-            <span className="rounded-full bg-teal-50 border border-teal-200 px-2 py-0.5 text-xs font-medium text-teal-700">
+            <span className="rounded-full bg-brand-50 border border-brand-200 px-2 py-0.5 text-xs font-medium text-brand-700">
               {t("🏛 Using HKARTI market prices")}
             </span>
           )}
@@ -103,7 +103,7 @@ export default function SupplierRecommendationTable({ results = [], requestData 
                 #{s.rank}
               </div>
               <div>
-                <h3 className="font-outfit text-base font-bold text-slate-900">{s.supplier_name}</h3>
+                <h3 className="font-display text-base font-bold text-slate-900">{s.supplier_name}</h3>
                 {s.rank === 1 && (
                   <span className="mt-0.5 inline-block rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
                     {t("Best match")}
@@ -190,7 +190,7 @@ export default function SupplierRecommendationTable({ results = [], requestData 
             <button
               onClick={() => handleSave(s)}
               disabled={savingId === s.supplier_id}
-              className="rounded-xl bg-teal-700 px-5 py-2 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:opacity-60"
+              className="rounded-xl bg-brand-700 px-5 py-2 text-sm font-semibold text-white transition hover:bg-brand-800 disabled:opacity-60"
             >
               {savingId === s.supplier_id ? t("Saving...") : t("Save this decision")}
             </button>

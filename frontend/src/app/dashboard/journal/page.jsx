@@ -82,11 +82,11 @@ export default function JournalPage() {
     <div className="page-container space-y-5">
       {/* header */}
       <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 dark:bg-teal-950">
-          <BookOpen className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-950">
+          <BookOpen className="h-5 w-5 text-brand-600 dark:text-brand-400" />
         </div>
         <div>
-          <h1 className="font-outfit text-2xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">
             {t("General Journal & Reports")}
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -117,7 +117,7 @@ export default function JournalPage() {
         </div>
         <button
           onClick={load}
-          className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500"
+          className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-500"
         >
           {t("Apply")}
         </button>
@@ -152,7 +152,7 @@ export default function JournalPage() {
               onClick={() => setTab(t.key)}
               className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-all ${
                 active
-                  ? "bg-white text-teal-700 shadow-sm dark:bg-slate-900 dark:text-teal-400"
+                  ? "bg-white text-brand-700 shadow-sm dark:bg-slate-900 dark:text-brand-400"
                   : "text-slate-500"
               }`}
             >
@@ -371,7 +371,7 @@ function StatBox({ label, value, tone }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
       <p className="text-xs font-medium text-slate-500">{label}</p>
-      <p className={`mt-1 font-outfit text-xl font-bold ${color}`}>{value}</p>
+      <p className={`mt-1 font-display text-xl font-bold ${color}`}>{value}</p>
     </div>
   );
 }

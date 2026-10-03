@@ -17,7 +17,7 @@ export default function InventoryTable({ items = [], onDelete, deleting }) {
             {COLS.map((c) => (
               <th
                 key={c}
-                className="px-5 py-3.5 font-outfit text-xs font-semibold uppercase tracking-wider text-slate-500"
+                className="px-5 py-3.5 font-display text-xs font-semibold uppercase tracking-wider text-slate-500"
               >
                 {c}
               </th>
