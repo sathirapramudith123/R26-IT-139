@@ -12,8 +12,29 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import __main__
 
-def add_domain_features(X):
-    return X
+# SHAP turns each prediction into "which inputs pushed it up or down".
+# Optional at runtime: without it, predictions still work and explanation is [].
+try:
+    import shap
+except ImportError:  # pragma: no cover
+    shap = None
+    print("[ML Engine] 'shap' not installed - predictions will have no explanation")
+
+def add_domain_features(X_df):
+    """Same feature engineering as training (ML model/sales & finance/digital legder.ipynb).
+    The pickled credit pipeline calls this as its first step ('feat_eng')."""
+    X_out = X_df.copy()
+    rev = np.maximum(X_out['monthly_revenue_rs'], 1.0) if 'monthly_revenue_rs' in X_out.columns else 1.0
+    exp = X_out['monthly_expenses_rs'] if 'monthly_expenses_rs' in X_out.columns else 0.0
+    active_m = np.maximum(X_out['months_active'], 1.0) if 'months_active' in X_out.columns else 1.0
+    dig_ratio = X_out['digital_payment_ratio'] if 'digital_payment_ratio' in X_out.columns else 0.0
+
+    X_out['net_cash_flow'] = rev - exp
+    X_out['debt_to_income_ratio'] = exp / rev
+    X_out['digital_revenue_volume'] = rev * dig_ratio
+    X_out['revenue_per_active_month'] = rev / active_m
+    X_out['cash_flow_margin'] = X_out['net_cash_flow'] / rev
+    return X_out
 
 setattr(__main__, 'add_domain_features', add_domain_features)
 
@@ -33,10 +54,10 @@ app.add_middleware(
 )
 
 FILES = {
-    'credit': 'models/component1_sales_financial_model.pkl',
-    'procurement': 'models/component2_procurement_model.pkl',
-    'demand': 'models/component3_demand_forecast_model.pkl',
-    'anomaly': 'models/component4_banking_anomaly_model.pkl',
+    'credit': 'models/credit_readiness_model.pkl',
+    'procurement': 'models/procurement_buy_wait_model.pkl',
+    'demand': 'models/weekly_demand_forecast_model.pkl',
+    'anomaly': 'models/banking_anomaly_model.pkl',
 }
 
 BUNDLES = {}
@@ -51,6 +72,62 @@ for name, path in FILES.items():
             print(f"[ML Engine] FAILED to load '{name}': {e}")
     else:
         print(f"[ML Engine] Missing file for '{name}': {path}")
+
+
+# Decision threshold for the banking anomaly model. 0.87 = highest F1 on out-of-fold
+# training predictions (ML model/agency banking/banking_anomaly_detection_pipeline.ipynb, Part B):
+# test precision 0.53 / recall 0.40, ~19 false alarms per 1000 normal transactions
+# (the default 0.5 gave precision 0.23 and ~136 false alarms per 1000).
+ANOMALY_THRESHOLD = float(os.getenv('ANOMALY_THRESHOLD', '0.87'))
+
+_EXPLAINERS = {}  # one TreeExplainer per model object, built on first use
+
+
+def explain(pipeline, X_raw, top=5, flip=False):
+    """Top SHAP contributions for one row, mapped back to the input feature names.
+
+    Returns [{'feature': name, 'impact': value}] sorted by |impact| - the shape the web
+    (InfluenceChart) and mobile (InfluenceBars) apps render as "What's affecting this".
+    Positive impact = pushes the prediction up (for classifiers: towards class 1).
+    flip=True reverses the sign (used for anomaly, so "helping" = looks normal).
+    One-hot columns (e.g. 'cat__txn_type_cash_out') are summed back into their input ('txn_type').
+    Never raises: an explanation problem must not break the prediction.
+    """
+    if not hasattr(pipeline, 'steps'):
+        return []
+    try:
+        pre, model = pipeline[:-1], pipeline.steps[-1][1]
+        Xt = pre.transform(X_raw)
+        Xt = Xt.toarray() if hasattr(Xt, 'toarray') else np.asarray(Xt)
+        names = list(pre[-1].get_feature_names_out())
+
+        if hasattr(model, 'coef_'):
+            # Linear model on standardised inputs (training mean = 0): coef x value is the exact
+            # SHAP value relative to the average shop, in log-odds - no shap library needed.
+            sv = (np.asarray(model.coef_).reshape(1, -1) * Xt.astype(float))[:1]
+        else:
+            if shap is None:
+                return []
+            explainer = _EXPLAINERS.get(id(model))
+            if explainer is None:
+                explainer = _EXPLAINERS[id(model)] = shap.TreeExplainer(model)
+            sv = explainer.shap_values(Xt.astype(float))
+            sv = np.asarray(sv[1] if isinstance(sv, list) else sv)
+            if sv.ndim == 3:      # (rows, features, classes)
+                sv = sv[..., 1]
+
+        raw_cols = sorted((str(c) for c in X_raw.columns), key=len, reverse=True)
+        agg = {}
+        for name, value in zip(names, sv[0]):
+            base = name.split('__', 1)[-1]
+            raw = next((c for c in raw_cols if base == c or base.startswith(c + '_')), base)
+            agg[raw] = agg.get(raw, 0.0) + float(-value if flip else value)
+
+        items = sorted(agg.items(), key=lambda kv: -abs(kv[1]))[:top]
+        return [{'feature': k, 'impact': round(v, 4)} for k, v in items]
+    except Exception:
+        traceback.print_exc()
+        return []
 
 
 class PredictRequest(BaseModel):
@@ -109,6 +186,7 @@ def health():
         'status': 'ok',
         'loaded_components': list(BUNDLES.keys()),
         'missing_components': [k for k in FILES if k not in BUNDLES],
+        'explanations': shap is not None,
     }
 
 
@@ -149,37 +227,14 @@ def predict(req: PredictRequest):
                     pass
 
     
-        rev = float(features_dict.get('monthly_revenue_rs', 0) or 0)
-        exp = float(features_dict.get('monthly_expenses_rs', 0) or 0)
-        months = float(features_dict.get('months_active', 1) or 1)
         curr = float(features_dict.get('current_price_rs', 0) or 0)
         hist = float(features_dict.get('historical_avg_price_rs', 0) or 0)
-
-        
-        features_dict['net_cash_flow'] = rev - exp
-        features_dict['debt_to_income_ratio'] = exp / (rev + 1e-5)
-        features_dict['cash_flow_margin'] = (rev - exp) / (rev + 1e-5)
-        features_dict['revenue_per_active_month'] = rev / (months + 1e-5)
-        features_dict['digital_revenue_volume'] = float(
-            features_dict.get('digital_payments_rs', rev * 0.4) or 0
-        )
         features_dict['price_variance_pct'] = ((curr - hist) / (hist + 1e-5)) * 100
 
-        
-        needed = extract_expected_columns(bundle_or_model) or []
-        
-    
-        if comp_key == 'credit':
-            dynamic_cols = [
-                'net_cash_flow', 
-                'debt_to_income_ratio', 
-                'cash_flow_margin', 
-                'revenue_per_active_month', 
-                'digital_revenue_volume'
-            ]
-            for dc in dynamic_cols:
-                if dc not in needed:
-                    needed.append(dc)
+        # Credit engineered features (net_cash_flow, debt_to_income_ratio, ...) are
+        # computed inside the credit pipeline by add_domain_features — the model only
+        # needs the raw columns. Copy the list so the loaded bundle is never mutated.
+        needed = list(extract_expected_columns(bundle_or_model) or [])
 
     
         for col in needed:
@@ -188,9 +243,9 @@ def predict(req: PredictRequest):
                 or features_dict[col] is None
                 or features_dict[col] == ''
             ):
-                features_dict[col] = (
-                    'general' if col in ['item', 'category'] else 0.0
-                )
+                # numeric -> NaN: each pipeline's SimpleImputer fills the training median
+                # (0 would mean e.g. "no credit sales" or "price did not change")
+                features_dict[col] = 'general' if col in ['item', 'category'] else np.nan
 
     
         X = pd.DataFrame([features_dict])
@@ -202,18 +257,29 @@ def predict(req: PredictRequest):
     
         if comp_key == 'credit':
             cls_model = bundle_or_model.get('classifier_pipeline') or bundle_or_model.get('classifier_model')
-            reg_model = bundle_or_model.get('regressor_pipeline') or bundle_or_model.get('regressor_model')
 
             prob_score = round(float(cls_model.predict_proba(X)[0, 1]) * 100, 1)
-            pred_limit = float(reg_model.predict(X)[0]) if prob_score >= 50 else 0.0
+
+            eng = add_domain_features(X).iloc[0]   # same values the model saw
+
+            # Loan limit: the training target was exactly max(0, 3.5 x monthly net cash flow),
+            # so the rule itself is used - exact and explainable (digital_ledger_review.ipynb).
+            net_cash_flow = float(eng['net_cash_flow']) if pd.notna(eng['net_cash_flow']) else 0.0
+            pred_limit = max(0.0, 3.5 * net_cash_flow) if prob_score >= 50 else 0.0
 
             hard_blocks = []
-            if features_dict.get('debt_to_income_ratio', 0) > 0.85:
+            if float(eng['debt_to_income_ratio']) > 0.85:
                 hard_blocks.append('CRITICAL: Debt-to-Income Ratio exceeds 85%.')
             if features_dict.get('months_active', 100) < 3:
                 hard_blocks.append(
                     'HIGH RISK: Business active history is less than 3 months.'
                 )
+
+            # Advisory only: as a hard block (digital legder.ipynb) it would reject ~66% of shops
+            notices = []
+            stockout = eng.get('stockout_rate')
+            if pd.notna(stockout) and float(stockout) > 0.25:
+                notices.append('NOTICE: Stockout rate is above 25% - keeping items in stock improves the score.')
 
             if hard_blocks:
                 status, max_loan = 'REJECTED_BY_RULE_ENGINE', 0.0
@@ -231,7 +297,9 @@ def predict(req: PredictRequest):
                 'credit_score': prob_score,
                 'status': status,
                 'max_loan_limit_lkr': max_loan,
-                'rule_alerts': hard_blocks if hard_blocks else ['None'],
+                'loan_limit_basis': f'3.5 x monthly net cash flow (LKR {net_cash_flow:,.0f})',
+                'rule_alerts': (hard_blocks + notices) if (hard_blocks or notices) else ['None'],
+                'explanation': explain(cls_model, X),
             }
 
     
@@ -267,6 +335,7 @@ def predict(req: PredictRequest):
                 'predicted_4w_price_lkr': round(predicted_4w_price, 2),
                 'recommended_action': action,
                 'rule_alerts': rule_alerts if rule_alerts else ['None'],
+                'explanation': explain(cls_model, X),
             }
 
         # Hybrid anomaly: Isolation Forest flag (training Step 4) feeds the champion model
@@ -285,14 +354,17 @@ def predict(req: PredictRequest):
             cols = list(getattr(champion, 'feature_names_in_', [])) or needed
             X = pd.DataFrame([features_dict])[cols]
             prob = float(champion.predict_proba(X)[0, 1])
-            is_anomaly = prob >= 0.5
+            is_anomaly = prob >= ANOMALY_THRESHOLD
 
             return {
                 'component': 'anomaly',
                 'prediction': int(is_anomaly),
                 'is_anomaly': is_anomaly,
                 'score': round(prob * 100, 1),
+                'threshold': ANOMALY_THRESHOLD,
                 'isolation_forest_flag': iso_flag,
+                # flip: positive = makes the transaction look normal ("helping")
+                'explanation': explain(champion, X, flip=True),
             }
 
         else:
@@ -314,10 +386,12 @@ def predict(req: PredictRequest):
                     'component': comp_key,
                     'prediction': int(prob >= 0.5),
                     'score': round(prob * 100, 1),
+                    'explanation': explain(model, X),
                 }
             else:
                 val = float(model.predict(X)[0])
-                return {'component': comp_key, 'prediction': round(val, 2)}
+                return {'component': comp_key, 'prediction': round(val, 2),
+                        'explanation': explain(model, X)}
 
     except Exception as e:
         print("\n================ PREDICTION ERROR TRACEBACK ================")

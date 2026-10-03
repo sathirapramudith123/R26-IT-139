@@ -1,19 +1,20 @@
 import { Router } from "express";
 import * as ctrl from "../controllers/agentBank.controller.js";
 import auth from "../middlewares/auth.middleware.js";
-import { validateId } from "../middlewares/validate.middleware.js";
+import { validateId, validateBody } from "../middlewares/validate.middleware.js";
+import * as S from "../validation/schemas.js";
 
 const router = Router();
 router.use(auth);
 
-router.post("/", ctrl.create);
+router.post("/", validateBody(S.agentBankCreate), ctrl.create);
 router.get("/", ctrl.getAll);
 router.get("/summary", ctrl.summary);   
-router.post("/pool/add-cash", ctrl.addCash);   
+router.post("/pool/add-cash", validateBody(S.amountOnly), ctrl.addCash);   
 router.get("/:id", validateId, ctrl.getOne);
-router.put("/:id", validateId, ctrl.update);
+router.put("/:id", validateId, validateBody(S.agentBankUpdate), ctrl.update);
 router.delete("/:id", validateId, ctrl.remove);
-router.post("/:id/topup", validateId, ctrl.topup);   
+router.post("/:id/topup", validateId, validateBody(S.amountOnly), ctrl.topup);   
 router.get("/:id/ledger", validateId, ctrl.ledger);  
 
 export default router;

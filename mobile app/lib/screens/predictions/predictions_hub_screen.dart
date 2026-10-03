@@ -234,6 +234,10 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
           final it = raw as Map;
           final buy = it["action"] == "BUY";
           final ctx = "${it["price_context"] ?? ""}";
+          final fromForecast = it["decision_basis"] == "forecast";
+          final reorderText = fromForecast
+              ? "${it["forecast_reorder_level"]} (≈${(it["forecast_units"] as num).round()}/week forecast)"
+              : "${it["reorder_level"]}";
           return Container(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(12),
@@ -247,7 +251,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text("${it["item"]}",
                         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-                    Text("Stock: ${it["quantity"]} · Reorder: ${it["reorder_level"]}",
+                    Text("Stock: ${it["quantity"]} · Reorder: $reorderText",
                         style: TextStyle(fontSize: 11, color: sub)),
                   ]),
                 ),

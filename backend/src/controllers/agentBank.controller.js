@@ -1,6 +1,7 @@
 import { supabase } from "../config/supabase.js";
 import { toClient } from "../utils/mappers.js";
-import { topUpFloat, floatHealth, getBank, getCashPool, addCashToPool, isFloatInflow } from "../utils/float.js";
+import { topUpFloat, floatHealth, getBank, getCashPool, addCashToPool, isFloatInflow,
+         bankingError } from "../utils/float.js";
 
 const TABLE = "agent_banks";
 const ID = "agent_bank_id";
@@ -114,16 +115,18 @@ export const topup = async (req, res, next) => {
     const amount = num(req.body.amount);
     if (amount <= 0) return res.status(400).json({ error: "Enter a top-up amount greater than 0." });
 
-    const bank = await getBank(req.user.id, req.params.id);
-    if (!bank) return res.status(404).json({ error: "Bank not found" });
-    const pool = await getCashPool(req.user.id);
-
-    const result = await topUpFloat(req.user.id, bank, pool, amount);
-    if (result.block) return res.status(400).json({ error: result.reason });
+    // One DB transaction: lock pool + bank -> reserve check -> ledger + both balances
+    const { data: result, error } = await topUpFloat(req.user.id, req.params.id, amount);
+    if (error) {
+      if (error.message === "BANK_NOT_FOUND") return res.status(404).json({ error: "Bank not found" });
+      const known = bankingError(error);
+      if (known) return res.status(known.status).json({ error: known.message });
+      throw error;
+    }
 
     const updated = await getBank(req.user.id, req.params.id);
     res.json({ ...shape(updated), topped_up: amount,
-               float_after: result.floatAfter, cash_after: result.cashAfter });
+               float_after: result.float_after, cash_after: result.cash_after });
   } catch (e) { next(e); }
 };
 
@@ -132,9 +135,9 @@ export const topup = async (req, res, next) => {
 export const addCash = async (req, res, next) => {
   try {
     const amount = num(req.body.amount);
-    const result = await addCashToPool(req.user.id, amount);
-    if (result.block) return res.status(400).json({ error: result.reason });
-    const pool = await getCashPool(req.user.id);
+    if (amount <= 0) return res.status(400).json({ error: "Enter an amount greater than 0." });
+    const { data: pool, error } = await addCashToPool(req.user.id, amount);   // atomic += in the DB
+    if (error) throw error;
     res.json({
       cash_on_hand: num(pool.cash_on_hand),
       reserve_floor: num(pool.reserve_floor),

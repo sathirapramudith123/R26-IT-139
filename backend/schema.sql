@@ -439,3 +439,203 @@ ALTER TABLE procurement
   ADD COLUMN IF NOT EXISTS coords         JSONB;          
 
 NOTIFY pgrst, 'reload schema';
+
+-- ============================================================================
+--  SYNC WITH APPLICATION CODE (2026-09-28)
+--  Tables and columns the backend uses that were created directly in the
+--  Supabase dashboard and were missing from this file.
+--
+--  Every statement is idempotent and non-destructive (IF NOT EXISTS, no DROP),
+--  so this section is safe to run on the live database as well as on a fresh one.
+-- ============================================================================
+
+-- ---------------------------------------------------------------------------
+-- AGENT BANKS  (one float account per bank the agent works with)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS agent_banks (
+    agent_bank_id   UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id         UUID          NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+
+    bank_name       VARCHAR(100)  NOT NULL,
+    bank_code       VARCHAR(20),
+    risk_tier       VARCHAR(10)   NOT NULL DEFAULT 'LOW',
+
+    float_balance   NUMERIC(14,2) NOT NULL DEFAULT 0,
+    float_floor     NUMERIC(14,2) NOT NULL DEFAULT 50000,
+    float_ceiling   NUMERIC(14,2) NOT NULL DEFAULT 500000,
+    alert_low_pct   NUMERIC(5,2)  NOT NULL DEFAULT 40,
+    alert_crit_pct  NUMERIC(5,2)  NOT NULL DEFAULT 20,
+    is_active       BOOLEAN       NOT NULL DEFAULT TRUE,
+
+    created_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+
+    -- the API returns "A bank with this name already exists." on this violation
+    CONSTRAINT uq_agent_bank_user_name  UNIQUE (user_id, bank_name),
+    CONSTRAINT chk_agent_bank_tier      CHECK (risk_tier IN ('LOW', 'MEDIUM', 'HIGH')),
+    CONSTRAINT chk_agent_bank_name      CHECK (LENGTH(TRIM(bank_name)) > 0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_banks_user ON agent_banks(user_id);
+
+-- ---------------------------------------------------------------------------
+-- AGENT CASH POOL  (physical cash on hand, one row per agent)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS agent_cash_pool (
+    pool_id          UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id          UUID          NOT NULL UNIQUE REFERENCES users(user_id) ON DELETE CASCADE,
+
+    cash_on_hand     NUMERIC(14,2) NOT NULL DEFAULT 0,
+    reserve_floor    NUMERIC(14,2) NOT NULL DEFAULT 50000,
+    day_start_cash   NUMERIC(14,2) NOT NULL DEFAULT 75000,
+    last_reset_date  DATE,
+
+    created_at       TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+-- ---------------------------------------------------------------------------
+-- AGENCY BANKING — columns added after the table was created
+-- ---------------------------------------------------------------------------
+ALTER TABLE agency_banking
+  ADD COLUMN IF NOT EXISTS customer_nic     VARCHAR(20),
+  ADD COLUMN IF NOT EXISTS account_number   VARCHAR(30),
+  ADD COLUMN IF NOT EXISTS source_of_funds  VARCHAR(150),
+  ADD COLUMN IF NOT EXISTS agent_bank_id    UUID REFERENCES agent_banks(agent_bank_id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS float_after      NUMERIC(14,2);
+
+CREATE INDEX IF NOT EXISTS idx_agb_daily_nic
+  ON agency_banking(user_id, customer_nic, transaction_type, created_at);
+
+-- anomaly_score holds 0-100 (ML score / CBSL ratio %), but was declared NUMERIC(5,4)
+-- (max 9.9999). Widen it only if it still has that old type — widening never loses data.
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+             WHERE table_schema = 'public' AND table_name = 'agency_banking'
+               AND column_name = 'anomaly_score'
+               AND numeric_precision = 5 AND numeric_scale = 4) THEN
+    ALTER TABLE agency_banking ALTER COLUMN anomaly_score TYPE NUMERIC(7,4);
+  END IF;
+END $$;
+
+-- ---------------------------------------------------------------------------
+-- AGENT FLOAT LEDGER  (double-entry GL for every float / cash movement)
+-- Rows are append-only: edits and deletes of a banking transaction add
+-- *_REVERSAL rows instead of changing existing ones.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS agent_float_ledger (
+    ledger_id          UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id            UUID          NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    agent_bank_id      UUID          REFERENCES agent_banks(agent_bank_id) ON DELETE CASCADE,
+    -- SET NULL keeps the ledger history when a banking transaction is deleted
+    agency_banking_id  UUID          REFERENCES agency_banking(agency_banking_id) ON DELETE SET NULL,
+
+    journal_ref        UUID          NOT NULL,       -- both legs of one entry share this
+    event_type         VARCHAR(30)   NOT NULL,       -- DEPOSIT, WITHDRAWAL, TOPUP, DEPOSIT_REVERSAL, WITHDRAWAL_REVERSAL
+    gl_account         VARCHAR(50)   NOT NULL,       -- 'Agent Float' | 'Agent Cash-on-Hand'
+    gl_direction       VARCHAR(2)    NOT NULL,
+    amount             NUMERIC(14,2) NOT NULL,
+    float_after        NUMERIC(14,2),
+    note               TEXT,
+
+    created_at         TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT chk_afl_direction CHECK (gl_direction IN ('DR', 'CR')),
+    CONSTRAINT chk_afl_amount    CHECK (amount >= 0)
+);
+
+-- If any of the three agent tables already existed in a different shape (made by
+-- hand in the dashboard), add whatever columns the code needs. Nullable/defaulted,
+-- so this works even when the tables already hold rows.
+ALTER TABLE agent_banks
+  ADD COLUMN IF NOT EXISTS user_id         UUID,
+  ADD COLUMN IF NOT EXISTS bank_name       VARCHAR(100),
+  ADD COLUMN IF NOT EXISTS bank_code       VARCHAR(20),
+  ADD COLUMN IF NOT EXISTS risk_tier       VARCHAR(10)   DEFAULT 'LOW',
+  ADD COLUMN IF NOT EXISTS float_balance   NUMERIC(14,2) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS float_floor     NUMERIC(14,2) DEFAULT 50000,
+  ADD COLUMN IF NOT EXISTS float_ceiling   NUMERIC(14,2) DEFAULT 500000,
+  ADD COLUMN IF NOT EXISTS alert_low_pct   NUMERIC(5,2)  DEFAULT 40,
+  ADD COLUMN IF NOT EXISTS alert_crit_pct  NUMERIC(5,2)  DEFAULT 20,
+  ADD COLUMN IF NOT EXISTS is_active       BOOLEAN       DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS created_at      TIMESTAMPTZ   DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS updated_at      TIMESTAMPTZ   DEFAULT NOW();
+
+ALTER TABLE agent_cash_pool
+  ADD COLUMN IF NOT EXISTS user_id          UUID,
+  ADD COLUMN IF NOT EXISTS cash_on_hand     NUMERIC(14,2) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS reserve_floor    NUMERIC(14,2) DEFAULT 50000,
+  ADD COLUMN IF NOT EXISTS day_start_cash   NUMERIC(14,2) DEFAULT 75000,
+  ADD COLUMN IF NOT EXISTS last_reset_date  DATE,
+  ADD COLUMN IF NOT EXISTS updated_at       TIMESTAMPTZ   DEFAULT NOW();
+
+ALTER TABLE agent_float_ledger
+  ADD COLUMN IF NOT EXISTS user_id            UUID,
+  ADD COLUMN IF NOT EXISTS agent_bank_id      UUID,
+  ADD COLUMN IF NOT EXISTS agency_banking_id  UUID,
+  ADD COLUMN IF NOT EXISTS journal_ref        UUID,
+  ADD COLUMN IF NOT EXISTS event_type         VARCHAR(30),
+  ADD COLUMN IF NOT EXISTS gl_account         VARCHAR(50),
+  ADD COLUMN IF NOT EXISTS gl_direction       VARCHAR(2),
+  ADD COLUMN IF NOT EXISTS amount             NUMERIC(14,2),
+  ADD COLUMN IF NOT EXISTS float_after        NUMERIC(14,2),
+  ADD COLUMN IF NOT EXISTS note               TEXT,
+  ADD COLUMN IF NOT EXISTS created_at         TIMESTAMPTZ DEFAULT NOW();
+
+-- Reversal events (edit / delete of a banking transaction). If event_type was
+-- created as an ENUM, add the two values; if it is text, nothing to do.
+DO $$
+DECLARE enum_name text;
+BEGIN
+  SELECT c.udt_name INTO enum_name
+  FROM information_schema.columns c
+  JOIN pg_type t ON t.typname = c.udt_name AND t.typtype = 'e'
+  WHERE c.table_schema = 'public' AND c.table_name = 'agent_float_ledger' AND c.column_name = 'event_type';
+  IF enum_name IS NOT NULL THEN
+    EXECUTE format('ALTER TYPE %I ADD VALUE IF NOT EXISTS %L', enum_name, 'DEPOSIT_REVERSAL');
+    EXECUTE format('ALTER TYPE %I ADD VALUE IF NOT EXISTS %L', enum_name, 'WITHDRAWAL_REVERSAL');
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_afl_user_bank ON agent_float_ledger(user_id, agent_bank_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_afl_journal   ON agent_float_ledger(journal_ref);
+
+-- ---------------------------------------------------------------------------
+-- TRANSACTIONS / SUPPLIERS / PROCUREMENT — JSONB and map columns
+-- ---------------------------------------------------------------------------
+ALTER TABLE transactions
+  ADD COLUMN IF NOT EXISTS items JSONB;                 -- cart lines [{item_name, quantity, unit_price, cost_price}]
+
+ALTER TABLE suppliers
+  ADD COLUMN IF NOT EXISTS items_supplied JSONB NOT NULL DEFAULT '[]'::jsonb,  -- [{item_name, quantity, unit_price}]
+  ADD COLUMN IF NOT EXISTS latitude       DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS longitude      DOUBLE PRECISION;
+
+ALTER TABLE procurement
+  ADD COLUMN IF NOT EXISTS recommended_suppliers JSONB NOT NULL DEFAULT '[]'::jsonb;
+
+-- ---------------------------------------------------------------------------
+-- ROW LEVEL SECURITY for the new tables
+-- The tables above use RLS with no policies (only the service_role key used by
+-- the backend can reach them). Before running these lines on the LIVE database,
+-- confirm backend/.env SUPABASE_KEY is the service_role key — with the anon key
+-- the API would lose access to these tables.
+-- ---------------------------------------------------------------------------
+ALTER TABLE agent_banks        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agent_cash_pool    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agent_float_ledger ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE agent_banks IS
+'Float account per partner bank. float_balance changes only through top-ups and agency banking transactions, each with a ledger entry.';
+COMMENT ON TABLE agent_cash_pool IS
+'Agent physical cash on hand (one row per agent), shared across all banks.';
+COMMENT ON TABLE agent_float_ledger IS
+'Append-only double-entry ledger of float and cash movements. Corrections are added as *_REVERSAL rows.';
+
+NOTIFY pgrst, 'reload schema';
+
+-- =============================================================================
+-- NEXT: run sql/atomic_banking.sql (agency-banking float / cash-pool functions).
+-- The backend calls those functions for every banking write; without them the
+-- agency-banking and agent-bank endpoints return an error.
+-- =============================================================================

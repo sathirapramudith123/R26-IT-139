@@ -51,3 +51,5 @@ app.*.map.json
 .env.local
 .env.*.local
 *.key
+# Per-developer backend URL (computer IP) — see config/README.md
+config/phone.json

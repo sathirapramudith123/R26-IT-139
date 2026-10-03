@@ -160,9 +160,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         IconButton(
                           icon: const Icon(Icons.logout, color: Colors.white),
-                          onPressed: () {
-                            AuthService.logout();
-                            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+                          onPressed: () async {
+                            await AuthService.logout();
+                            if (!context.mounted) return;
+                            Navigator.pushAndRemoveUntil(context,
+                                MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
                           },
                         ),
                       ]),

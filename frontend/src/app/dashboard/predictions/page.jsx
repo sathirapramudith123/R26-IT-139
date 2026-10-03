@@ -719,7 +719,8 @@ export default function PredictionsDashboard() {
                         <div>
                           <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{it.item}</p>
                           <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                            Stock: {it.quantity} · Reorder: {it.reorder_level}
+                            Stock: {it.quantity} · Reorder: {it.forecast_reorder_level ?? it.reorder_level}
+                            {it.decision_basis === "forecast" && ` (≈${Math.round(it.forecast_units)}/week forecast)`}
                           </p>
                         </div>
                         <span

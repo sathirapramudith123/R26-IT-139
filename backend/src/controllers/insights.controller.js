@@ -7,6 +7,9 @@ import {
   buildAnomalyFeatures,
   getTotalSoldByItem,
   getAvgSalePriceByItem,
+  getPriceHistories,
+  priceTrendForItem,
+  forecastReorderLevel,
 } from "../utils/features.js";
 
 // CBSL LOW/rural daily limits (must match agencyBanking.controller.js)
@@ -104,9 +107,11 @@ export const getInsights = async (req, res) => {
   // all-time units sold (getTotalSoldByItem, from actual SALE transactions)
   // — items that don't sell naturally sort to the bottom and only appear if
   // there aren't 6 items with real sales yet.
+  // forecastByItem is reused by Buy or Wait below (demand forecast -> reorder point).
+  const forecastByItem = {};
+  const avgSalePrice = await getAvgSalePriceByItem(userId);
   {
     const totalSold = await getTotalSoldByItem(userId);
-    const avgSalePrice = await getAvgSalePriceByItem(userId);
     const normName = (s) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
     const sortedBySales = [...uniqueItems].sort(
       (a, b) => (totalSold[normName(b.item_name)] || 0) - (totalSold[normName(a.item_name)] || 0)
@@ -115,13 +120,15 @@ export const getInsights = async (req, res) => {
     const list = [];
     for (const item of sortedBySales) {
       if (list.length >= 6) break;
-      const { hasSalesHistory, features: demandFeatures } = await buildDemandFeatures(userId, item);
+      const { hasSalesHistory, features: demandFeatures } =
+        await buildDemandFeatures(userId, item, avgSalePrice[normName(item.item_name)]);
       if (hasSalesHistory) {
         const r = await safePredict("demand", demandFeatures);
+        if (r.available) forecastByItem[normName(item.item_name)] = r.prediction;
         // ✅ Revenue estimate = forecast units × the REAL average price this
         // item actually sold for (not inventory's listed/wholesale price).
-        // Rounded to the nearest 100 — the unit forecast itself has ~±21
-        // units of average error (model MAE), so an exact-looking rupee
+        // Rounded to the nearest 100 — the weekly unit forecast has ~±11
+        // units of average error (test MAE, inventory_weekly.ipynb), so an exact-looking rupee
         // figure would be false precision.
         const price = avgSalePrice[normName(item.item_name)]
           || Number(item.cost_price) || Number(item.unit_price) || 0;
@@ -144,7 +151,7 @@ export const getInsights = async (req, res) => {
           forecast_units: null,
           forecast_revenue: null,
           available: false,
-          reason: "No sales recorded yet for this item",
+          reason: "No sales in the last 8 weeks for this item",
         });
       }
     }
@@ -154,19 +161,35 @@ export const getInsights = async (req, res) => {
   }
 
   // C3 — buy or wait for each top-moving item (LIST)
-  //      Hybrid: reorder rule decides BUY/WAIT, ML model adds price context.
+  //      BUY/WAIT: stock vs a reorder point from the demand forecast (lead time + safety
+  //      stock); the manual reorder_level is used only for items with no forecast.
+  //      The procurement ML model adds price context.
   if (topItems.length > 0) {
+    const histories = await getPriceHistories(userId);   // shop's purchase prices, all items at once
     const list = [];
     for (const item of topItems) {
       const qty = Number(item.quantity);
       const reorder = Number(item.reorder_level);
       const price = Number(item.cost_price) || Number(item.unit_price) || 0;
 
-      // primary decision: reorder-level rule
-      const action = qty <= reorder ? "BUY" : "WAIT";
+      // weekly demand forecast: reuse the Sales Forecast result, else predict it here
+      const key = normName(item.item_name);
+      let forecast = forecastByItem[key];
+      if (forecast === undefined) {
+        const { hasSalesHistory, features: demandFeatures } =
+          await buildDemandFeatures(userId, item, avgSalePrice[key]);
+        const d = hasSalesHistory ? await safePredict("demand", demandFeatures) : { available: false };
+        forecast = d.available ? d.prediction : null;
+        forecastByItem[key] = forecast;
+      }
+      const plan = forecast != null ? forecastReorderLevel(forecast, item.lead_time_days) : null;
+      const reorderPoint = plan ? plan.reorder_level : reorder;
+
+      const action = qty <= reorderPoint ? "BUY" : "WAIT";
 
       // ML price context (advisory only)
-      const r = await safePredict("procurement", buildProcurementFeatures(item, price));
+      const trend = priceTrendForItem(histories, item.item_name, price);
+      const r = await safePredict("procurement", buildProcurementFeatures(item, price, trend));
       const mlAction = r.available ? r.recommended_action : null;   // BULK_BUY_NOW / MODERATE_BUY / WAIT_DO_NOT_BUY
       let priceContext = "";
       if (r.available) {
@@ -177,11 +200,16 @@ export const getInsights = async (req, res) => {
       list.push({
         item: item.item_name,
         quantity: qty,
-        reorder_level: reorder,
-        action,                                   // BUY / WAIT (reorder rule)
+        reorder_level: reorder,                   // set by the shop owner
+        forecast_units: forecast,                 // weekly demand forecast (null = no sales history)
+        forecast_reorder_level: plan ? plan.reorder_level : null,
+        safety_stock: plan ? plan.safety_stock : null,
+        decision_basis: plan ? "forecast" : "reorder_level",
+        action,                                   // BUY / WAIT
         urgent: action === "BUY",
         price_context: priceContext,              // ML advisory
         buy_confidence: r.available ? r.buy_confidence_score : null,
+        price_change_4wk_pct: trend.price_change_4wk_pct,   // e.g. -8.5 = price fell 8.5% in 4 weeks
         available: true,
       });
     }

@@ -2,6 +2,7 @@ import { supabase } from "../config/supabase.js";
 import { toClient, toClientList, up } from "../utils/mappers.js";
 import { consumeStock, receiveStock, hasEnoughStock } from "../utils/stock.js";
 import { buildJournal, journalTotals, buildGoodsSummary, buildProfitAndLoss } from "../utils/doubleEntry.js";
+import { localDayStart, localDateStr, addDays } from "../utils/time.js";
 
 const TABLE = "transactions";
 const ID = "transaction_id";
@@ -89,24 +90,25 @@ export const journal = async (req, res, next) => {
     let q = supabase.from(TABLE).select("*").eq("user_id", req.user.id);
 
     // date-range filter (from-to) takes priority, then single day, then month
+    // Day boundaries are Sri Lanka days (utils/time.js), whatever timezone the server runs in
+    const isDate = (s) => /^\d{4}-\d{2}-\d{2}$/.test(String(s));
+    if ((from && !isDate(from)) || (to && !isDate(to)) || (date && !isDate(date)))
+      return res.status(400).json({ error: "Dates must be in YYYY-MM-DD format" });
+
     if (from || to) {
-      if (from) {
-        const start = new Date(`${from}T00:00:00`);
-        q = q.gte("created_at", start.toISOString());
-      }
-      if (to) {
-        const end = new Date(`${to}T00:00:00`); end.setDate(end.getDate() + 1);
-        q = q.lt("created_at", end.toISOString());
-      }
+      if (from) q = q.gte("created_at", localDayStart(from).toISOString());
+      if (to)   q = q.lt("created_at", localDayStart(addDays(to, 1)).toISOString());
     } else if (date) {
-      const start = new Date(`${date}T00:00:00`);
-      const end = new Date(start); end.setDate(end.getDate() + 1);
-      q = q.gte("created_at", start.toISOString()).lt("created_at", end.toISOString());
+      q = q.gte("created_at", localDayStart(date).toISOString())
+           .lt("created_at", localDayStart(addDays(date, 1)).toISOString());
     } else if (year && month) {
       const y = Number(year), m = Number(month);
-      const start = new Date(y, m - 1, 1);
-      const end = new Date(y, m, 1);
-      q = q.gte("created_at", start.toISOString()).lt("created_at", end.toISOString());
+      if (!Number.isInteger(y) || !Number.isInteger(m) || m < 1 || m > 12)
+        return res.status(400).json({ error: "Invalid year / month" });
+      const first = `${y}-${String(m).padStart(2, "0")}-01`;
+      const next  = m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, "0")}-01`;
+      q = q.gte("created_at", localDayStart(first).toISOString())
+           .lt("created_at", localDayStart(next).toISOString());
     }
 
     q = q.order("created_at", { ascending: true });
@@ -136,7 +138,7 @@ export const journal = async (req, res, next) => {
     // Group by day for the drill-down UI
     const byDay = {};
     for (const r of rows) {
-      const day = String(r.date).slice(0, 10);
+      const day = localDateStr(r.date);          // Sri Lanka day
       (byDay[day] ||= []).push(r);
     }
     const days = Object.keys(byDay).sort().map((day) => ({
@@ -150,7 +152,7 @@ export const journal = async (req, res, next) => {
     if (!year && !month && !date && !from && !to) {
       const monthSet = {};
       for (const t of txns) {
-        const ym = String(t.created_at).slice(0, 7); // YYYY-MM
+        const ym = localDateStr(t.created_at).slice(0, 7); // YYYY-MM (Sri Lanka)
         monthSet[ym] = (monthSet[ym] || 0) + 1;
       }
       months = Object.keys(monthSet).sort().reverse()

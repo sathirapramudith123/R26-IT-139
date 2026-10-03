@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../services/auth_service.dart';
-import '../dashboard_screen.dart';
+import '../../widgets/main_navigation.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -22,7 +22,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       await AuthService.register(fullName.text.trim(), email.text.trim(), password.text);
       if (!mounted) return;
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DashboardScreen()));
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainNavigation()));
     } catch (e) {
       setState(() => error = e.toString().replaceFirst("Exception: ", ""));
     } finally {

@@ -12,7 +12,9 @@ import { INVENTORY_UNITS } from "@/lib/constants";
 
 const LocationPickerMap = dynamic(() => import("./LocationPickerMap"), { ssr: false });
 
-const today = () => new Date().toISOString().slice(0, 10);
+// Today's date in the browser's timezone (toISOString() gives the UTC date — yesterday in
+// Sri Lanka before 05:30)
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 const genPrNo = () => `PR-${String(Date.now()).slice(-5)}`;
 
 // Haversine formula — straight-line distance (km) between two lat/lng points.
@@ -32,8 +34,8 @@ function distanceKm(lat1, lng1, lat2, lng2) {
 // (days). Replaces manually typing an Arrival Date — we now derive it from
 // how long the best-match supplier said they take to deliver.
 function addDays(dateStr, days) {
-  const d = new Date(dateStr);
-  d.setDate(d.getDate() + (Number(days) || 0));
+  const d = new Date(`${dateStr}T00:00:00Z`);          // plain calendar arithmetic in UTC
+  d.setUTCDate(d.getUTCDate() + (Number(days) || 0));
   return d.toISOString().slice(0, 10);
 }
 

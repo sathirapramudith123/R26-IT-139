@@ -1,17 +1,37 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'core/api.dart';
+import 'core/config.dart';
 import 'core/theme.dart';
+import 'services/auth_service.dart';
 import 'screens/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
+import 'widgets/main_navigation.dart';
+
+/// Lets non-widget code (the Api 401 handler) navigate.
+final navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Loads .env at the project root into dotenv.env — used by
-  // location_picker_map.dart / supplier_distance_map.dart for the
-  // Google Maps Places & Directions API key. Must finish before runApp,
-  // since those widgets read dotenv.env the moment they build.
-  await dotenv.load(fileName: ".env");
+  if (AppConfig.googleMapsApiKey.isEmpty) {
+    debugPrint('GOOGLE_MAPS_API_KEY not set — map search and distances are disabled. '
+        'Run with: flutter run --dart-define-from-file=.env  (see .env.example)');
+  }
+  await AuthService.restoreSession();   // stay logged in across app restarts
+  Api.onUnauthorized = _goToLogin;      // expired token → back to login
   runApp(const MyApp());
+}
+
+bool _redirecting = false; // several requests can 401 at once — navigate only once
+
+void _goToLogin() {
+  if (_redirecting) return;
+  _redirecting = true;
+  AuthService.logout();
+  navigatorKey.currentState?.pushAndRemoveUntil(
+    MaterialPageRoute(builder: (_) => const LoginScreen(sessionExpired: true)),
+    (_) => false,
+  );
+  Future.delayed(const Duration(seconds: 2), () => _redirecting = false);
 }
 
 class MyApp extends StatelessWidget {
@@ -24,14 +44,16 @@ class MyApp extends StatelessWidget {
       builder: (context, mode, _) {
         return MaterialApp(
           title: 'Kade',
+          navigatorKey: navigatorKey,
           debugShowCheckedModeBanner: false,
           theme: buildLightTheme(),
           darkTheme: buildDarkTheme(),
           themeMode: mode,
-          // App opens on the animated splash, which then routes to Login.
+          // App opens on the animated splash, then goes straight to the app
+          // if a valid session was restored, otherwise to Login.
           home: SplashScreen(
             duration: const Duration(seconds: 4),
-            next: () => const LoginScreen()),
+            next: () => AuthService.isLoggedIn ? const MainNavigation() : const LoginScreen()),
         );
       },
     );

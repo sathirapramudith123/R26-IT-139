@@ -2,10 +2,10 @@ import os
 import joblib
 
 FILES = {
-    'credit': 'models/component1_sales_financial_model.pkl',
-    'procurement': 'models/component2_procurement_model.pkl',
-    'demand': 'models/component3_demand_forecast_model.pkl',
-    'anomaly': 'models/component4_banking_anomaly_model.pkl',
+    'credit': 'models/credit_readiness_model.pkl',
+    'procurement': 'models/procurement_buy_wait_model.pkl',
+    'demand': 'models/weekly_demand_forecast_model.pkl',
+    'anomaly': 'models/banking_anomaly_model.pkl',
 }
 
 

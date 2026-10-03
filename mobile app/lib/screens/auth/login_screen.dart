@@ -4,7 +4,9 @@ import '../../widgets/main_navigation.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  /// true when the app sent the user here because their session expired
+  final bool sessionExpired;
+  const LoginScreen({super.key, this.sessionExpired = false});
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
@@ -24,7 +26,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       setState(() => error = e.toString().replaceFirst("Exception: ", ""));
     } finally {
-      setState(() => loading = false);
+      if (mounted) setState(() => loading = false);
     }
   }
 
@@ -39,6 +41,8 @@ class _LoginScreenState extends State<LoginScreen> {
             const Text("Lanka-Link", style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
             const Text("Sign in to your account", style: TextStyle(color: Colors.grey)),
             const SizedBox(height: 24),
+            if (widget.sessionExpired && error == null)
+              _errorBox("Your session has expired. Please sign in again."),
             if (error != null) _errorBox(error!),
             TextField(controller: email, decoration: const InputDecoration(labelText: "Email")),
             const SizedBox(height: 12),

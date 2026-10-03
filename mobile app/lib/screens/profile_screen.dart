@@ -147,8 +147,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 icon: const Icon(Icons.logout),
                 label: const Text("Log Out"),
-                onPressed: () {
-                  AuthService.logout();
+                onPressed: () async {
+                  await AuthService.logout();
+                  if (!context.mounted) return;
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (_) => const LoginScreen()),

@@ -70,3 +70,8 @@ mobile_app/**/*.pbxuser
 .DS_Store
 Thumbs.db
 *.log
+# ---------- Local only (not part of the project) ----------
+ml_service/models/backup_*/
+.claude/
+ML model/**/archive/*.html
+ML model/**/*_model_report.pdf

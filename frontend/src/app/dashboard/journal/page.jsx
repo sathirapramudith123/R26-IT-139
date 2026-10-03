@@ -15,8 +15,11 @@ const TABS = [
 ];
 
 // default range = current month
-const firstOfMonth = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10); };
-const todayStr = () => new Date().toISOString().slice(0, 10);
+// YYYY-MM-DD in the browser's own timezone (toISOString() would give the UTC date,
+// i.e. the previous day in Sri Lanka before 05:30, and Aug 31 for "1 September").
+const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const firstOfMonth = () => { const d = new Date(); return ymd(new Date(d.getFullYear(), d.getMonth(), 1)); };
+const todayStr = () => ymd(new Date());
 
 export default function JournalPage() {
   const [tab, setTab] = useState("journal");
@@ -70,7 +73,7 @@ export default function JournalPage() {
           className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500">Apply</button>
         <div className="ml-auto flex gap-2 text-xs">
           <QuickRange label="This month" onClick={() => { setFrom(firstOfMonth()); setTo(todayStr()); }} />
-          <QuickRange label="Last 7 days" onClick={() => { const d = new Date(); d.setDate(d.getDate() - 6); setFrom(d.toISOString().slice(0,10)); setTo(todayStr()); }} />
+          <QuickRange label="Last 7 days" onClick={() => { const d = new Date(); d.setDate(d.getDate() - 6); setFrom(ymd(d)); setTo(todayStr()); }} />
         </div>
       </div>
 

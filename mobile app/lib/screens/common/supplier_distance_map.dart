@@ -4,12 +4,11 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../../core/config.dart';
 import '../../core/theme.dart';
 
-// Read from the .env file at the project root — see location_picker_map.dart
-// for the full explanation of why this only covers Dart-side REST calls.
-String get _kGoogleApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
+// Web-service key for the Directions REST call — see location_picker_map.dart.
+String get _kGoogleApiKey => AppConfig.googleMapsApiKey;
 
 /// Read-only map: "how far is this supplier/agent from me, and how long
 /// would it take to drive there right now?" No search box, nothing to tap —

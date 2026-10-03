@@ -5,15 +5,14 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../../core/config.dart';
 import '../../core/theme.dart';
 
-// Read from the .env file at the project root (see main.dart, which loads
-// it via dotenv.load() before runApp). This covers the Places search and
-// Directions REST calls made from Dart — the native map SDKs (Android/iOS)
-// still read their own separate copy of the key from AndroidManifest.xml
-// and AppDelegate.swift, since those load before Flutter/dotenv does.
-String get _kGoogleApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
+// Web-service key for the Places search, Geocoding and Directions REST calls
+// made from Dart, given at build time (flutter run --dart-define-from-file=.env).
+// The native map SDKs read their own key: Android from AndroidManifest.xml
+// (filled from android/local.properties), iOS from AppDelegate.swift.
+String get _kGoogleApiKey => AppConfig.googleMapsApiKey;
 
 /// One extra marker to plot alongside the picked point — e.g. suppliers of
 /// the item being procured, with [highlight] marking the nearest one.

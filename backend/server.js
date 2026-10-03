@@ -1,7 +1,8 @@
+// Load backend/.env before any other module reads process.env (the only place it is loaded)
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
-import dotenv from "dotenv";
 
 import { checkSupabase } from "./src/config/supabase.js";
 import errorHandler from "./src/middlewares/error.middleware.js";
@@ -18,12 +19,22 @@ import insightsRoutes from "./src/routes/insights.routes.js";
 import reportRoutes from "./src/routes/report.routes.js"; 
 import agentBankRoutes from "./src/routes/agentBank.routes.js";
 
-dotenv.config();
-
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+// Behind a hosting proxy (Render, Railway, nginx...) set TRUST_PROXY=1 so req.ip is the
+// real client IP for the rate limits. Leave it unset when running directly (local / LAN):
+// otherwise anyone could fake their IP with an X-Forwarded-For header.
+if (process.env.TRUST_PROXY) app.set("trust proxy", Number(process.env.TRUST_PROXY) || process.env.TRUST_PROXY);
+
+// Only these web origins may call the API from a browser (comma-separated in .env).
+// Requests without an Origin header — the mobile app, Postman, server-to-server — are
+// not affected: CORS is a browser rule, the API itself is protected by the JWT.
+const allowedOrigins = (process.env.CORS_ORIGINS || "http://localhost:3000")
+  .split(",").map((s) => s.trim().replace(/\/$/, "")).filter(Boolean);
+app.use(cors({
+  origin: (origin, cb) => cb(null, !origin || allowedOrigins.includes(origin)),
+}));
 app.use(express.json());
 app.use(morgan("dev"));
 
