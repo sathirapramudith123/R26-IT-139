@@ -37,9 +37,9 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
 
   final customerCtrl = TextEditingController();
   final phoneCtrl = TextEditingController();
-  final nicCtrl = TextEditingController();          // NEW
-  final accountCtrl = TextEditingController();      // NEW (mandatory)
-  final sourceOtherCtrl = TextEditingController();  // free text when "OTHER"
+  final nicCtrl = TextEditingController(); // NEW
+  final accountCtrl = TextEditingController(); // NEW (mandatory)
+  final sourceOtherCtrl = TextEditingController(); // free text when "OTHER"
   final amountCtrl = TextEditingController();
   final feeCtrl = TextEditingController();
   final commissionCtrl = TextEditingController();
@@ -52,7 +52,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
 
   // Agent banks (float accounts)
   List<Map<String, dynamic>> banks = [];
-  String? agentBankId;                              // NEW
+  String? agentBankId; // NEW
   bool loadingBanks = true;
 
   static const types = ["cash_deposit", "cash_withdrawal", "fund_transfer"];
@@ -77,9 +77,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
         : "cash_deposit";
     accountCtrl.text = it?["account_number"]?.toString() ?? "";
     sourceOfFunds = it?["source_of_funds"]?.toString() ?? "";
-    status = (it?["status"]?.toString().isNotEmpty ?? false)
-        ? it!["status"].toString()
-        : "completed";
+    status = (it?["status"]?.toString().isNotEmpty ?? false) ? it!["status"].toString() : "completed";
     nicCtrl.text = it?["customer_nic"]?.toString() ?? "";
     agentBankId = it?["agent_bank_id"]?.toString();
     _loadBanks();
@@ -143,10 +141,14 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
   }
 
   String _formatType(String text) {
-    return text.replaceAll("_", " ").split(' ').map((str) {
-      if (str.isEmpty) return "";
-      return str[0].toUpperCase() + str.substring(1);
-    }).join(' ');
+    return text
+        .replaceAll("_", " ")
+        .split(' ')
+        .map((str) {
+          if (str.isEmpty) return "";
+          return str[0].toUpperCase() + str.substring(1);
+        })
+        .join(' ');
   }
 
   String _money(num n) {
@@ -167,9 +169,9 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
   }
 
   Widget _hint(String text) => Padding(
-        padding: const EdgeInsets.only(top: 6, left: 2),
-        child: Text(text, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
-      );
+    padding: const EdgeInsets.only(top: 6, left: 2),
+    child: Text(text, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
+  );
 
   Widget _floatPanel() {
     final bank = _selectedBank!;
@@ -182,19 +184,29 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
 
     Color healthColor;
     switch (health) {
-      case "CRITICAL_ALERT": healthColor = Colors.red; break;
-      case "LOW_ALERT":      healthColor = Colors.orange; break;
-      default:               healthColor = Colors.green;
+      case "CRITICAL_ALERT":
+        healthColor = Colors.red;
+        break;
+      case "LOW_ALERT":
+        healthColor = Colors.orange;
+        break;
+      default:
+        healthColor = Colors.green;
     }
 
     String? warn;
     Color warnColor = Colors.orange;
     if (after != null) {
-      if (txType == "cash_deposit" && after < 0) { warn = "Insufficient float to fund this deposit."; warnColor = Colors.red; }
-      else if (txType == "cash_deposit" && after < floor) { warn = "Float will drop below floor — top-up recommended."; }
-      else if (txType == "cash_withdrawal") {
-        if (cashAfter != null && cashAfter < 0) { warn = "Insufficient cash on hand to pay out this withdrawal."; warnColor = Colors.red; }
-        else {
+      if (txType == "cash_deposit" && after < 0) {
+        warn = "Insufficient float to fund this deposit.";
+        warnColor = Colors.red;
+      } else if (txType == "cash_deposit" && after < floor) {
+        warn = "Float will drop below floor — top-up recommended.";
+      } else if (txType == "cash_withdrawal") {
+        if (cashAfter != null && cashAfter < 0) {
+          warn = "Insufficient cash on hand to pay out this withdrawal.";
+          warnColor = Colors.red;
+        } else {
           final ceil = (bank["float_ceiling"] as num?)?.toDouble() ?? double.infinity;
           if (after > ceil) warn = "Float will exceed ceiling — schedule a sweep.";
         }
@@ -202,38 +214,54 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
     }
 
     Widget row(String k, String v, {Color? color}) => Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2),
-          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text(k, style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodySmall?.color)),
-            Text(v, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
-          ]),
-        );
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(k, style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodySmall?.color)),
+          Text(
+            v,
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color),
+          ),
+        ],
+      ),
+    );
 
     return Container(
       margin: const EdgeInsets.only(top: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark ? Colors.white10 : Colors.black.withOpacity(0.03),
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.white10
+            : Colors.black.withOpacity(0.03),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Column(children: [
-        row("Current float", "LKR ${_money(bal)}"),
-        if (after != null)
-          row("Float after ${txType == "cash_deposit" ? "↓" : "↑"}", "LKR ${_money(after)}",
-              color: after < floor ? Colors.orange : Colors.green),
-        const Divider(height: 14),
-        row("Cash on hand", "LKR ${_money(cash)}"),
-        if (cashAfter != null)
-          row("Cash after ${txType == "cash_deposit" ? "↑" : "↓"}", "LKR ${_money(cashAfter)}",
-              color: cashAfter < 0 ? Colors.red : Colors.green),
-        const Divider(height: 14),
-        row("Health", health.isEmpty ? "—" : health.replaceAll("_", " "), color: healthColor),
-        if (warn != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(warn, style: TextStyle(fontSize: 12, color: warnColor)),
-          ),
-      ]),
+      child: Column(
+        children: [
+          row("Current float", "LKR ${_money(bal)}"),
+          if (after != null)
+            row(
+              "Float after ${txType == "cash_deposit" ? "↓" : "↑"}",
+              "LKR ${_money(after)}",
+              color: after < floor ? Colors.orange : Colors.green,
+            ),
+          const Divider(height: 14),
+          row("Cash on hand", "LKR ${_money(cash)}"),
+          if (cashAfter != null)
+            row(
+              "Cash after ${txType == "cash_deposit" ? "↑" : "↓"}",
+              "LKR ${_money(cashAfter)}",
+              color: cashAfter < 0 ? Colors.red : Colors.green,
+            ),
+          const Divider(height: 14),
+          row("Health", health.isEmpty ? "—" : health.replaceAll("_", " "), color: healthColor),
+          if (warn != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(warn, style: TextStyle(fontSize: 12, color: warnColor)),
+            ),
+        ],
+      ),
     );
   }
 
@@ -273,7 +301,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
         setState(() => error = "Please enter a valid amount.");
         return;
       }
-      // Per-transaction tier cap (cumulative daily එක backend එකෙන්)
+      // Per-transaction tier cap (the cumulative daily limit is checked by the backend)
       final lim = _limit;
       if (lim != null && amt > lim) {
         setState(() => error = "Amount exceeds the daily limit of LKR ${_money(lim)}.");
@@ -293,7 +321,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
       "customer_name": customerCtrl.text.trim(),
       "customer_phone": phoneCtrl.text.trim(),
       "customer_nic": nicCtrl.text.trim(),
-      "account_number": accountCtrl.text.trim(),     // NEW
+      "account_number": accountCtrl.text.trim(), // NEW
       "source_of_funds": txType == "cash_deposit"
           ? (sourceOfFunds == "OTHER" ? sourceOtherCtrl.text.trim() : sourceOfFunds)
           : null, // deposits only
@@ -338,10 +366,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              if (error != null) ...[
-                errorBox(error!),
-                const SizedBox(height: 12),
-              ],
+              if (error != null) ...[errorBox(error!), const SizedBox(height: 12)],
 
               // Agent bank (float account) selector
               fieldLabel("Agent Bank (Float Account)"),
@@ -355,13 +380,13 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
                   value: agentBankId,
                   decoration: const InputDecoration(),
                   items: [
-                    const DropdownMenuItem<String?>(
-                      value: null, child: Text("— No bank (skip float) —"),
+                    const DropdownMenuItem<String?>(value: null, child: Text("— No bank (skip float) —")),
+                    ...banks.map(
+                      (b) => DropdownMenuItem<String?>(
+                        value: b["id"]?.toString(),
+                        child: Text("${b["bank_name"]} — LKR ${_money((b["float_balance"] as num?) ?? 0)}"),
+                      ),
                     ),
-                    ...banks.map((b) => DropdownMenuItem<String?>(
-                          value: b["id"]?.toString(),
-                          child: Text("${b["bank_name"]} — LKR ${_money((b["float_balance"] as num?) ?? 0)}"),
-                        )),
                   ],
                   onChanged: saving ? null : (val) => setState(() => agentBankId = val),
                 ),
@@ -495,7 +520,9 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
                   value: statuses.contains(status) ? status : statuses.first,
                   decoration: const InputDecoration(),
                   items: statuses
-                      .map((s) => DropdownMenuItem(value: s, child: Text(s[0].toUpperCase() + s.substring(1))))
+                      .map(
+                        (s) => DropdownMenuItem(value: s, child: Text(s[0].toUpperCase() + s.substring(1))),
+                      )
                       .toList(),
                   onChanged: saving ? null : (val) => setState(() => status = val ?? status),
                 ),

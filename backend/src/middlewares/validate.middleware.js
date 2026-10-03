@@ -1,9 +1,7 @@
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const validateId = (req, res, next) => {
-  if (!UUID_RE.test(req.params.id))
-    return res.status(400).json({ error: "Invalid ID format" });
+  if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: "Invalid ID format" });
   next();
 };
 
@@ -12,8 +10,8 @@ export const validateId = (req, res, next) => {
 // controller's toDb() still picks only the columns it knows.
 export const validateBody = (schema) => (req, res, next) => {
   const { error, value } = schema.validate(req.body ?? {}, {
-    abortEarly: false,   // report every problem at once
-    convert: true,       // "1500" -> 1500 (mobile / form inputs send strings)
+    abortEarly: false, // report every problem at once
+    convert: true, // "1500" -> 1500 (mobile / form inputs send strings)
     allowUnknown: true,
   });
   if (error) {

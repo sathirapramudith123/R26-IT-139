@@ -46,7 +46,7 @@ export default function LocationPickerMap({ coords, onPick, extraMarkers = [], r
 
   const center = coords || DEFAULT_CENTER;
 
-  const destination = routeTo || extraMarkers.find(m => m.highlight);
+  const destination = routeTo || extraMarkers.find((m) => m.highlight);
 
   const [directions, setDirections] = useState(null);
   const [routeDistanceKm, setRouteDistanceKm] = useState(null);
@@ -111,14 +111,17 @@ export default function LocationPickerMap({ coords, onPick, extraMarkers = [], r
     }
   }, []);
 
-  const onMapClick = useCallback((e) => {
-    onPick(e.latLng.lat(), e.latLng.lng());
-  }, [onPick]);
+  const onMapClick = useCallback(
+    (e) => {
+      onPick(e.latLng.lat(), e.latLng.lng());
+    },
+    [onPick],
+  );
 
   if (loadError) {
     return (
       <div className="flex h-72 w-full items-center justify-center rounded-xl border border-red-200 bg-red-50 text-sm text-red-500 dark:border-red-900 dark:bg-red-950/40">
-        Couldn't load Google Maps. Check the API key.
+        Couldn&apos;t load Google Maps. Check the API key.
       </div>
     );
   }
@@ -174,7 +177,13 @@ export default function LocationPickerMap({ coords, onPick, extraMarkers = [], r
           <Marker
             key={i}
             position={{ lat: m.lat, lng: m.lng }}
-            icon={m.highlight ? MARKER_COLORS.nearest : m.cheapest ? MARKER_COLORS.cheapest : MARKER_COLORS.supplier}
+            icon={
+              m.highlight
+                ? MARKER_COLORS.nearest
+                : m.cheapest
+                  ? MARKER_COLORS.cheapest
+                  : MARKER_COLORS.supplier
+            }
             title={m.label}
           />
         ))}

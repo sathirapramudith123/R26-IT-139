@@ -4,7 +4,7 @@ import '../../core/theme.dart';
 import '../../core/api.dart';
 import '../../services/crud_service.dart';
 import '../inventory/inventory_form_screen.dart' show fieldLabel, errorBox, saveButton;
-import '../common/location_picker_map.dart';   // <-- path එක ඔයාගෙ folder එකට හදාගන්න
+import '../common/location_picker_map.dart';
 
 const List<String> _units = ["kg", "g", "l", "ml", "unit", "box", "carton"];
 const List<Map<String, String>> _statuses = [
@@ -34,7 +34,7 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
   // Delivery location text — auto-filled from the map pin (search pick or
   // reverse geocoding), but still editable by hand.
   final deliveryLocationCtrl = TextEditingController();
-  double? _lat;   // map coords
+  double? _lat; // map coords
   double? _lng;
   final noteCtrl = TextEditingController();
   String status = "pending";
@@ -55,10 +55,9 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
 
   bool get isEdit => widget.item != null;
 
-  double get totalCost => items.fold(
-      0.0, (s, l) => s + (l["quantity"] as num).toDouble() * (l["unit_cost"] as num).toDouble());
-  double get totalQty =>
-      items.fold(0.0, (s, l) => s + (l["quantity"] as num).toDouble());
+  double get totalCost =>
+      items.fold(0.0, (s, l) => s + (l["quantity"] as num).toDouble() * (l["unit_cost"] as num).toDouble());
+  double get totalQty => items.fold(0.0, (s, l) => s + (l["quantity"] as num).toDouble());
 
   @override
   void initState() {
@@ -106,9 +105,17 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
       final objs = (data is List)
           ? data.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
           : <Map<String, dynamic>>[];
-      if (mounted) setState(() { inventory = objs; loadingInventory = false; });
+      if (mounted)
+        setState(() {
+          inventory = objs;
+          loadingInventory = false;
+        });
     } catch (_) {
-      if (mounted) setState(() { inventory = []; loadingInventory = false; });
+      if (mounted)
+        setState(() {
+          inventory = [];
+          loadingInventory = false;
+        });
     }
   }
 
@@ -131,7 +138,7 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
     return "$intPart.${parts[1]}";
   }
 
-  // Item තෝරද්දි inventory cost එකෙන් unit_cost auto-fill
+  // picking an item fills unit_cost from its inventory cost
   void _onPickItem(String? val) {
     setState(() {
       pickItem = val;
@@ -149,9 +156,18 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
     final qty = double.tryParse(qtyCtrl.text.trim()) ?? 0;
     final cost = double.tryParse(costCtrl.text.trim()) ?? 0;
 
-    if (name == null || name.isEmpty) { setState(() => error = "Select an item."); return; }
-    if (qty <= 0) { setState(() => error = "Enter a valid quantity."); return; }
-    if (cost <= 0) { setState(() => error = "Enter the unit cost."); return; }
+    if (name == null || name.isEmpty) {
+      setState(() => error = "Select an item.");
+      return;
+    }
+    if (qty <= 0) {
+      setState(() => error = "Enter a valid quantity.");
+      return;
+    }
+    if (cost <= 0) {
+      setState(() => error = "Enter the unit cost.");
+      return;
+    }
 
     setState(() {
       error = null;
@@ -178,11 +194,18 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
   Future<void> _save() async {
     FocusScope.of(context).unfocus();
 
-    if (items.isEmpty) { setState(() => error = "Add at least one item."); return; }
-    if (deliveryLocationCtrl.text.trim().isEmpty) {
-      setState(() => error = "Pick a delivery location on the map."); return;
+    if (items.isEmpty) {
+      setState(() => error = "Add at least one item.");
+      return;
     }
-    if (arrivalDate == null) { setState(() => error = "Select the arrival date."); return; }
+    if (deliveryLocationCtrl.text.trim().isEmpty) {
+      setState(() => error = "Pick a delivery location on the map.");
+      return;
+    }
+    if (arrivalDate == null) {
+      setState(() => error = "Select the arrival date.");
+      return;
+    }
 
     final payload = <String, dynamic>{
       "procurement_no": prNo,
@@ -191,12 +214,15 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
       "coords": (_lat != null && _lng != null) ? {"lat": _lat, "lng": _lng} : null,
       "arrival_date": arrivalDate?.toIso8601String().substring(0, 10),
       "special_note": noteCtrl.text.trim(),
-      "items": items,          // [{item_name, unit, quantity, unit_cost}]
-      "total_cost": totalCost, // backend එකෙනුත් re-compute වෙනවා
-      "status": status,        // RECEIVED නම් backend එකෙන් batches receive
+      "items": items, // [{item_name, unit, quantity, unit_cost}]
+      "total_cost": totalCost, // recomputed by the backend too
+      "status": status, // RECEIVED: the backend receives the batches
     };
 
-    setState(() { saving = true; error = null; });
+    setState(() {
+      saving = true;
+      error = null;
+    });
     try {
       isEdit ? await service.update("${widget.item!["id"]}", payload) : await service.create(payload);
       if (!mounted) return;
@@ -229,11 +255,13 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
                 Text(prNo, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                 InkWell(
                   onTap: saving ? null : () => _pickDate(false),
-                  child: Row(children: [
-                    const Icon(Icons.event, size: 16),
-                    const SizedBox(width: 6),
-                    Text(dateStr(orderDate)),
-                  ]),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.event, size: 16),
+                      const SizedBox(width: 6),
+                      Text(dateStr(orderDate)),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -243,7 +271,9 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
             fieldLabel("Item *"),
             DropdownButtonFormField<String>(
               value: names.contains(pickItem) ? pickItem : null,
-              hint: Text(loadingInventory ? "Loading..." : (names.isEmpty ? "No inventory items" : "Select an item…")),
+              hint: Text(
+                loadingInventory ? "Loading..." : (names.isEmpty ? "No inventory items" : "Select an item…"),
+              ),
               items: names.map((o) {
                 final inv = _findItem(o);
                 return DropdownMenuItem(value: o, child: Text("$o (${inv["quantity"] ?? 0} in stock)"));
@@ -252,32 +282,40 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
             ),
             const SizedBox(height: 10),
 
-            Row(children: [
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  fieldLabel("Quantity *"),
-                  TextField(
-                    controller: qtyCtrl,
-                    enabled: !saving,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-                    decoration: const InputDecoration(hintText: "0"),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      fieldLabel("Quantity *"),
+                      TextField(
+                        controller: qtyCtrl,
+                        enabled: !saving,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+                        decoration: const InputDecoration(hintText: "0"),
+                      ),
+                    ],
                   ),
-                ]),
-              ),
-              const SizedBox(width: 10),
-              SizedBox(
-                width: 110,
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  fieldLabel("Unit"),
-                  DropdownButtonFormField<String>(
-                    value: _units.contains(unit) ? unit : "unit",
-                    items: _units.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
-                    onChanged: saving ? null : (v) => setState(() => unit = v ?? "unit"),
+                ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 110,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      fieldLabel("Unit"),
+                      DropdownButtonFormField<String>(
+                        value: _units.contains(unit) ? unit : "unit",
+                        items: _units.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
+                        onChanged: saving ? null : (v) => setState(() => unit = v ?? "unit"),
+                      ),
+                    ],
                   ),
-                ]),
-              ),
-            ]),
+                ),
+              ],
+            ),
             const SizedBox(height: 10),
 
             fieldLabel("Unit Cost (LKR) *"),
@@ -287,7 +325,10 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
               decoration: const InputDecoration(
-                  hintText: "0.00", prefixText: "LKR ", helperText: "Auto-filled from inventory cost — editable"),
+                hintText: "0.00",
+                prefixText: "LKR ",
+                helperText: "Auto-filled from inventory cost — editable",
+              ),
             ),
             const SizedBox(height: 10),
 
@@ -303,44 +344,70 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
             // ── Added items ──
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.black.withOpacity(0.03), borderRadius: BorderRadius.circular(14)),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                const Text("Added items", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                const SizedBox(height: 6),
-                if (items.isEmpty)
-                  const Padding(padding: EdgeInsets.symmetric(vertical: 6),
-                      child: Text("No items added yet.", style: TextStyle(fontSize: 12, color: Colors.grey)))
-                else
-                  ...items.asMap().entries.map((e) {
-                    final i = e.key;
-                    final l = e.value;
-                    final q = (l["quantity"] as num).toDouble();
-                    final c = (l["unit_cost"] as num).toDouble();
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Row(children: [
-                        Expanded(
-                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text("${l["item_name"]}", style: const TextStyle(fontWeight: FontWeight.w700)),
-                            Text("${q.toStringAsFixed(q == q.roundToDouble() ? 0 : 2)} ${l["unit"]} × LKR ${_money(c)}",
-                                style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                          ]),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.03),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text("Added items", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                  const SizedBox(height: 6),
+                  if (items.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 6),
+                      child: Text("No items added yet.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    )
+                  else
+                    ...items.asMap().entries.map((e) {
+                      final i = e.key;
+                      final l = e.value;
+                      final q = (l["quantity"] as num).toDouble();
+                      final c = (l["unit_cost"] as num).toDouble();
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "${l["item_name"]}",
+                                    style: const TextStyle(fontWeight: FontWeight.w700),
+                                  ),
+                                  Text(
+                                    "${q.toStringAsFixed(q == q.roundToDouble() ? 0 : 2)} ${l["unit"]} × LKR ${_money(c)}",
+                                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Text("LKR ${_money(q * c)}", style: const TextStyle(fontWeight: FontWeight.w700)),
+                            IconButton(
+                              icon: const Icon(Icons.close, size: 18),
+                              onPressed: saving ? null : () => setState(() => items.removeAt(i)),
+                            ),
+                          ],
                         ),
-                        Text("LKR ${_money(q * c)}", style: const TextStyle(fontWeight: FontWeight.w700)),
-                        IconButton(
-                          icon: const Icon(Icons.close, size: 18),
-                          onPressed: saving ? null : () => setState(() => items.removeAt(i)),
-                        ),
-                      ]),
-                    );
-                  }),
-                const Divider(),
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text("Total qty: ${totalQty.toStringAsFixed(totalQty == totalQty.roundToDouble() ? 0 : 2)}",
-                      style: const TextStyle(fontWeight: FontWeight.w700)),
-                  Text("Total Cost: LKR ${_money(totalCost)}", style: const TextStyle(fontWeight: FontWeight.w800)),
-                ]),
-              ]),
+                      );
+                    }),
+                  const Divider(),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Total qty: ${totalQty.toStringAsFixed(totalQty == totalQty.roundToDouble() ? 0 : 2)}",
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      Text(
+                        "Total Cost: LKR ${_money(totalCost)}",
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
 
@@ -349,7 +416,10 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
             LocationPickerMap(
               initialLat: _lat,
               initialLng: _lng,
-              onPick: (lat, lng) => setState(() { _lat = lat; _lng = lng; }),
+              onPick: (lat, lng) => setState(() {
+                _lat = lat;
+                _lng = lng;
+              }),
               onAddress: (addr) => setState(() => deliveryLocationCtrl.text = addr),
             ),
             const SizedBox(height: 10),
@@ -358,7 +428,9 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
               enabled: !saving,
               maxLines: 2,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(hintText: "Address (auto-filled from the map — edit if needed)"),
+              decoration: const InputDecoration(
+                hintText: "Address (auto-filled from the map — edit if needed)",
+              ),
             ),
             const SizedBox(height: 16),
 
@@ -367,11 +439,13 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
               onTap: saving ? null : () => _pickDate(true),
               child: InputDecorator(
                 decoration: const InputDecoration(),
-                child: Row(children: [
-                  const Icon(Icons.event, size: 18),
-                  const SizedBox(width: 8),
-                  Text(dateStr(arrivalDate)),
-                ]),
+                child: Row(
+                  children: [
+                    const Icon(Icons.event, size: 18),
+                    const SizedBox(width: 8),
+                    Text(dateStr(arrivalDate)),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -379,13 +453,17 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
             fieldLabel("Status"),
             DropdownButtonFormField<String>(
               value: status,
-              items: _statuses.map((s) => DropdownMenuItem(value: s["value"], child: Text(s["label"]!))).toList(),
+              items: _statuses
+                  .map((s) => DropdownMenuItem(value: s["value"], child: Text(s["label"]!)))
+                  .toList(),
               onChanged: saving ? null : (v) => setState(() => status = v ?? "pending"),
             ),
             Padding(
               padding: const EdgeInsets.only(top: 6, left: 2),
-              child: Text("Setting 'Received' adds all items to inventory as batches",
-                  style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
+              child: Text(
+                "Setting 'Received' adds all items to inventory as batches",
+                style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
+              ),
             ),
             const SizedBox(height: 16),
 

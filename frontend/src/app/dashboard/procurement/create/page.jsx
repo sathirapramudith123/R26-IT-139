@@ -9,8 +9,15 @@ export default function CreateProcurementPage() {
   useAuthGuard();
   return (
     <div className="page-container">
-      <PageHeader title="New Procurement Decision" description="Record a procurement decision."
-        action={<Link href="/dashboard/procurement"><Button variant="secondary">← Back</Button></Link>} />
+      <PageHeader
+        title="New Procurement Decision"
+        description="Record a procurement decision."
+        action={
+          <Link href="/dashboard/procurement">
+            <Button variant="secondary">← Back</Button>
+          </Link>
+        }
+      />
       <ProcurementForm />
     </div>
   );

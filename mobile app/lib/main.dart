@@ -13,11 +13,13 @@ final navigatorKey = GlobalKey<NavigatorState>();
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (AppConfig.googleMapsApiKey.isEmpty) {
-    debugPrint('GOOGLE_MAPS_API_KEY not set — map search and distances are disabled. '
-        'Run with: flutter run --dart-define-from-file=.env  (see .env.example)');
+    debugPrint(
+      'GOOGLE_MAPS_API_KEY not set — map search and distances are disabled. '
+      'Run with: flutter run --dart-define-from-file=.env  (see .env.example)',
+    );
   }
-  await AuthService.restoreSession();   // stay logged in across app restarts
-  Api.onUnauthorized = _goToLogin;      // expired token → back to login
+  await AuthService.restoreSession(); // stay logged in across app restarts
+  Api.onUnauthorized = _goToLogin; // expired token → back to login
   runApp(const MyApp());
 }
 
@@ -53,7 +55,8 @@ class MyApp extends StatelessWidget {
           // if a valid session was restored, otherwise to Login.
           home: SplashScreen(
             duration: const Duration(seconds: 4),
-            next: () => AuthService.isLoggedIn ? const MainNavigation() : const LoginScreen()),
+            next: () => AuthService.isLoggedIn ? const MainNavigation() : const LoginScreen(),
+          ),
         );
       },
     );

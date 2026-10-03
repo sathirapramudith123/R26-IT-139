@@ -8,7 +8,7 @@ import PredictionForm from "@/components/predictions/PredictionForm";
 import PredictionResult from "@/components/predictions/PredictionResult";
 import usePrediction from "@/hooks/usePrediction";
 
-// ML Model එක බලාපොරොත්තු වන නිවැරදි Features 15
+// Inputs for the manual prediction form
 const PROCUREMENT_FIELDS = [
   { name: "item", label: "Item Name", type: "text", default: "Rice" },
   { name: "category", label: "Category", type: "text", default: "grain" },
@@ -33,7 +33,7 @@ export default function ProcurementOptimizerPage() {
 
   const handleSubmit = async (formData) => {
     try {
-      // FastAPI හි 'demand' model එකට සම්බන්ධ වේ
+      // calls the 'demand' model in the ML service
       await run("demand", formData);
     } catch (err) {
       // Error handled inside usePrediction
@@ -53,11 +53,7 @@ export default function ProcurementOptimizerPage() {
       />
 
       <div className="space-y-6">
-        <PredictionForm
-          fields={PROCUREMENT_FIELDS}
-          loading={loading}
-          onSubmit={handleSubmit}
-        />
+        <PredictionForm fields={PROCUREMENT_FIELDS} loading={loading} onSubmit={handleSubmit} />
 
         {error && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-400">

@@ -1,7 +1,14 @@
 import { supabase } from "../config/supabase.js";
 import { toClient } from "../utils/mappers.js";
-import { topUpFloat, floatHealth, getBank, getCashPool, addCashToPool, isFloatInflow,
-         bankingError } from "../utils/float.js";
+import {
+  topUpFloat,
+  floatHealth,
+  getBank,
+  getCashPool,
+  addCashToPool,
+  isFloatInflow,
+  bankingError,
+} from "../utils/float.js";
 
 const TABLE = "agent_banks";
 const ID = "agent_bank_id";
@@ -12,42 +19,48 @@ const upTier = (v) => {
 };
 
 const toDb = (b) => ({
-  bank_name:      b.bank_name,
-  bank_code:      b.bank_code || null,
-  risk_tier:      upTier(b.risk_tier),
-  float_balance:  num(b.float_balance),
-  float_floor:    num(b.float_floor) || 50000,
-  float_ceiling:  num(b.float_ceiling) || 500000,
-  alert_low_pct:  num(b.alert_low_pct) || 40,
+  bank_name: b.bank_name,
+  bank_code: b.bank_code || null,
+  risk_tier: upTier(b.risk_tier),
+  float_balance: num(b.float_balance),
+  float_floor: num(b.float_floor) || 50000,
+  float_ceiling: num(b.float_ceiling) || 500000,
+  alert_low_pct: num(b.alert_low_pct) || 40,
   alert_crit_pct: num(b.alert_crit_pct) || 20,
-  is_active:      b.is_active === undefined ? true : Boolean(b.is_active),
+  is_active: b.is_active === undefined ? true : Boolean(b.is_active),
 });
 
 // Update: only the fields the client actually sent (missing ones keep their DB value).
 // float_balance is not editable here — it changes only through top-ups and transactions,
 // so every change has a ledger entry.
-const UPDATABLE = ["bank_name", "bank_code", "risk_tier", "float_floor", "float_ceiling",
-                   "alert_low_pct", "alert_crit_pct", "is_active"];
+const UPDATABLE = [
+  "bank_name",
+  "bank_code",
+  "risk_tier",
+  "float_floor",
+  "float_ceiling",
+  "alert_low_pct",
+  "alert_crit_pct",
+  "is_active",
+];
 const toDbUpdate = (b) => {
   const full = toDb(b);
   return Object.fromEntries(UPDATABLE.filter((k) => b[k] !== undefined).map((k) => [k, full[k]]));
 };
 
-// health + utilization එක්ක client shape
+// Bank row in the shape the client expects, with float health and utilisation
 const shape = (row) => {
   const c = toClient(row, ID);
   c.float_health = floatHealth(row);
-  c.utilization_pct = num(row.float_floor) > 0
-    ? +((num(row.float_balance) / num(row.float_floor)) * 100).toFixed(1)
-    : null;
+  c.utilization_pct =
+    num(row.float_floor) > 0 ? +((num(row.float_balance) / num(row.float_floor)) * 100).toFixed(1) : null;
   return c;
 };
 
 export const getAll = async (req, res, next) => {
   try {
     const [{ data, error }, pool] = await Promise.all([
-      supabase.from(TABLE).select("*").eq("user_id", req.user.id)
-        .order("created_at", { ascending: false }),
+      supabase.from(TABLE).select("*").eq("user_id", req.user.id).order("created_at", { ascending: false }),
       getCashPool(req.user.id),
     ]);
     if (error) throw error;
@@ -59,53 +72,75 @@ export const getAll = async (req, res, next) => {
       },
       banks: (data || []).map(shape),
     });
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 export const getOne = async (req, res, next) => {
   try {
     const { data, error } = await supabase
-      .from(TABLE).select("*").eq(ID, req.params.id).eq("user_id", req.user.id).maybeSingle();
+      .from(TABLE)
+      .select("*")
+      .eq(ID, req.params.id)
+      .eq("user_id", req.user.id)
+      .maybeSingle();
     if (error) throw error;
     if (!data) return res.status(404).json({ error: "Bank not found" });
     res.json(shape(data));
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 export const create = async (req, res, next) => {
   try {
     const { data, error } = await supabase
-      .from(TABLE).insert([{ user_id: req.user.id, ...toDb(req.body) }])
-      .select().single();
+      .from(TABLE)
+      .insert([{ user_id: req.user.id, ...toDb(req.body) }])
+      .select()
+      .single();
     if (error) {
-      if (error.code === "23505") return res.status(400).json({ error: "A bank with this name already exists." });
+      if (error.code === "23505")
+        return res.status(400).json({ error: "A bank with this name already exists." });
       throw error;
     }
     res.status(201).json(shape(data));
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 export const update = async (req, res, next) => {
   try {
     if (req.body.float_balance !== undefined)
-      return res.status(400).json({ error: "Float balance can only change through top-ups and transactions." });
+      return res
+        .status(400)
+        .json({ error: "Float balance can only change through top-ups and transactions." });
 
     const { data, error } = await supabase
-      .from(TABLE).update({ ...toDbUpdate(req.body), updated_at: new Date().toISOString() })
-      .eq(ID, req.params.id).eq("user_id", req.user.id).select().maybeSingle();
+      .from(TABLE)
+      .update({ ...toDbUpdate(req.body), updated_at: new Date().toISOString() })
+      .eq(ID, req.params.id)
+      .eq("user_id", req.user.id)
+      .select()
+      .maybeSingle();
     if (error) throw error;
     if (!data) return res.status(404).json({ error: "Bank not found" });
     res.json(shape(data));
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 export const remove = async (req, res, next) => {
   try {
-    const { error } = await supabase
-      .from(TABLE).delete().eq(ID, req.params.id).eq("user_id", req.user.id);
+    const { error } = await supabase.from(TABLE).delete().eq(ID, req.params.id).eq("user_id", req.user.id);
     if (error) throw error;
     res.json({ message: "Bank deleted" });
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 // POST /agent-banks/:id/topup  { amount }
@@ -125,9 +160,15 @@ export const topup = async (req, res, next) => {
     }
 
     const updated = await getBank(req.user.id, req.params.id);
-    res.json({ ...shape(updated), topped_up: amount,
-               float_after: result.float_after, cash_after: result.cash_after });
-  } catch (e) { next(e); }
+    res.json({
+      ...shape(updated),
+      topped_up: amount,
+      float_after: result.float_after,
+      cash_after: result.cash_after,
+    });
+  } catch (e) {
+    next(e);
+  }
 };
 
 // POST /agent-banks/pool/add-cash  { amount }
@@ -136,7 +177,7 @@ export const addCash = async (req, res, next) => {
   try {
     const amount = num(req.body.amount);
     if (amount <= 0) return res.status(400).json({ error: "Enter an amount greater than 0." });
-    const { data: pool, error } = await addCashToPool(req.user.id, amount);   // atomic += in the DB
+    const { data: pool, error } = await addCashToPool(req.user.id, amount); // atomic += in the DB
     if (error) throw error;
     res.json({
       cash_on_hand: num(pool.cash_on_hand),
@@ -144,7 +185,9 @@ export const addCash = async (req, res, next) => {
       available_for_topup: Math.max(0, num(pool.cash_on_hand) - num(pool.reserve_floor)),
       added: amount,
     });
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 // GET /agent-banks/:id/ledger
@@ -166,33 +209,39 @@ export const ledger = async (req, res, next) => {
     // Agent Float leg only. Float effect derived from event type:
     //   DEPOSIT / WITHDRAWAL_REVERSAL -> float DOWN (out)
     //   WITHDRAWAL / TOPUP / DEPOSIT_REVERSAL -> float UP (in)
-    let totalIn = 0, totalOut = 0;
+    let totalIn = 0,
+      totalOut = 0;
     const rows = (data || [])
       .filter((r) => r.gl_account === "Agent Float")
       .map((r) => {
         const inflow = isFloatInflow(r.event_type);
         const amt = Number(r.amount);
-        if (inflow) totalIn += amt; else totalOut += amt;
+        if (inflow) totalIn += amt;
+        else totalOut += amt;
         return {
-          id: r.ledger_id, date: r.created_at, event_type: r.event_type,
-          flow: inflow ? "in" : "out", amount: amt,
+          id: r.ledger_id,
+          date: r.created_at,
+          event_type: r.event_type,
+          flow: inflow ? "in" : "out",
+          amount: amt,
           balance_after: r.float_after != null ? Number(r.float_after) : null,
           note: r.note || null,
         };
       });
 
     res.json({
-      bank: { id: bank.agent_bank_id, bank_name: bank.bank_name,
-              float_balance: Number(bank.float_balance) },
+      bank: { id: bank.agent_bank_id, bank_name: bank.bank_name, float_balance: Number(bank.float_balance) },
       summary: {
-        total_credit: totalIn,     // float increases (withdrawals + top-ups)
-        total_debit: totalOut,     // float decreases (deposits)
+        total_credit: totalIn, // float increases (withdrawals + top-ups)
+        total_debit: totalOut, // float decreases (deposits)
         net: totalIn - totalOut,
         entry_count: rows.length,
       },
       entries: rows,
     });
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 // GET /agent-banks/summary
@@ -201,8 +250,11 @@ export const summary = async (req, res, next) => {
   try {
     const [{ data: banks, error }, { data: ledgerRows }, pool] = await Promise.all([
       supabase.from(TABLE).select("*").eq("user_id", req.user.id),
-      supabase.from("agent_float_ledger").select("agent_bank_id, event_type, amount, gl_account")
-        .eq("user_id", req.user.id).eq("gl_account", "Agent Float"),
+      supabase
+        .from("agent_float_ledger")
+        .select("agent_bank_id, event_type, amount, gl_account")
+        .eq("user_id", req.user.id)
+        .eq("gl_account", "Agent Float"),
       getCashPool(req.user.id),
     ]);
     if (error) throw error;
@@ -211,16 +263,21 @@ export const summary = async (req, res, next) => {
     for (const r of ledgerRows || []) {
       const b = (byBank[r.agent_bank_id] ||= { credit: 0, debit: 0 });
       const inflow = isFloatInflow(r.event_type);
-      if (inflow) b.credit += Number(r.amount); else b.debit += Number(r.amount);
+      if (inflow) b.credit += Number(r.amount);
+      else b.debit += Number(r.amount);
     }
 
     const rows = (banks || []).map((b) => {
       const t = byBank[b.agent_bank_id] || { credit: 0, debit: 0 };
       return {
-        id: b.agent_bank_id, bank_name: b.bank_name, risk_tier: b.risk_tier,
+        id: b.agent_bank_id,
+        bank_name: b.bank_name,
+        risk_tier: b.risk_tier,
         float_balance: Number(b.float_balance),
         float_health: floatHealth(b),
-        total_credit: t.credit, total_debit: t.debit, net: t.credit - t.debit,
+        total_credit: t.credit,
+        total_debit: t.debit,
+        net: t.credit - t.debit,
       };
     });
 
@@ -233,5 +290,7 @@ export const summary = async (req, res, next) => {
       total_float: rows.reduce((s, r) => s + r.float_balance, 0),
       banks: rows,
     });
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };

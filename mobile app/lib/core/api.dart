@@ -12,8 +12,8 @@ class Api {
     final client = HttpClient();
     try {
       final formattedPath = path.startsWith('/') ? path : '/$path';
-      final formattedBase = AppConfig.baseUrl.endsWith('/') 
-          ? AppConfig.baseUrl.substring(0, AppConfig.baseUrl.length - 1) 
+      final formattedBase = AppConfig.baseUrl.endsWith('/')
+          ? AppConfig.baseUrl.substring(0, AppConfig.baseUrl.length - 1)
           : AppConfig.baseUrl;
 
       final req = await client.openUrl(method, Uri.parse("$formattedBase$formattedPath"));

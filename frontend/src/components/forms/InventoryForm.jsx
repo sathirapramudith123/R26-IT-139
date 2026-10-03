@@ -17,7 +17,7 @@ const ITEM_CATEGORIES = [
   "Household & Cleaning",
   "Personal Care",
   "Spices & Cooking Essentials",
-  "Other"
+  "Other",
 ];
 
 export default function InventoryForm({ initialData = {}, itemId = null }) {
@@ -29,23 +29,24 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
   const [suppliers, setSuppliers] = useState([]);
 
   const [v, setV] = useState({
-    name:           initialData.name          ?? "",
-    category:       initialData.category      ?? "",
-    supplier_name:  initialData.supplier_name ?? "",
-    quantity:       initialData.quantity      ?? "",
-    reorder_level:  initialData.reorder_level ?? "",
-    unit:           initialData.unit          ?? "unit",
-    cost_price:     initialData.cost_price    ?? initialData.unit_price ?? "",
-    lead_time_days: initialData.lead_time_days ?? "1", // AI Safety Stock එක සඳහා
+    name: initialData.name ?? "",
+    category: initialData.category ?? "",
+    supplier_name: initialData.supplier_name ?? "",
+    quantity: initialData.quantity ?? "",
+    reorder_level: initialData.reorder_level ?? "",
+    unit: initialData.unit ?? "unit",
+    cost_price: initialData.cost_price ?? initialData.unit_price ?? "",
+    lead_time_days: initialData.lead_time_days ?? "1", // used for the safety-stock reorder point
   });
 
   function set(k, val) {
-    setV(p => ({ ...p, [k]: val }));
-    setErrors(p => ({ ...p, [k]: undefined }));
+    setV((p) => ({ ...p, [k]: val }));
+    setErrors((p) => ({ ...p, [k]: undefined }));
   }
 
   useEffect(() => {
-    supplierApi.list()
+    supplierApi
+      .list()
       .then((data) => setSuppliers(Array.isArray(data) ? data : []))
       .catch(() => setSuppliers([]));
   }, []);
@@ -56,16 +57,14 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
     supplierOptions.unshift(v.supplier_name);
   }
 
-  // ✅ Selected supplier's items_supplied ([{item_name, quantity, unit, unit_price}])
+  // Selected supplier's items_supplied ([{item_name, quantity, unit, unit_price}])
   // powers a datalist suggestion on "Item Name" and auto-fills cost/unit
   // when the typed name matches one of their items exactly.
   const selectedSupplier = suppliers.find((s) => s.name === v.supplier_name);
   const supplierItems = selectedSupplier?.items_supplied || [];
 
   function setItemName(val) {
-    const match = supplierItems.find(
-      (it) => it.item_name.trim().toLowerCase() === val.trim().toLowerCase()
-    );
+    const match = supplierItems.find((it) => it.item_name.trim().toLowerCase() === val.trim().toLowerCase());
     setV((p) => ({
       ...p,
       name: val,
@@ -74,15 +73,15 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
     setErrors((p) => ({ ...p, name: undefined }));
   }
 
-  // Categories වල අලුත් custom category එකක් තිබේ නම් dropdown එකට එකතු කිරීම
+  // add a custom category to the dropdown if it is not in the list
   const categoryOptions = [...ITEM_CATEGORIES];
   if (v.category && !categoryOptions.includes(v.category)) {
     categoryOptions.unshift(v.category);
   }
 
-  // >>> Total Cost = Unit Cost × Quantity (live calculate — DB එකේ save වෙන්නෙ නෑ)
-  const unitCost  = Number(v.cost_price) || 0;
-  const qty       = Number(v.quantity)   || 0;
+  // Total Cost = Unit Cost × Quantity (calculated live, not saved)
+  const unitCost = Number(v.cost_price) || 0;
+  const qty = Number(v.quantity) || 0;
   const totalCost = unitCost * qty;
 
   async function handleSubmit(e) {
@@ -93,9 +92,13 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
     if (v.quantity === "" || Number(v.quantity) < 0) er.quantity = "Enter a valid quantity (0 or more).";
     if (v.cost_price !== "" && Number(v.cost_price) < 0) er.cost_price = "Cost price cannot be negative.";
 
-    if (Object.keys(er).length) { setErrors(er); return; }
+    if (Object.keys(er).length) {
+      setErrors(er);
+      return;
+    }
 
-    setSaving(true); setServerError(null);
+    setSaving(true);
+    setServerError(null);
 
     const payload = {
       ...v,
@@ -116,7 +119,7 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
     }
   }
 
-  const cls = k => `input-field ${errors[k] ? "border-red-400 ring-2 ring-red-100" : ""}`;
+  const cls = (k) => `input-field ${errors[k] ? "border-red-400 ring-2 ring-red-100" : ""}`;
 
   return (
     <form onSubmit={handleSubmit} noValidate className="card-elevated max-w-3xl mx-auto space-y-5">
@@ -129,7 +132,11 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <FormField
           label="Supplier"
-          hint={supplierOptions.length === 0 ? "No suppliers yet — add one first, or type a name." : "Choose from your suppliers"}
+          hint={
+            supplierOptions.length === 0
+              ? "No suppliers yet — add one first, or type a name."
+              : "Choose from your suppliers"
+          }
         >
           {supplierOptions.length > 0 ? (
             <select
@@ -139,7 +146,9 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
             >
               <option value="">Select a supplier</option>
               {supplierOptions.map((name) => (
-                <option key={name} value={name}>{name}</option>
+                <option key={name} value={name}>
+                  {name}
+                </option>
               ))}
             </select>
           ) : (
@@ -156,54 +165,95 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
           label="Item Name"
           error={errors.name}
           required
-          hint={supplierItems.length > 0 ? `Suggested from ${v.supplier_name}: pick one to auto-fill cost & unit` : undefined}
+          hint={
+            supplierItems.length > 0
+              ? `Suggested from ${v.supplier_name}: pick one to auto-fill cost & unit`
+              : undefined
+          }
         >
           <input
             className={cls("name")}
             list="supplier-item-suggestions"
             value={v.name}
-            onChange={e => setItemName(e.target.value)}
+            onChange={(e) => setItemName(e.target.value)}
             placeholder="e.g. Rice 5kg"
           />
           {supplierItems.length > 0 && (
             <datalist id="supplier-item-suggestions">
-              {supplierItems.map((it, i) => <option key={i} value={it.item_name} />)}
+              {supplierItems.map((it, i) => (
+                <option key={i} value={it.item_name} />
+              ))}
             </datalist>
           )}
         </FormField>
 
-        <FormField label="Category" error={errors.category} required hint="Required for AI Demand Forecasting">
-          <select className="select-field" value={v.category} onChange={e => set("category", e.target.value)}>
+        <FormField
+          label="Category"
+          error={errors.category}
+          required
+          hint="Required for AI Demand Forecasting"
+        >
+          <select
+            className="select-field"
+            value={v.category}
+            onChange={(e) => set("category", e.target.value)}
+          >
             <option value="">Select Category...</option>
-            {categoryOptions.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
+            {categoryOptions.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
             ))}
           </select>
         </FormField>
 
         <FormField label="Unit">
-          <select className="select-field" value={v.unit} onChange={e => set("unit", e.target.value)}>
-            {INVENTORY_UNITS.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+          <select className="select-field" value={v.unit} onChange={(e) => set("unit", e.target.value)}>
+            {INVENTORY_UNITS.map((u) => (
+              <option key={u.value} value={u.value}>
+                {u.label}
+              </option>
+            ))}
           </select>
         </FormField>
 
         <FormField label="Initial Quantity" error={errors.quantity} required>
-          <input className={cls("quantity")} type="number" min="0" step="0.01" value={v.quantity} onChange={e => set("quantity", e.target.value)} />
+          <input
+            className={cls("quantity")}
+            type="number"
+            min="0"
+            step="0.01"
+            value={v.quantity}
+            onChange={(e) => set("quantity", e.target.value)}
+          />
         </FormField>
 
         <FormField label="Reorder Level" hint="Alert threshold (Auto-calculated by AI if empty)">
-          <input className="input-field" type="number" min="0" step="0.01" value={v.reorder_level} onChange={e => set("reorder_level", e.target.value)} placeholder="Default: Auto AI" />
+          <input
+            className="input-field"
+            type="number"
+            min="0"
+            step="0.01"
+            value={v.reorder_level}
+            onChange={(e) => set("reorder_level", e.target.value)}
+            placeholder="Default: Auto AI"
+          />
         </FormField>
 
         <FormField label="Unit Cost per Unit (LKR)" error={errors.cost_price} hint="Buying price per unit">
-          <input className={cls("cost_price")} type="number" min="0" step="0.01" value={v.cost_price} onChange={e => set("cost_price", e.target.value)} placeholder="e.g. 1100.00" />
+          <input
+            className={cls("cost_price")}
+            type="number"
+            min="0"
+            step="0.01"
+            value={v.cost_price}
+            onChange={(e) => set("cost_price", e.target.value)}
+            placeholder="e.g. 1100.00"
+          />
         </FormField>
 
         {/* >>> Selling Price ain kala. Ee wenuwata Total Cost (read-only) */}
-        <FormField
-          label="Total Cost (LKR)"
-          hint={`Unit Cost × Quantity  =  ${unitCost.toFixed(2)} × ${qty}`}
-        >
+        <FormField label="Total Cost (LKR)" hint={`Unit Cost × Quantity  =  ${unitCost.toFixed(2)} × ${qty}`}>
           <input
             className="input-field bg-slate-100 font-semibold text-slate-700 cursor-not-allowed dark:bg-slate-800"
             type="text"
@@ -213,14 +263,32 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
           />
         </FormField>
 
-        <FormField label="Item Delivery Lead Time (Days)" error={errors.lead_time_days} hint="Expected delivery time (Used for Dynamic Safety Stock)">
-          <input className={cls("lead_time_days")} type="number" min="0" step="1" value={v.lead_time_days} onChange={e => set("lead_time_days", e.target.value)} placeholder="e.g. 1" />
+        <FormField
+          label="Item Delivery Lead Time (Days)"
+          error={errors.lead_time_days}
+          hint="Expected delivery time (Used for Dynamic Safety Stock)"
+        >
+          <input
+            className={cls("lead_time_days")}
+            type="number"
+            min="0"
+            step="1"
+            value={v.lead_time_days}
+            onChange={(e) => set("lead_time_days", e.target.value)}
+            placeholder="e.g. 1"
+          />
         </FormField>
       </div>
 
       <div className="flex justify-end gap-3 border-t border-slate-100 pt-5 dark:border-slate-800">
-        <Link href="/dashboard/inventory"><Button variant="secondary" type="button">Cancel</Button></Link>
-        <Button type="submit" disabled={saving}>{saving ? "Saving..." : (isEdit ? "Update Item" : "Add Item")}</Button>
+        <Link href="/dashboard/inventory">
+          <Button variant="secondary" type="button">
+            Cancel
+          </Button>
+        </Link>
+        <Button type="submit" disabled={saving}>
+          {saving ? "Saving..." : isEdit ? "Update Item" : "Add Item"}
+        </Button>
       </div>
     </form>
   );

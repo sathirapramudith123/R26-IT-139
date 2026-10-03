@@ -4,9 +4,19 @@ import { useEffect, useState } from "react";
 import { agentBankApi } from "@/services/api/agentBank";
 import { formatCurrency } from "@/lib/formatters";
 import {
-  Landmark, Plus, TrendingUp, AlertCircle, Loader2, X,
-  ArrowUpCircle, ShieldCheck, ShieldAlert, ShieldX, History,
-  ArrowDownLeft, ArrowUpRight,
+  Landmark,
+  Plus,
+  TrendingUp,
+  AlertCircle,
+  Loader2,
+  X,
+  ArrowUpCircle,
+  ShieldCheck,
+  ShieldAlert,
+  ShieldX,
+  History,
+  ArrowDownLeft,
+  ArrowUpRight,
 } from "lucide-react";
 
 /* Count-up: eases a number 0 -> target over `duration` ms (easeOutCubic). */
@@ -14,7 +24,10 @@ function useCountUp(target, duration = 1200) {
   const [val, setVal] = useState(0);
   useEffect(() => {
     const end = Number(target) || 0;
-    if (end === 0) { setVal(0); return; }
+    if (end === 0) {
+      setVal(0);
+      return;
+    }
     let raf;
     const start = performance.now();
     const tick = (now) => {
@@ -37,15 +50,15 @@ function CountCurrency({ value, className = "" }) {
 }
 
 const RISK_TIERS = [
-  { value: "LOW",    label: "Low volume / rural" },
+  { value: "LOW", label: "Low volume / rural" },
   { value: "MEDIUM", label: "Medium volume" },
-  { value: "HIGH",   label: "High volume / urban" },
+  { value: "HIGH", label: "High volume / urban" },
 ];
 
 const HEALTH = {
-  HEALTHY:        { color: "text-emerald-400", bg: "bg-emerald-500/10", icon: ShieldCheck,  label: "Healthy" },
-  LOW_ALERT:      { color: "text-amber-400",   bg: "bg-amber-500/10",   icon: ShieldAlert,  label: "Low float" },
-  CRITICAL_ALERT: { color: "text-red-400",     bg: "bg-red-500/10",     icon: ShieldX,      label: "Critical" },
+  HEALTHY: { color: "text-emerald-400", bg: "bg-emerald-500/10", icon: ShieldCheck, label: "Healthy" },
+  LOW_ALERT: { color: "text-amber-400", bg: "bg-amber-500/10", icon: ShieldAlert, label: "Low float" },
+  CRITICAL_ALERT: { color: "text-red-400", bg: "bg-red-500/10", icon: ShieldX, label: "Critical" },
 };
 
 export default function MyBanksPage() {
@@ -62,15 +75,18 @@ export default function MyBanksPage() {
     try {
       const d = await agentBankApi.list();
       // new shape: { cash_pool, banks }  (fallback: plain array)
-      setBanks(Array.isArray(d) ? d : (d?.banks || []));
-      setCashPool(Array.isArray(d) ? null : (d?.cash_pool || null));
+      setBanks(Array.isArray(d) ? d : d?.banks || []);
+      setCashPool(Array.isArray(d) ? null : d?.cash_pool || null);
     } catch {
-      setBanks([]); setCashPool(null);
+      setBanks([]);
+      setCashPool(null);
     } finally {
       setLoading(false);
     }
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const totalFloat = banks.reduce((s, b) => s + Number(b.float_balance || 0), 0);
 
@@ -84,8 +100,10 @@ export default function MyBanksPage() {
             Float / settlement accounts for your agency banking operations.
           </p>
         </div>
-        <button onClick={() => setShowAdd(true)}
-          className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-600/20 hover:bg-teal-500 transition-all">
+        <button
+          onClick={() => setShowAdd(true)}
+          className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-600/20 hover:bg-teal-500 transition-all"
+        >
           <Plus className="h-4 w-4" /> Add Bank
         </button>
       </div>
@@ -94,13 +112,17 @@ export default function MyBanksPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-xs font-medium text-slate-500">Total Float (all banks)</p>
-          <p className="mt-1 font-outfit text-2xl font-bold text-teal-600 dark:text-teal-400"><CountCurrency value={totalFloat} /></p>
+          <p className="mt-1 font-outfit text-2xl font-bold text-teal-600 dark:text-teal-400">
+            <CountCurrency value={totalFloat} />
+          </p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-start justify-between">
             <p className="text-xs font-medium text-slate-500">Cash on Hand (shared pool)</p>
-            <button onClick={() => setShowAddCash(true)}
-              className="inline-flex items-center gap-1 rounded-lg bg-teal-50 px-2 py-1 text-[11px] font-semibold text-teal-700 hover:bg-teal-100 dark:bg-teal-950/50 dark:text-teal-400">
+            <button
+              onClick={() => setShowAddCash(true)}
+              className="inline-flex items-center gap-1 rounded-lg bg-teal-50 px-2 py-1 text-[11px] font-semibold text-teal-700 hover:bg-teal-100 dark:bg-teal-950/50 dark:text-teal-400"
+            >
               <Plus className="h-3 w-3" /> Add Cash
             </button>
           </div>
@@ -113,7 +135,11 @@ export default function MyBanksPage() {
           <p className="mt-1 font-outfit text-2xl font-bold text-emerald-600 dark:text-emerald-400">
             {cashPool ? <CountCurrency value={cashPool.available_for_topup} /> : "—"}
           </p>
-          {cashPool && <p className="mt-0.5 text-[10px] text-slate-400">{formatCurrency(cashPool.reserve_floor)} reserved for daily ops</p>}
+          {cashPool && (
+            <p className="mt-0.5 text-[10px] text-slate-400">
+              {formatCurrency(cashPool.reserve_floor)} reserved for daily ops
+            </p>
+          )}
         </div>
       </div>
 
@@ -133,9 +159,12 @@ export default function MyBanksPage() {
             const h = HEALTH[b.float_health] || HEALTH.HEALTHY;
             const HIcon = h.icon;
             const util = Number(b.utilization_pct || 0);
-            const barPct = Math.min(100, util);   // vs floor (100% = at floor)
+            const barPct = Math.min(100, util); // vs floor (100% = at floor)
             return (
-              <div key={b.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div
+                key={b.id}
+                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+              >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 dark:bg-teal-950">
@@ -146,7 +175,9 @@ export default function MyBanksPage() {
                       <p className="text-xs text-slate-500">{b.risk_tier} risk tier</p>
                     </div>
                   </div>
-                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${h.bg} ${h.color}`}>
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${h.bg} ${h.color}`}
+                  >
                     <HIcon className="h-3.5 w-3.5" /> {h.label}
                   </span>
                 </div>
@@ -154,7 +185,9 @@ export default function MyBanksPage() {
                 {/* Float + cash */}
                 <div className="mt-4 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/40">
                   <p className="text-[11px] text-slate-500">Float balance</p>
-                  <p className="font-outfit text-lg font-bold text-teal-600 dark:text-teal-400">{formatCurrency(b.float_balance)}</p>
+                  <p className="font-outfit text-lg font-bold text-teal-600 dark:text-teal-400">
+                    {formatCurrency(b.float_balance)}
+                  </p>
                 </div>
 
                 {/* Utilization bar (float vs floor — 100% = floor line) */}
@@ -166,10 +199,15 @@ export default function MyBanksPage() {
                     </span>
                   </div>
                   <div className="relative h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                    <div className={`h-full rounded-full transition-all ${util <= 20 ? "bg-red-500" : util <= 40 ? "bg-amber-500" : "bg-emerald-500"}`}
-                      style={{ width: `${barPct}%` }} />
+                    <div
+                      className={`h-full rounded-full transition-all ${util <= 20 ? "bg-red-500" : util <= 40 ? "bg-amber-500" : "bg-emerald-500"}`}
+                      style={{ width: `${barPct}%` }}
+                    />
                     {/* floor marker at 100% */}
-                    <div className="absolute inset-y-0 right-0 w-px bg-slate-400 dark:bg-slate-500" title="Floor (100%)" />
+                    <div
+                      className="absolute inset-y-0 right-0 w-px bg-slate-400 dark:bg-slate-500"
+                      title="Floor (100%)"
+                    />
                   </div>
                   <div className="mt-1 flex justify-between text-[10px] text-slate-400">
                     <span>Floor: {formatCurrency(b.float_floor)} (100%)</span>
@@ -178,12 +216,16 @@ export default function MyBanksPage() {
                 </div>
 
                 <div className="mt-4 flex gap-2">
-                  <button onClick={() => setLedgerBank(b)}
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 transition-all">
+                  <button
+                    onClick={() => setLedgerBank(b)}
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 transition-all"
+                  >
                     <History className="h-4 w-4" /> History
                   </button>
-                  <button onClick={() => setTopupBank(b)}
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-700 hover:bg-teal-100 dark:border-teal-900 dark:bg-teal-950/50 dark:text-teal-400 transition-all">
+                  <button
+                    onClick={() => setTopupBank(b)}
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-700 hover:bg-teal-100 dark:border-teal-900 dark:bg-teal-950/50 dark:text-teal-400 transition-all"
+                  >
                     <ArrowUpCircle className="h-4 w-4" /> Top up
                   </button>
                 </div>
@@ -193,10 +235,37 @@ export default function MyBanksPage() {
         </div>
       )}
 
-      {showAdd && <AddBankModal onClose={() => setShowAdd(false)} onSaved={() => { setShowAdd(false); load(); }} />}
-      {topupBank && <TopupModal bank={topupBank} cashPool={cashPool} onClose={() => setTopupBank(null)} onSaved={() => { setTopupBank(null); load(); }} />}
+      {showAdd && (
+        <AddBankModal
+          onClose={() => setShowAdd(false)}
+          onSaved={() => {
+            setShowAdd(false);
+            load();
+          }}
+        />
+      )}
+      {topupBank && (
+        <TopupModal
+          bank={topupBank}
+          cashPool={cashPool}
+          onClose={() => setTopupBank(null)}
+          onSaved={() => {
+            setTopupBank(null);
+            load();
+          }}
+        />
+      )}
       {ledgerBank && <LedgerModal bank={ledgerBank} onClose={() => setLedgerBank(null)} />}
-      {showAddCash && <AddCashModal cashPool={cashPool} onClose={() => setShowAddCash(false)} onSaved={() => { setShowAddCash(false); load(); }} />}
+      {showAddCash && (
+        <AddCashModal
+          cashPool={cashPool}
+          onClose={() => setShowAddCash(false)}
+          onSaved={() => {
+            setShowAddCash(false);
+            load();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -206,15 +275,21 @@ function AddBankModal({ onClose, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
   const [f, setF] = useState({
-    bank_name: "", risk_tier: "LOW",
+    bank_name: "",
+    risk_tier: "LOW",
     float_balance: "",
-    float_floor: "50000", float_ceiling: "500000",
+    float_floor: "50000",
+    float_ceiling: "500000",
   });
   const set = (k, val) => setF((p) => ({ ...p, [k]: val }));
 
   async function submit() {
-    if (!f.bank_name.trim()) { setErr("Bank name is required."); return; }
-    setSaving(true); setErr(null);
+    if (!f.bank_name.trim()) {
+      setErr("Bank name is required.");
+      return;
+    }
+    setSaving(true);
+    setErr(null);
     try {
       await agentBankApi.create({
         bank_name: f.bank_name.trim(),
@@ -231,36 +306,93 @@ function AddBankModal({ onClose, onSaved }) {
     }
   }
 
-  const inp = "w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950";
+  const inp =
+    "w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950";
   const lbl = "text-xs font-medium text-slate-500";
 
   return (
     <Modal title="Add Bank" onClose={onClose}>
-      {err && <div className="mb-3 flex items-center gap-2 rounded-lg bg-red-50 p-2.5 text-xs text-red-600 dark:bg-red-950/40"><AlertCircle className="h-4 w-4" />{err}</div>}
+      {err && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg bg-red-50 p-2.5 text-xs text-red-600 dark:bg-red-950/40">
+          <AlertCircle className="h-4 w-4" />
+          {err}
+        </div>
+      )}
       <div className="space-y-3">
         <div>
           <label className={lbl}>Bank Name</label>
-          <input className={inp} value={f.bank_name} onChange={(e) => set("bank_name", e.target.value)} placeholder="e.g. Bank of Ceylon" />
+          <input
+            className={inp}
+            value={f.bank_name}
+            onChange={(e) => set("bank_name", e.target.value)}
+            placeholder="e.g. Bank of Ceylon"
+          />
         </div>
         <div>
           <label className={lbl}>Risk Tier</label>
           <select className={inp} value={f.risk_tier} onChange={(e) => set("risk_tier", e.target.value)}>
-            {RISK_TIERS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+            {RISK_TIERS.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
           </select>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <div><label className={lbl}>Opening Float</label><input type="number" className={inp} value={f.float_balance} onChange={(e) => set("float_balance", e.target.value)} placeholder="100000" /></div>
-          <div><label className={lbl}>Risk Tier</label><select className={inp} value={f.risk_tier} onChange={(e) => set("risk_tier", e.target.value)}>{RISK_TIERS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}</select></div>
+          <div>
+            <label className={lbl}>Opening Float</label>
+            <input
+              type="number"
+              className={inp}
+              value={f.float_balance}
+              onChange={(e) => set("float_balance", e.target.value)}
+              placeholder="100000"
+            />
+          </div>
+          <div>
+            <label className={lbl}>Risk Tier</label>
+            <select className={inp} value={f.risk_tier} onChange={(e) => set("risk_tier", e.target.value)}>
+              {RISK_TIERS.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <div><label className={lbl}>Float Floor</label><input type="number" className={inp} value={f.float_floor} onChange={(e) => set("float_floor", e.target.value)} /></div>
-          <div><label className={lbl}>Float Ceiling</label><input type="number" className={inp} value={f.float_ceiling} onChange={(e) => set("float_ceiling", e.target.value)} /></div>
+          <div>
+            <label className={lbl}>Float Floor</label>
+            <input
+              type="number"
+              className={inp}
+              value={f.float_floor}
+              onChange={(e) => set("float_floor", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className={lbl}>Float Ceiling</label>
+            <input
+              type="number"
+              className={inp}
+              value={f.float_ceiling}
+              onChange={(e) => set("float_ceiling", e.target.value)}
+            />
+          </div>
         </div>
       </div>
       <div className="mt-5 flex justify-end gap-2">
-        <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Cancel</button>
-        <button onClick={submit} disabled={saving}
-          className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500 disabled:opacity-50">
+        <button
+          onClick={onClose}
+          className="rounded-xl px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={submit}
+          disabled={saving}
+          className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500 disabled:opacity-50"
+        >
           {saving && <Loader2 className="h-4 w-4 animate-spin" />} Add Bank
         </button>
       </div>
@@ -278,12 +410,18 @@ function TopupModal({ bank, cashPool, onClose, onSaved }) {
 
   async function submit() {
     const amt = Number(amount);
-    if (!amt || amt <= 0) { setErr("Enter an amount greater than 0."); return; }
-    if (available != null && amt > available) {
-      setErr(`Only ${formatCurrency(available)} is available (${formatCurrency(cashPool.reserve_floor)} reserved for daily ops).`);
+    if (!amt || amt <= 0) {
+      setErr("Enter an amount greater than 0.");
       return;
     }
-    setSaving(true); setErr(null);
+    if (available != null && amt > available) {
+      setErr(
+        `Only ${formatCurrency(available)} is available (${formatCurrency(cashPool.reserve_floor)} reserved for daily ops).`,
+      );
+      return;
+    }
+    setSaving(true);
+    setErr(null);
     try {
       await agentBankApi.topup(bank.id, amt);
       onSaved();
@@ -298,26 +436,56 @@ function TopupModal({ bank, cashPool, onClose, onSaved }) {
 
   return (
     <Modal title={`Top up — ${bank.bank_name}`} onClose={onClose}>
-      {err && <div className="mb-3 flex items-center gap-2 rounded-lg bg-red-50 p-2.5 text-xs text-red-600 dark:bg-red-950/40"><AlertCircle className="h-4 w-4" />{err}</div>}
+      {err && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg bg-red-50 p-2.5 text-xs text-red-600 dark:bg-red-950/40">
+          <AlertCircle className="h-4 w-4" />
+          {err}
+        </div>
+      )}
       <p className="text-sm text-slate-500">Move cash from the shared pool into this float account.</p>
       <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-800/40">
-        <div className="flex justify-between"><span className="text-slate-500">Current float</span><span className="font-semibold">{formatCurrency(bank.float_balance)}</span></div>
+        <div className="flex justify-between">
+          <span className="text-slate-500">Current float</span>
+          <span className="font-semibold">{formatCurrency(bank.float_balance)}</span>
+        </div>
         {available != null && (
-          <div className="mt-1 flex justify-between"><span className="text-slate-500">Available to top up</span><span className="font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(available)}</span></div>
+          <div className="mt-1 flex justify-between">
+            <span className="text-slate-500">Available to top up</span>
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+              {formatCurrency(available)}
+            </span>
+          </div>
         )}
         {Number(amount) > 0 && (
-          <div className="mt-1 flex justify-between"><span className="text-slate-500">Float after top-up</span><span className="font-semibold text-teal-600 dark:text-teal-400">{formatCurrency(newFloat)}</span></div>
+          <div className="mt-1 flex justify-between">
+            <span className="text-slate-500">Float after top-up</span>
+            <span className="font-semibold text-teal-600 dark:text-teal-400">{formatCurrency(newFloat)}</span>
+          </div>
         )}
       </div>
       <div className="mt-3">
         <label className="text-xs font-medium text-slate-500">Top-up Amount (LKR)</label>
-        <input type="number" autoFocus value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="50000"
-          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950" />
+        <input
+          type="number"
+          autoFocus
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder="50000"
+          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+        />
       </div>
       <div className="mt-5 flex justify-end gap-2">
-        <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Cancel</button>
-        <button onClick={submit} disabled={saving}
-          className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500 disabled:opacity-50">
+        <button
+          onClick={onClose}
+          className="rounded-xl px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={submit}
+          disabled={saving}
+          className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500 disabled:opacity-50"
+        >
           {saving && <Loader2 className="h-4 w-4 animate-spin" />} Top up
         </button>
       </div>
@@ -331,7 +499,8 @@ function LedgerModal({ bank, onClose }) {
   const [entries, setEntries] = useState([]);
 
   useEffect(() => {
-    agentBankApi.ledger(bank.id)
+    agentBankApi
+      .ledger(bank.id)
       .then((d) => setEntries(Array.isArray(d?.entries) ? d.entries : []))
       .catch(() => setEntries([]))
       .finally(() => setLoading(false));
@@ -343,11 +512,15 @@ function LedgerModal({ bank, onClose }) {
     <Modal title={`Float statement — ${bank.bank_name}`} onClose={onClose}>
       <div className="mb-3 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm dark:bg-slate-800/40">
         <span className="text-slate-500">Current float</span>
-        <span className="font-bold text-teal-600 dark:text-teal-400">{formatCurrency(bank.float_balance)}</span>
+        <span className="font-bold text-teal-600 dark:text-teal-400">
+          {formatCurrency(bank.float_balance)}
+        </span>
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-slate-400" /></div>
+        <div className="flex justify-center py-10">
+          <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+        </div>
       ) : entries.length === 0 ? (
         <p className="py-8 text-center text-sm text-slate-500">No float movements yet.</p>
       ) : (
@@ -355,20 +528,33 @@ function LedgerModal({ bank, onClose }) {
           {entries.map((e) => {
             const inflow = e.flow === "in";
             return (
-              <div key={e.id} className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2.5 dark:border-slate-800">
+              <div
+                key={e.id}
+                className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2.5 dark:border-slate-800"
+              >
                 <div className="flex items-center gap-3">
-                  <div className={`flex h-8 w-8 items-center justify-center rounded-full ${inflow ? "bg-emerald-100 dark:bg-emerald-950" : "bg-rose-100 dark:bg-rose-950"}`}>
-                    {inflow ? <ArrowDownLeft className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                            : <ArrowUpRight className="h-4 w-4 text-rose-600 dark:text-rose-400" />}
+                  <div
+                    className={`flex h-8 w-8 items-center justify-center rounded-full ${inflow ? "bg-emerald-100 dark:bg-emerald-950" : "bg-rose-100 dark:bg-rose-950"}`}
+                  >
+                    {inflow ? (
+                      <ArrowDownLeft className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    ) : (
+                      <ArrowUpRight className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+                    )}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{label[e.event_type] || e.event_type}</p>
+                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                      {label[e.event_type] || e.event_type}
+                    </p>
                     <p className="text-[11px] text-slate-400">{new Date(e.date).toLocaleString()}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className={`text-sm font-bold ${inflow ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
-                    {inflow ? "+" : "−"}{formatCurrency(e.amount)}
+                  <p
+                    className={`text-sm font-bold ${inflow ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}
+                  >
+                    {inflow ? "+" : "−"}
+                    {formatCurrency(e.amount)}
                   </p>
                   {e.balance_after != null && (
                     <p className="text-[11px] text-slate-400">Bal: {formatCurrency(e.balance_after)}</p>
@@ -391,8 +577,12 @@ function AddCashModal({ cashPool, onClose, onSaved }) {
 
   async function submit() {
     const amt = Number(amount);
-    if (!amt || amt <= 0) { setErr("Enter an amount greater than 0."); return; }
-    setSaving(true); setErr(null);
+    if (!amt || amt <= 0) {
+      setErr("Enter an amount greater than 0.");
+      return;
+    }
+    setSaving(true);
+    setErr(null);
     try {
       await agentBankApi.addCash(amt);
       onSaved();
@@ -408,23 +598,51 @@ function AddCashModal({ cashPool, onClose, onSaved }) {
 
   return (
     <Modal title="Add Cash to Pool" onClose={onClose}>
-      {err && <div className="mb-3 flex items-center gap-2 rounded-lg bg-red-50 p-2.5 text-xs text-red-600 dark:bg-red-950/40"><AlertCircle className="h-4 w-4" />{err}</div>}
-      <p className="text-sm text-slate-500">Add physical cash you've brought into the drawer (e.g. withdrawn from a bank). This increases your shared cash pool.</p>
+      {err && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg bg-red-50 p-2.5 text-xs text-red-600 dark:bg-red-950/40">
+          <AlertCircle className="h-4 w-4" />
+          {err}
+        </div>
+      )}
+      <p className="text-sm text-slate-500">
+        Add physical cash you&apos;ve brought into the drawer (e.g. withdrawn from a bank). This increases
+        your shared cash pool.
+      </p>
       <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-800/40">
-        <div className="flex justify-between"><span className="text-slate-500">Current cash pool</span><span className="font-semibold">{formatCurrency(current)}</span></div>
+        <div className="flex justify-between">
+          <span className="text-slate-500">Current cash pool</span>
+          <span className="font-semibold">{formatCurrency(current)}</span>
+        </div>
         {Number(amount) > 0 && (
-          <div className="mt-1 flex justify-between"><span className="text-slate-500">After adding</span><span className="font-semibold text-teal-600 dark:text-teal-400">{formatCurrency(after)}</span></div>
+          <div className="mt-1 flex justify-between">
+            <span className="text-slate-500">After adding</span>
+            <span className="font-semibold text-teal-600 dark:text-teal-400">{formatCurrency(after)}</span>
+          </div>
         )}
       </div>
       <div className="mt-3">
         <label className="text-xs font-medium text-slate-500">Cash Amount (LKR)</label>
-        <input type="number" autoFocus value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="100000"
-          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950" />
+        <input
+          type="number"
+          autoFocus
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder="100000"
+          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+        />
       </div>
       <div className="mt-5 flex justify-end gap-2">
-        <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Cancel</button>
-        <button onClick={submit} disabled={saving}
-          className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500 disabled:opacity-50">
+        <button
+          onClick={onClose}
+          className="rounded-xl px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={submit}
+          disabled={saving}
+          className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500 disabled:opacity-50"
+        >
           {saving && <Loader2 className="h-4 w-4 animate-spin" />} Add Cash
         </button>
       </div>
@@ -436,11 +654,18 @@ function AddCashModal({ cashPool, onClose, onSaved }) {
 function Modal({ title, onClose, children }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900"
-        onClick={(e) => e.stopPropagation()}>
+      <div
+        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="mb-4 flex items-center justify-between">
           <h3 className="font-outfit text-lg font-bold text-slate-900 dark:text-slate-100">{title}</h3>
-          <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><X className="h-5 w-5" /></button>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
         {children}
       </div>

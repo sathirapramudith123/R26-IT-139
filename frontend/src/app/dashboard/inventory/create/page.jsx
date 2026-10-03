@@ -9,8 +9,15 @@ export default function CreateInventoryPage() {
   useAuthGuard();
   return (
     <div className="page-container">
-      <PageHeader title="Add Inventory Item" description="Add a new stock item."
-        action={<Link href="/dashboard/inventory"><Button variant="secondary">← Back</Button></Link>} />
+      <PageHeader
+        title="Add Inventory Item"
+        description="Add a new stock item."
+        action={
+          <Link href="/dashboard/inventory">
+            <Button variant="secondary">← Back</Button>
+          </Link>
+        }
+      />
       <InventoryForm />
     </div>
   );

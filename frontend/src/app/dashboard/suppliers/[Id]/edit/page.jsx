@@ -18,16 +18,33 @@ export default function EditSupplierPage() {
 
   useEffect(() => {
     if (!Id) return;
-    supplierApi.getById(Id).then(setItem).catch(e => setError(e.message || "Failed")).finally(() => setLoading(false));
+    supplierApi
+      .getById(Id)
+      .then(setItem)
+      .catch((e) => setError(e.message || "Failed"))
+      .finally(() => setLoading(false));
   }, [Id]);
 
   return (
     <div className="page-container">
-      <PageHeader title="Edit Supplier" description="Update supplier details."
-        action={<Link href="/dashboard/suppliers"><Button variant="secondary">← Back</Button></Link>} />
-      {loading ? <LoadingSpinner /> : error ? <p className="text-sm text-red-600">{error}</p> :
-       !item ? <p className="text-sm text-slate-500">Not found.</p> :
-       <SupplierForm initialData={item} supplierId={Id} />}
+      <PageHeader
+        title="Edit Supplier"
+        description="Update supplier details."
+        action={
+          <Link href="/dashboard/suppliers">
+            <Button variant="secondary">← Back</Button>
+          </Link>
+        }
+      />
+      {loading ? (
+        <LoadingSpinner />
+      ) : error ? (
+        <p className="text-sm text-red-600">{error}</p>
+      ) : !item ? (
+        <p className="text-sm text-slate-500">Not found.</p>
+      ) : (
+        <SupplierForm initialData={item} supplierId={Id} />
+      )}
     </div>
   );
 }

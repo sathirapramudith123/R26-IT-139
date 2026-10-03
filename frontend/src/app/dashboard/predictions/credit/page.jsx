@@ -8,7 +8,7 @@ import PredictionForm from "@/components/predictions/PredictionForm";
 import PredictionResult from "@/components/predictions/PredictionResult";
 import usePrediction from "@/hooks/usePrediction";
 
-// ML Model එක බලාපොරොත්තු වන නිවැරදි Features 14
+// Inputs expected by the credit model
 const CREDIT_FIELDS = [
   { name: "months_active", label: "Months Active in Business", type: "number", default: 24 },
   { name: "monthly_revenue_rs", label: "Monthly Revenue (LKR)", type: "number", default: 450000 },
@@ -18,12 +18,17 @@ const CREDIT_FIELDS = [
   { name: "avg_daily_txns", label: "Average Daily Transactions", type: "number", default: 45 },
   { name: "sales_volatility", label: "Sales Volatility Index", type: "number", default: 0.15 },
   { name: "credit_sales_ratio", label: "Credit Sales Ratio (0 - 1)", type: "number", default: 0.25 },
-  { name: "digital_payment_ratio", label: "Digital Payment Ratio (0 - 1)", type: "number", default: 0.60 },
+  { name: "digital_payment_ratio", label: "Digital Payment Ratio (0 - 1)", type: "number", default: 0.6 },
   { name: "stockout_rate", label: "Stockout Rate (0 - 1)", type: "number", default: 0.05 },
   { name: "net_cash_flow", label: "Net Cash Flow (LKR)", type: "number", default: 120000 },
-  { name: "debt_to_income_ratio", label: "Debt-to-Income Ratio", type: "number", default: 0.20 },
+  { name: "debt_to_income_ratio", label: "Debt-to-Income Ratio", type: "number", default: 0.2 },
   { name: "digital_revenue_volume", label: "Digital Revenue Volume (LKR)", type: "number", default: 270000 },
-  { name: "revenue_per_active_month", label: "Revenue per Active Month (LKR)", type: "number", default: 18750 },
+  {
+    name: "revenue_per_active_month",
+    label: "Revenue per Active Month (LKR)",
+    type: "number",
+    default: 18750,
+  },
 ];
 
 export default function CreditReadinessPage() {
@@ -32,7 +37,7 @@ export default function CreditReadinessPage() {
 
   const handleSubmit = async (formData) => {
     try {
-      // FastAPI හි 'credit' model එකට සම්බන්ධ වේ
+      // calls the 'credit' model in the ML service
       await run("credit", formData);
     } catch (err) {
       // Error handled inside usePrediction
@@ -52,11 +57,7 @@ export default function CreditReadinessPage() {
       />
 
       <div className="space-y-6">
-        <PredictionForm
-          fields={CREDIT_FIELDS}
-          loading={loading}
-          onSubmit={handleSubmit}
-        />
+        <PredictionForm fields={CREDIT_FIELDS} loading={loading} onSubmit={handleSubmit} />
 
         {error && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-400">

@@ -13,8 +13,6 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
@@ -25,10 +23,7 @@ class SettingsScreen extends StatelessWidget {
             icon: Icons.person_outline,
             title: 'Profile',
             subtitle: 'View and edit your account details',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ProfileScreen()),
-            ),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
           ),
 
           const SizedBox(height: 8),
@@ -37,10 +32,8 @@ class SettingsScreen extends StatelessWidget {
             icon: Icons.notifications_outlined,
             title: 'Notifications',
             subtitle: 'View alerts and manage notification history',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-            ),
+            onTap: () =>
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen())),
           ),
           ValueListenableBuilder<ThemeMode>(
             valueListenable: ThemeController.mode,
@@ -55,11 +48,7 @@ class SettingsScreen extends StatelessWidget {
 
           const SizedBox(height: 8),
           _SectionLabel('About'),
-          const _SettingsTile(
-            icon: Icons.info_outline,
-            title: 'App Version',
-            subtitle: '1.0.0',
-          ),
+          const _SettingsTile(icon: Icons.info_outline, title: 'App Version', subtitle: '1.0.0'),
           _SettingsTile(
             icon: Icons.privacy_tip_outlined,
             title: 'Privacy & Security',

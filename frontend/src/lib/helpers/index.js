@@ -34,7 +34,7 @@ export function sumBy(arr, key) {
 
 export function uniqueBy(arr, key) {
   const seen = new Set();
-  return arr.filter(item => {
+  return arr.filter((item) => {
     const k = item[key];
     if (seen.has(k)) return false;
     seen.add(k);
@@ -46,7 +46,7 @@ export function cacheSet(key, data, ttl = CACHE_TTL_MS) {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(key, JSON.stringify({ data, ts: Date.now(), ttl }));
-  } catch { }
+  } catch {}
 }
 
 export function cacheGet(key) {
@@ -57,16 +57,20 @@ export function cacheGet(key) {
     const { data, ts, ttl } = JSON.parse(raw);
     if (Date.now() - ts > (ttl ?? CACHE_TTL_MS)) return null;
     return data;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 export function cacheClear(key) {
   if (typeof window === "undefined") return;
-  try { localStorage.removeItem(key); } catch { }
+  try {
+    localStorage.removeItem(key);
+  } catch {}
 }
 
 export function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export function debounce(fn, delay) {

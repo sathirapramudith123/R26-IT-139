@@ -3,17 +3,15 @@
 const HIDDEN = [
   "id",
   "user_id",
-  "item_name",          
-  "item_status",       
+  "item_name",
+  "item_status",
   "supplier_status",
   "procurement_status",
   "banking_status",
   "notification_type",
   "notification_category",
-  // ✅ Supplier-level unit_price is a stale/unused column now that pricing
-  // lives per-item inside items_supplied — showing it here is misleading
-  // (always LKR 0.00). Raw lat/lng aren't meaningful to a user reading this
-  // card either — the "Delivery Location" address already covers that.
+  // Supplier unit_price is unused (prices are per item in items_supplied), and raw lat/lng
+  // are covered by the "Delivery Location" address.
   "unit_price",
   "latitude",
   "longitude",
@@ -25,8 +23,13 @@ const HIDDEN = [
 const DATE_FIELDS = ["created_at", "updated_at", "read_at"];
 
 const MONEY_FIELDS = [
-  "amount", "delivery_cost", "total_cost",
-  "estimated_profit", "expected_selling_price", "service_fee", "commission",
+  "amount",
+  "delivery_cost",
+  "total_cost",
+  "estimated_profit",
+  "expected_selling_price",
+  "service_fee",
+  "commission",
 ];
 
 function label(k) {
@@ -77,7 +80,7 @@ function Row({ label, value }) {
   );
 }
 
-// ✅ Procurement records get their own focused layout — items table,
+// Procurement records get their own focused layout — items table,
 // quantity, delivery location, cost, dates, recommended suppliers — instead
 // of the generic key/value dump (which also can't render items[] or
 // recommended_suppliers[] without special-casing them).
@@ -85,9 +88,13 @@ function ProcurementDetail({ data }) {
   const items = Array.isArray(data.items) ? data.items : [];
   const recommendedSuppliers = Array.isArray(data.recommended_suppliers) ? data.recommended_suppliers : [];
   const totalQuantity = items.reduce((s, it) => s + (Number(it.quantity) || 0), 0);
-  const cheapestId = recommendedSuppliers.length > 0
-    ? recommendedSuppliers.reduce((min, s) => (Number(s.totalPrice) < Number(min.totalPrice) ? s : min), recommendedSuppliers[0]).id
-    : null;
+  const cheapestId =
+    recommendedSuppliers.length > 0
+      ? recommendedSuppliers.reduce(
+          (min, s) => (Number(s.totalPrice) < Number(min.totalPrice) ? s : min),
+          recommendedSuppliers[0],
+        ).id
+      : null;
 
   return (
     <div className="space-y-5">
@@ -107,7 +114,9 @@ function ProcurementDetail({ data }) {
               <tbody>
                 {items.map((it, i) => (
                   <tr key={i} className="border-t border-slate-100 dark:border-slate-800">
-                    <td className="px-3 py-2 font-medium text-slate-800 dark:text-slate-100">{it.item_name}</td>
+                    <td className="px-3 py-2 font-medium text-slate-800 dark:text-slate-100">
+                      {it.item_name}
+                    </td>
                     <td className="px-3 py-2 text-right">{it.quantity}</td>
                     <td className="px-3 py-2 text-slate-500">{it.unit || "—"}</td>
                     <td className="px-3 py-2 text-right">{formatMoney(it.unit_cost)}</td>
@@ -132,7 +141,10 @@ function ProcurementDetail({ data }) {
           <p className="mb-2 text-sm font-medium text-slate-500 dark:text-slate-400">Recommended Suppliers</p>
           <div className="space-y-2">
             {recommendedSuppliers.map((s, i) => (
-              <div key={s.id ?? i} className="rounded-xl border border-slate-200 p-3 text-sm dark:border-slate-700">
+              <div
+                key={s.id ?? i}
+                className="rounded-xl border border-slate-200 p-3 text-sm dark:border-slate-700"
+              >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-100">
                     {s.name}
@@ -173,7 +185,7 @@ function ProcurementDetail({ data }) {
   );
 }
 
-// ✅ Transaction records get a focused layout — a credit/debit badge, the
+// Transaction records get a focused layout — a credit/debit badge, the
 // signed amount, items sold (if any), payment method, category and date —
 // instead of the generic dump (which shows items[] as [object Object]).
 const CREDIT_TYPES = new Set(["sale", "deposit"]);
@@ -186,15 +198,25 @@ function TransactionDetail({ data }) {
   return (
     <div className="space-y-5">
       {/* Hero: amount + credit/debit */}
-      <div className={`rounded-2xl p-5 text-center ${
-        isCredit ? "bg-emerald-50 dark:bg-emerald-950/40" : "bg-rose-50 dark:bg-rose-950/40"}`}>
-        <span className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${
-          isCredit ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
-                   : "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300"}`}>
+      <div
+        className={`rounded-2xl p-5 text-center ${
+          isCredit ? "bg-emerald-50 dark:bg-emerald-950/40" : "bg-rose-50 dark:bg-rose-950/40"
+        }`}
+      >
+        <span
+          className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${
+            isCredit
+              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+              : "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300"
+          }`}
+        >
           {isCredit ? "Credit (money in)" : "Debit (money out)"}
         </span>
-        <p className={`mt-2 font-outfit text-3xl font-extrabold ${
-          isCredit ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+        <p
+          className={`mt-2 font-outfit text-3xl font-extrabold ${
+            isCredit ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+          }`}
+        >
           {isCredit ? "+" : "−"} {formatMoney(data.amount)}
         </p>
         <p className="mt-1 text-sm font-medium capitalize text-slate-500 dark:text-slate-400">
@@ -218,7 +240,9 @@ function TransactionDetail({ data }) {
               <tbody>
                 {items.map((it, i) => (
                   <tr key={i} className="border-t border-slate-100 dark:border-slate-800">
-                    <td className="px-3 py-2 font-medium text-slate-800 dark:text-slate-100">{it.item_name}</td>
+                    <td className="px-3 py-2 font-medium text-slate-800 dark:text-slate-100">
+                      {it.item_name}
+                    </td>
                     <td className="px-3 py-2 text-right">{it.quantity}</td>
                     <td className="px-3 py-2 text-right">{formatMoney(it.unit_price ?? it.cost_price)}</td>
                   </tr>
@@ -233,8 +257,12 @@ function TransactionDetail({ data }) {
       <div className="space-y-2">
         <Row label="Payment Method" value={display("payment_method", data.payment_method)} />
         {data.category && <Row label="Category" value={display("category", data.category)} />}
-        {data.service_fee != null && Number(data.service_fee) > 0 && <Row label="Service Fee" value={formatMoney(data.service_fee)} />}
-        {data.commission != null && Number(data.commission) > 0 && <Row label="Commission" value={formatMoney(data.commission)} />}
+        {data.service_fee != null && Number(data.service_fee) > 0 && (
+          <Row label="Service Fee" value={formatMoney(data.service_fee)} />
+        )}
+        {data.commission != null && Number(data.commission) > 0 && (
+          <Row label="Commission" value={formatMoney(data.commission)} />
+        )}
         {data.description && <Row label="Note" value={data.description} />}
         <Row label="Date" value={data.created_at ? formatDate(data.created_at) : "—"} />
       </div>
@@ -242,7 +270,7 @@ function TransactionDetail({ data }) {
   );
 }
 
-// ✅ Inventory items get a focused layout — stock level with a low-stock flag,
+// Inventory items get a focused layout — stock level with a low-stock flag,
 // weighted-average cost with the batch price range, reorder level, supplier and
 // total stock value — instead of the generic dump.
 function InventoryDetail({ data }) {
@@ -256,16 +284,26 @@ function InventoryDetail({ data }) {
   return (
     <div className="space-y-5">
       {/* Hero: item + stock status */}
-      <div className={`rounded-2xl p-5 text-center ${
-        low ? "bg-rose-50 dark:bg-rose-950/40" : "bg-emerald-50 dark:bg-emerald-950/40"}`}>
+      <div
+        className={`rounded-2xl p-5 text-center ${
+          low ? "bg-rose-50 dark:bg-rose-950/40" : "bg-emerald-50 dark:bg-emerald-950/40"
+        }`}
+      >
         <p className="font-outfit text-lg font-bold text-slate-800 dark:text-slate-100">{data.name}</p>
-        <p className={`mt-1 font-outfit text-3xl font-extrabold ${
-          low ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+        <p
+          className={`mt-1 font-outfit text-3xl font-extrabold ${
+            low ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"
+          }`}
+        >
           {qty} <span className="text-base font-semibold text-slate-500">{data.unit || "units"}</span>
         </p>
-        <span className={`mt-2 inline-block rounded-full px-3 py-1 text-xs font-bold ${
-          low ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300"
-              : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"}`}>
+        <span
+          className={`mt-2 inline-block rounded-full px-3 py-1 text-xs font-bold ${
+            low
+              ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300"
+              : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+          }`}
+        >
           {low ? "⚠ Running low — reorder needed" : "✓ In stock"}
         </span>
       </div>
@@ -277,7 +315,10 @@ function InventoryDetail({ data }) {
         <Row label="Reorder Level" value={`${reorder} ${data.unit || "units"}`} />
         <Row label="Avg. Unit Cost" value={formatMoney(data.cost_price)} />
         {hasRange && (
-          <Row label="Cost Range" value={`${formatMoney(data.cost_min)} – ${formatMoney(data.cost_max)} · ${batchCount} batches`} />
+          <Row
+            label="Cost Range"
+            value={`${formatMoney(data.cost_min)} – ${formatMoney(data.cost_max)} · ${batchCount} batches`}
+          />
         )}
         <Row label="Total Stock Value" value={formatMoney(totalValue)} />
         {data.lead_time_days != null && <Row label="Lead Time" value={`${data.lead_time_days} day(s)`} />}
@@ -294,16 +335,22 @@ export default function DetailDialog({ open, title, data, onClose }) {
   // An inventory item has `name` + quantity + reorder_level (no transaction_type).
   // A procurement record has items[] + order_date/total_cost but no payment_method.
   const isTransaction = !!data.transaction_type && data.payment_method !== undefined;
-  const isInventory = !isTransaction && data.name !== undefined
-    && data.quantity !== undefined && data.reorder_level !== undefined
-    && !Array.isArray(data.items);
+  const isInventory =
+    !isTransaction &&
+    data.name !== undefined &&
+    data.quantity !== undefined &&
+    data.reorder_level !== undefined &&
+    !Array.isArray(data.items);
   const isProcurement = !isTransaction && !isInventory && Array.isArray(data.items);
 
-  const entries = (isProcurement || isTransaction || isInventory) ? [] : Object.entries(data).filter(
-    ([k, v]) => !HIDDEN.includes(k) && v !== null && v !== undefined && v !== ""
-  );
+  const entries =
+    isProcurement || isTransaction || isInventory
+      ? []
+      : Object.entries(data).filter(
+          ([k, v]) => !HIDDEN.includes(k) && v !== null && v !== undefined && v !== "",
+        );
 
-  // ✅ items_supplied ([{item_name, quantity, unit, unit_price}]) needs its
+  // items_supplied ([{item_name, quantity, unit, unit_price}]) needs its
   // own table instead of the generic key/value row.
   const suppliedItems = Array.isArray(data.items_supplied) ? data.items_supplied : [];
 
@@ -318,10 +365,10 @@ export default function DetailDialog({ open, title, data, onClose }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="font-outfit text-lg font-bold text-slate-900 dark:text-slate-100">
-            {title}
-          </h3>
-          <button onClick={onClose} className="btn-ghost !px-3 !py-1.5 text-base">✕</button>
+          <h3 className="font-outfit text-lg font-bold text-slate-900 dark:text-slate-100">{title}</h3>
+          <button onClick={onClose} className="btn-ghost !px-3 !py-1.5 text-base">
+            ✕
+          </button>
         </div>
 
         {isTransaction ? (
@@ -338,9 +385,7 @@ export default function DetailDialog({ open, title, data, onClose }) {
                   key={k}
                   className="flex items-start justify-between gap-4 rounded-xl bg-slate-50 px-4 py-2.5 dark:bg-slate-800"
                 >
-                  <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                    {label(k)}
-                  </span>
+                  <span className="text-sm font-medium text-slate-500 dark:text-slate-400">{label(k)}</span>
                   <span className="text-right text-sm font-semibold text-slate-900 dark:text-slate-100">
                     {display(k, v)}
                   </span>
@@ -350,9 +395,7 @@ export default function DetailDialog({ open, title, data, onClose }) {
 
             {suppliedItems.length > 0 && (
               <div className="mt-4">
-                <p className="mb-2 text-sm font-medium text-slate-500 dark:text-slate-400">
-                  Items Supplied
-                </p>
+                <p className="mb-2 text-sm font-medium text-slate-500 dark:text-slate-400">Items Supplied</p>
                 <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
                   <table className="w-full text-sm">
                     <thead>
@@ -366,7 +409,9 @@ export default function DetailDialog({ open, title, data, onClose }) {
                     <tbody>
                       {suppliedItems.map((it, i) => (
                         <tr key={i} className="border-t border-slate-100 dark:border-slate-800">
-                          <td className="px-3 py-2 font-medium text-slate-800 dark:text-slate-100">{it.item_name}</td>
+                          <td className="px-3 py-2 font-medium text-slate-800 dark:text-slate-100">
+                            {it.item_name}
+                          </td>
                           <td className="px-3 py-2 text-right">{it.quantity}</td>
                           <td className="px-3 py-2 text-slate-500">{it.unit || "—"}</td>
                           <td className="px-3 py-2 text-right">{formatMoney(it.unit_price)}</td>

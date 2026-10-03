@@ -151,7 +151,9 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
       final res = await http.get(uri);
       final data = jsonDecode(res.body);
       final results = data["results"] as List?;
-      final addr = (results != null && results.isNotEmpty) ? results[0]["formatted_address"] as String? : null;
+      final addr = (results != null && results.isNotEmpty)
+          ? results[0]["formatted_address"] as String?
+          : null;
       if (addr != null) widget.onAddress?.call(addr);
     } catch (_) {
       // Silent — the user can still type/edit the address field manually.
@@ -331,8 +333,8 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
             m.highlight
                 ? BitmapDescriptor.hueGreen
                 : m.cheapest
-                    ? BitmapDescriptor.hueYellow
-                    : BitmapDescriptor.hueRed,
+                ? BitmapDescriptor.hueYellow
+                : BitmapDescriptor.hueRed,
           ),
         ),
       if (widget.destinationLat != null && widget.destinationLng != null)
@@ -383,11 +385,18 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
                             fillColor: Theme.of(context).cardColor,
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide.none,
+                            ),
                             suffixIcon: _searching
                                 ? const Padding(
                                     padding: EdgeInsets.all(12),
-                                    child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                                    child: SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    ),
                                   )
                                 : null,
                           ),
@@ -399,7 +408,9 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
                           decoration: BoxDecoration(
                             color: Theme.of(context).cardColor,
                             borderRadius: BorderRadius.circular(10),
-                            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 2))],
+                            boxShadow: const [
+                              BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 2)),
+                            ],
                           ),
                           constraints: const BoxConstraints(maxHeight: 180),
                           child: ListView.builder(
@@ -428,7 +439,10 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
                     top: 10,
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(8)),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       child: Text(
                         _routeDistanceKm != null
                             ? "🚗 $_routeDistanceKm km · ⏱ ${_formatDuration(_routeDurationMin)}"

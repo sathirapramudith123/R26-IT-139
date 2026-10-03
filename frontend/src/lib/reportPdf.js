@@ -9,17 +9,11 @@ export function downloadIncomeStatementPdf(data, { period = "" } = {}) {
   const d = data || {};
   const revenue = num(d.total_revenue ?? d.revenue);
   const cogs = num(d.cost_of_goods_sold ?? d.costOfGoodsSold);
-  const grossProfit =
-    d.gross_profit != null ? num(d.gross_profit) : revenue - cogs;
+  const grossProfit = d.gross_profit != null ? num(d.gross_profit) : revenue - cogs;
   const opex = num(d.operating_expenses ?? d.operatingExpenses);
-  const netProfit =
-    d.net_profit != null ? num(d.net_profit) : grossProfit - opex;
+  const netProfit = d.net_profit != null ? num(d.net_profit) : grossProfit - opex;
   const margin =
-    d.profit_margin_pct != null
-      ? num(d.profit_margin_pct)
-      : revenue
-      ? (netProfit / revenue) * 100
-      : 0;
+    d.profit_margin_pct != null ? num(d.profit_margin_pct) : revenue ? (netProfit / revenue) * 100 : 0;
 
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -36,12 +30,9 @@ export function downloadIncomeStatementPdf(data, { period = "" } = {}) {
   doc.setFont("helvetica", "normal");
   doc.setTextColor(120);
   const dateStr = new Date().toLocaleDateString();
-  doc.text(
-    `Generated: ${dateStr}${period ? "   |   Period: " + period : ""}`,
-    pageWidth / 2,
-    68,
-    { align: "center" }
-  );
+  doc.text(`Generated: ${dateStr}${period ? "   |   Period: " + period : ""}`, pageWidth / 2, 68, {
+    align: "center",
+  });
   doc.setTextColor(0);
 
   const bold = { fontStyle: "bold" };

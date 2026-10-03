@@ -1,8 +1,6 @@
 import '../core/api.dart';
 
-
 class JournalService {
-  
   static Future<Map<String, dynamic>> get({int? year, int? month, String? date}) async {
     final qp = <String, String>{};
     if (date != null) qp["date"] = date;

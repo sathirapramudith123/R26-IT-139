@@ -37,14 +37,10 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
-        onDestinationSelected: (index) =>
-            setState(() => _currentIndex = index),
+        onDestinationSelected: (index) => setState(() => _currentIndex = index),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.dashboard_outlined),
@@ -85,36 +81,12 @@ class MenuScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = <_MenuItem>[
-      _MenuItem(
-        'Agency Banking',
-        Icons.account_balance_outlined,
-        () => const AgencyBankingFormScreen(),
-      ),
-      _MenuItem(
-        'Inventory',
-        Icons.inventory_2_outlined,
-        () => const InventoryFormScreen(),
-      ),
-      _MenuItem(
-        'Procurement',
-        Icons.shopping_cart_outlined,
-        () => const ProcurementFormScreen(),
-      ),
-      _MenuItem(
-        'Suppliers',
-        Icons.handshake_outlined,
-        () => const SupplierFormScreen(),
-      ),
-      _MenuItem(
-        'Transactions',
-        Icons.receipt_long_outlined,
-        () => const TransactionFormScreen(),
-      ),
-      _MenuItem(
-        'Reports',
-        Icons.bar_chart_outlined,
-        () => const IncomeStatementScreen(),
-      ),
+      _MenuItem('Agency Banking', Icons.account_balance_outlined, () => const AgencyBankingFormScreen()),
+      _MenuItem('Inventory', Icons.inventory_2_outlined, () => const InventoryFormScreen()),
+      _MenuItem('Procurement', Icons.shopping_cart_outlined, () => const ProcurementFormScreen()),
+      _MenuItem('Suppliers', Icons.handshake_outlined, () => const SupplierFormScreen()),
+      _MenuItem('Transactions', Icons.receipt_long_outlined, () => const TransactionFormScreen()),
+      _MenuItem('Reports', Icons.bar_chart_outlined, () => const IncomeStatementScreen()),
     ];
 
     return Scaffold(
@@ -132,9 +104,7 @@ class MenuScreen extends StatelessWidget {
           return Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => item.builder()),
-              ),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => item.builder())),
               borderRadius: BorderRadius.circular(16),
               child: Container(
                 padding: const EdgeInsets.all(16),
@@ -156,10 +126,7 @@ class MenuScreen extends StatelessWidget {
                       child: Icon(item.icon, size: 20, color: teal),
                     ),
                     const Spacer(),
-                    Text(
-                      item.label,
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
+                    Text(item.label, style: Theme.of(context).textTheme.titleSmall),
                   ],
                 ),
               ),

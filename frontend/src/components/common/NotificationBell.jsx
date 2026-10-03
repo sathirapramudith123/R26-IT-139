@@ -21,10 +21,18 @@ export default function NotificationBell() {
   const ref = useRef(null);
 
   async function loadCount() {
-    try { const r = await notificationApi.unreadCount(); setCount(r.count || 0); } catch {}
+    try {
+      const r = await notificationApi.unreadCount();
+      setCount(r.count || 0);
+    } catch {}
   }
   async function loadList() {
-    try { const d = await notificationApi.list(); setItems(Array.isArray(d) ? d : []); } catch { setItems([]); }
+    try {
+      const d = await notificationApi.list();
+      setItems(Array.isArray(d) ? d : []);
+    } catch {
+      setItems([]);
+    }
   }
 
   useEffect(() => {
@@ -78,9 +86,14 @@ export default function NotificationBell() {
       {open && (
         <div className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
-            <span className="font-outfit text-sm font-bold text-slate-900 dark:text-slate-100">Notifications</span>
+            <span className="font-outfit text-sm font-bold text-slate-900 dark:text-slate-100">
+              Notifications
+            </span>
             {count > 0 && (
-              <button onClick={readAll} className="text-xs font-semibold text-teal-700 hover:underline dark:text-teal-400">
+              <button
+                onClick={readAll}
+                className="text-xs font-semibold text-teal-700 hover:underline dark:text-teal-400"
+              >
                 Mark all read
               </button>
             )}
@@ -88,7 +101,9 @@ export default function NotificationBell() {
 
           <div className="max-h-96 overflow-y-auto">
             {items.length === 0 ? (
-              <p className="px-4 py-10 text-center text-sm text-slate-400 dark:text-slate-500">No notifications yet</p>
+              <p className="px-4 py-10 text-center text-sm text-slate-400 dark:text-slate-500">
+                No notifications yet
+              </p>
             ) : (
               items.map((n) => {
                 const inner = (
@@ -102,13 +117,17 @@ export default function NotificationBell() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{n.title}</p>
                       <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">{n.message}</p>
-                      <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">{timeAgo(n.created_at)}</p>
+                      <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
+                        {timeAgo(n.created_at)}
+                      </p>
                     </div>
                     {!n.is_read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-teal-600" />}
                   </div>
                 );
                 return n.link ? (
-                  <Link key={n.id} href={n.link} onClick={() => setOpen(false)}>{inner}</Link>
+                  <Link key={n.id} href={n.link} onClick={() => setOpen(false)}>
+                    {inner}
+                  </Link>
                 ) : (
                   <div key={n.id}>{inner}</div>
                 );

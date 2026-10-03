@@ -2,8 +2,7 @@ import nodemailer from "nodemailer";
 
 // SMTP settings come from .env (see backend/.env.example). Gmail example:
 //   SMTP_HOST=smtp.gmail.com  SMTP_PORT=465  SMTP_USER=...  SMTP_PASS=<app password>
-const isConfigured = () =>
-  Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+const isConfigured = () => Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 
 let transporter = null;
 function getTransporter() {

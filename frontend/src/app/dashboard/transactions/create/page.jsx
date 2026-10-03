@@ -9,8 +9,15 @@ export default function CreateTransactionPage() {
   useAuthGuard();
   return (
     <div className="page-container">
-      <PageHeader title="New Transaction" description="Record income, expense, or payment."
-        action={<Link href="/dashboard/transactions"><Button variant="secondary">← Back</Button></Link>} />
+      <PageHeader
+        title="New Transaction"
+        description="Record income, expense, or payment."
+        action={
+          <Link href="/dashboard/transactions">
+            <Button variant="secondary">← Back</Button>
+          </Link>
+        }
+      />
       <TransactionForm />
     </div>
   );

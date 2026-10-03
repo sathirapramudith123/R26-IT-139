@@ -9,12 +9,7 @@ import { apiClient } from "./client";
 function unwrap(res) {
   let body = res;
   for (let i = 0; i < 2; i++) {
-    if (
-      body &&
-      typeof body === "object" &&
-      !("total_revenue" in body) &&
-      "data" in body
-    ) {
+    if (body && typeof body === "object" && !("total_revenue" in body) && "data" in body) {
       body = body.data;
     }
   }
@@ -25,11 +20,9 @@ export const reportApi = {
   // Params: { from?: 'YYYY-MM-DD', to?: 'YYYY-MM-DD' } (optional)
   async getIncomeStatement(params = {}) {
     const qs = new URLSearchParams(
-      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null))
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null)),
     ).toString();
-    const res = await apiClient.get(
-      `/reports/income-statement${qs ? `?${qs}` : ""}`
-    );
+    const res = await apiClient.get(`/reports/income-statement${qs ? `?${qs}` : ""}`);
     return unwrap(res);
   },
 };

@@ -6,11 +6,21 @@ export default function Footer() {
       <div className="mx-auto flex max-w-9xl flex-col items-center gap-2 px-4 py-6 sm:flex-row sm:justify-between">
         <div className="flex items-center gap-2">
           <div className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-lg bg-white ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-700">
-            <Image src="/images/lankalinklogo.png" alt="Lanka-Link" width={22} height={22} className="object-contain" />
+            <Image
+              src="/images/lankalinklogo.png"
+              alt="Lanka-Link"
+              width={22}
+              height={22}
+              className="object-contain"
+            />
           </div>
-          <span className="font-outfit text-sm font-semibold text-slate-700 dark:text-slate-200">Lanka-Link</span>
+          <span className="font-outfit text-sm font-semibold text-slate-700 dark:text-slate-200">
+            Lanka-Link
+          </span>
         </div>
-        <p className="text-xs text-slate-400 dark:text-slate-500">© 2026 Lanka-Link · Smart Merchant Support Platform</p>
+        <p className="text-xs text-slate-400 dark:text-slate-500">
+          © 2026 Lanka-Link · Smart Merchant Support Platform
+        </p>
       </div>
     </footer>
   );

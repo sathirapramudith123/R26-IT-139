@@ -80,24 +80,46 @@ function ResetPasswordContent() {
             )}
 
             <div className="space-y-1.5">
-              <label htmlFor="password" className="block text-sm font-medium text-slate-600 dark:text-slate-300">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-slate-600 dark:text-slate-300"
+              >
                 New password
               </label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
-                <input id="password" name="password" type="password" required minLength={6}
-                  autoComplete="new-password" placeholder="At least 6 characters" className={inputClass} />
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  minLength={6}
+                  autoComplete="new-password"
+                  placeholder="At least 6 characters"
+                  className={inputClass}
+                />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label htmlFor="confirm" className="block text-sm font-medium text-slate-600 dark:text-slate-300">
+              <label
+                htmlFor="confirm"
+                className="block text-sm font-medium text-slate-600 dark:text-slate-300"
+              >
                 Confirm new password
               </label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
-                <input id="confirm" name="confirm" type="password" required minLength={6}
-                  autoComplete="new-password" placeholder="Repeat the new password" className={inputClass} />
+                <input
+                  id="confirm"
+                  name="confirm"
+                  type="password"
+                  required
+                  minLength={6}
+                  autoComplete="new-password"
+                  placeholder="Repeat the new password"
+                  className={inputClass}
+                />
               </div>
             </div>
 

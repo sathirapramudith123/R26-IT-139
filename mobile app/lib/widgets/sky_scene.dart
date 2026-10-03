@@ -43,7 +43,9 @@ class _SkySceneState extends State<SkyScene> with SingleTickerProviderStateMixin
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: const BorderRadius.only(
-        bottomLeft: Radius.circular(28), bottomRight: Radius.circular(28)),
+        bottomLeft: Radius.circular(28),
+        bottomRight: Radius.circular(28),
+      ),
       child: SizedBox(
         height: widget.height,
         width: double.infinity,
@@ -54,11 +56,7 @@ class _SkySceneState extends State<SkyScene> with SingleTickerProviderStateMixin
               size: Size(double.infinity, widget.height),
               // intro folded into the loop: first ~30% of the cycle acts as the
               // sun rise/set, so no second controller is needed.
-              painter: _SkyPainter(
-                phase: widget.phase,
-                t: _c.value,
-                intro: (_c.value / 0.3).clamp(0.0, 1.0),
-              ),
+              painter: _SkyPainter(phase: widget.phase, t: _c.value, intro: (_c.value / 0.3).clamp(0.0, 1.0)),
             ),
           ),
         ),
@@ -69,8 +67,8 @@ class _SkySceneState extends State<SkyScene> with SingleTickerProviderStateMixin
 
 class _SkyPainter extends CustomPainter {
   final SkyPhase phase;
-  final double t;      // looping 0..1
-  final double intro;  // one-shot 0..1
+  final double t; // looping 0..1
+  final double intro; // one-shot 0..1
   _SkyPainter({required this.phase, required this.t, required this.intro});
 
   @override
@@ -80,25 +78,42 @@ class _SkyPainter extends CustomPainter {
     // ---- sky gradient ----
     final sky = _skyColors(phase);
     final rect = Offset.zero & size;
-    canvas.drawRect(rect, Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topLeft, end: Alignment.bottomRight, colors: sky,
-      ).createShader(rect));
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: sky,
+        ).createShader(rect),
+    );
 
     switch (phase) {
-      case SkyPhase.morning:   _paintMorning(canvas, w, h); break;
-      case SkyPhase.afternoon: _paintAfternoon(canvas, w, h); break;
-      case SkyPhase.evening:   _paintEvening(canvas, w, h); break;
-      case SkyPhase.night:     _paintNight(canvas, w, h); break;
+      case SkyPhase.morning:
+        _paintMorning(canvas, w, h);
+        break;
+      case SkyPhase.afternoon:
+        _paintAfternoon(canvas, w, h);
+        break;
+      case SkyPhase.evening:
+        _paintEvening(canvas, w, h);
+        break;
+      case SkyPhase.night:
+        _paintNight(canvas, w, h);
+        break;
     }
   }
 
   List<Color> _skyColors(SkyPhase p) {
     switch (p) {
-      case SkyPhase.morning:   return [const Color(0xFFFDE68A), const Color(0xFFFDBA74), const Color(0xFF5EEAD4)];
-      case SkyPhase.afternoon: return [const Color(0xFF7DD3FC), const Color(0xFF38BDF8), const Color(0xFF22D3EE)];
-      case SkyPhase.evening:   return [const Color(0xFFFB923C), const Color(0xFFF43F5E), const Color(0xFF7C3AED)];
-      case SkyPhase.night:     return [const Color(0xFF312E81), const Color(0xFF4C1D95), const Color(0xFF0F172A)];
+      case SkyPhase.morning:
+        return [const Color(0xFFFDE68A), const Color(0xFFFDBA74), const Color(0xFF5EEAD4)];
+      case SkyPhase.afternoon:
+        return [const Color(0xFF7DD3FC), const Color(0xFF38BDF8), const Color(0xFF22D3EE)];
+      case SkyPhase.evening:
+        return [const Color(0xFFFB923C), const Color(0xFFF43F5E), const Color(0xFF7C3AED)];
+      case SkyPhase.night:
+        return [const Color(0xFF312E81), const Color(0xFF4C1D95), const Color(0xFF0F172A)];
     }
   }
 
@@ -116,16 +131,24 @@ class _SkyPainter extends CustomPainter {
       }
     }
     // glow
-    c.drawCircle(center, r + 10, Paint()
-      ..shader = RadialGradient(colors: [
-        const Color(0xFFFDE047).withOpacity(0.4), Colors.transparent,
-      ]).createShader(Rect.fromCircle(center: center, radius: r + 12)));
+    c.drawCircle(
+      center,
+      r + 10,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [const Color(0xFFFDE047).withOpacity(0.4), Colors.transparent],
+        ).createShader(Rect.fromCircle(center: center, radius: r + 12)),
+    );
     // core
-    c.drawCircle(center, r, Paint()
-      ..shader = RadialGradient(
-        center: const Alignment(-0.3, -0.3),
-        colors: [const Color(0xFFFFFBEB), const Color(0xFFFDE047), const Color(0xFFFBBF24)],
-      ).createShader(Rect.fromCircle(center: center, radius: r)));
+    c.drawCircle(
+      center,
+      r,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(-0.3, -0.3),
+          colors: [const Color(0xFFFFFBEB), const Color(0xFFFDE047), const Color(0xFFFBBF24)],
+        ).createShader(Rect.fromCircle(center: center, radius: r)),
+    );
   }
 
   // ---- MORNING — mountains + sun rising between them ----
@@ -163,11 +186,9 @@ class _SkyPainter extends CustomPainter {
     _sun(c, Offset(w * 0.5, sunY), 26);
 
     // sea
-    c.drawRect(Rect.fromLTWH(0, seaTop, w, h - seaTop),
-        Paint()..color = const Color(0x8C1E1B4B));
+    c.drawRect(Rect.fromLTWH(0, seaTop, w, h - seaTop), Paint()..color = const Color(0x8C1E1B4B));
     // horizon highlight
-    c.drawRect(Rect.fromLTWH(0, seaTop, w, 2),
-        Paint()..color = const Color(0xFFFDE047).withOpacity(0.6));
+    c.drawRect(Rect.fromLTWH(0, seaTop, w, 2), Paint()..color = const Color(0xFFFDE047).withOpacity(0.6));
     // shimmering reflection column
     for (int i = 0; i < 3; i++) {
       final ww = (8 - i * 2).toDouble();
@@ -186,11 +207,15 @@ class _SkyPainter extends CustomPainter {
   void _paintNight(Canvas c, double w, double h) {
     // moon
     final moon = Offset(w * 0.72, h * 0.30);
-    c.drawCircle(moon, 22, Paint()
-      ..shader = RadialGradient(
-        center: const Alignment(-0.3, -0.3),
-        colors: [const Color(0xFFF8FAFC), const Color(0xFFCBD5E1), const Color(0xFF94A3B8)],
-      ).createShader(Rect.fromCircle(center: moon, radius: 22)));
+    c.drawCircle(
+      moon,
+      22,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(-0.3, -0.3),
+          colors: [const Color(0xFFF8FAFC), const Color(0xFFCBD5E1), const Color(0xFF94A3B8)],
+        ).createShader(Rect.fromCircle(center: moon, radius: 22)),
+    );
     final crater = Paint()..color = const Color(0x59647488);
     c.drawCircle(moon + const Offset(-4, -3), 5, crater);
     c.drawCircle(moon + const Offset(6, 6), 3.5, crater);
@@ -233,41 +258,6 @@ class _SkyPainter extends CustomPainter {
     }
   }
 
-  void _city(Canvas c, double w, double h, Color color) {
-    final paint = Paint()..color = color;
-    final heights = [0.46, 0.62, 0.38, 0.72, 0.5, 0.8, 0.5, 0.6, 0.4, 0.55, 0.7, 0.46, 0.58];
-    final n = heights.length;
-    final bw = w / n;
-    for (int i = 0; i < n; i++) {
-      final bh = h * heights[i];
-      final x = i * bw + bw * 0.12;
-      final r = RRect.fromRectAndCorners(
-        Rect.fromLTWH(x, h - bh, bw * 0.76, bh),
-        topLeft: const Radius.circular(3), topRight: const Radius.circular(3));
-      c.drawRRect(r, paint);
-    }
-  }
-
-  void _cityWindows(Canvas c, double w, double h) {
-    final heights = [0.46, 0.62, 0.38, 0.72, 0.5, 0.8, 0.5, 0.6, 0.4, 0.55, 0.7, 0.46, 0.58];
-    final n = heights.length;
-    final bw = w / n;
-    final rnd = math.Random(3);
-    for (int i = 0; i < n; i++) {
-      final bh = h * heights[i];
-      final x0 = i * bw + bw * 0.12;
-      final top = h - bh;
-      for (double yy = top + 6; yy < h - 6; yy += 10) {
-        for (double xx = x0 + 3; xx < x0 + bw * 0.76 - 3; xx += 8) {
-          if (rnd.nextDouble() < 0.5) continue;
-          final flick = 0.5 + 0.5 * math.sin(t * 2 * math.pi + xx + yy);
-          c.drawRect(Rect.fromLTWH(xx, yy, 3, 4),
-              Paint()..color = const Color(0xFFFDE68A).withOpacity((0.5 + 0.4 * flick).clamp(0.0, 1.0)));
-        }
-      }
-    }
-  }
-
   void _clouds(Canvas c, double w, double h, double opacity) {
     final cloud = Paint()..color = Colors.white.withOpacity(0.55 * opacity);
     // drift across using t
@@ -281,8 +271,10 @@ class _SkyPainter extends CustomPainter {
     c.drawCircle(o, s * 0.5, p);
     c.drawCircle(o + Offset(s * 0.5, 4), s * 0.4, p);
     c.drawCircle(o + Offset(-s * 0.4, 5), s * 0.32, p);
-    c.drawRRect(RRect.fromRectAndRadius(
-      Rect.fromLTWH(o.dx - s * 0.5, o.dy + 2, s, s * 0.4), const Radius.circular(20)), p);
+    c.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromLTWH(o.dx - s * 0.5, o.dy + 2, s, s * 0.4), const Radius.circular(20)),
+      p,
+    );
   }
 
   void _waves(Canvas c, double w, double seaTop) {
@@ -303,8 +295,7 @@ class _SkyPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _SkyPainter old) =>
-      old.t != t || old.intro != intro || old.phase != phase;
+  bool shouldRepaint(covariant _SkyPainter old) => old.t != t || old.intro != intro || old.phase != phase;
 }
 
 class _MtnLayer {

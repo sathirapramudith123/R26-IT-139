@@ -197,7 +197,10 @@ class _SupplierDistanceMapState extends State<SupplierDistanceMap> {
                 top: 10,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(10)),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   child: Text(
                     _distanceKm != null
                         ? "🚗 $_distanceKm km away · ⏱ about ${_formatDuration(_durationMin)} drive"

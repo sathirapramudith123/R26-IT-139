@@ -8,24 +8,28 @@ export default function AdminPriceUploadWidget({ onUploaded }) {
   const [dragging, setDragging] = useState(false);
 
   async function startBatch(files) {
-    const pdfs = Array.from(files).filter(f => f.name.endsWith(".pdf"));
+    const pdfs = Array.from(files).filter((f) => f.name.endsWith(".pdf"));
     if (pdfs.length === 0) return;
 
     pdfs.sort((a, b) => a.name.localeCompare(b.name));
 
     setSession({
-      files: pdfs, total: pdfs.length,
-      done: 0, failed: 0,
+      files: pdfs,
+      total: pdfs.length,
+      done: 0,
+      failed: 0,
       current: pdfs[0].name,
-      results: [], finished: false,
+      results: [],
+      finished: false,
     });
 
     const results = [];
-    let done = 0, failed = 0;
+    let done = 0,
+      failed = 0;
 
     for (let i = 0; i < pdfs.length; i++) {
       const file = pdfs[i];
-      setSession(s => ({ ...s, current: file.name }));
+      setSession((s) => ({ ...s, current: file.name }));
 
       try {
         const data = await priceDataApi.uploadPdf(file);
@@ -36,8 +40,10 @@ export default function AdminPriceUploadWidget({ onUploaded }) {
         results.push({ filename: file.name, date: null, saved: 0, error: err.message || "Failed" });
       }
 
-      setSession(s => ({
-        ...s, done, failed,
+      setSession((s) => ({
+        ...s,
+        done,
+        failed,
         results: [...results],
         finished: i === pdfs.length - 1,
       }));
@@ -51,7 +57,8 @@ export default function AdminPriceUploadWidget({ onUploaded }) {
   }
 
   function onDrop(e) {
-    e.preventDefault(); setDragging(false);
+    e.preventDefault();
+    setDragging(false);
     if (e.dataTransfer.files?.length) startBatch(e.dataTransfer.files);
   }
 
@@ -61,7 +68,7 @@ export default function AdminPriceUploadWidget({ onUploaded }) {
   }
 
   const isRunning = session && !session.finished;
-  const pct = session ? Math.round((session.done + session.failed) / session.total * 100) : 0;
+  const pct = session ? Math.round(((session.done + session.failed) / session.total) * 100) : 0;
 
   return (
     <div className="card space-y-4">
@@ -69,23 +76,37 @@ export default function AdminPriceUploadWidget({ onUploaded }) {
         <span className="text-2xl">📤</span>
         <div>
           <h3 className="font-outfit font-semibold text-slate-900">Upload Price PDFs</h3>
-          <p className="text-xs text-slate-400">HKARTI daily or weekly bulletins · Select multiple files at once</p>
+          <p className="text-xs text-slate-400">
+            HKARTI daily or weekly bulletins · Select multiple files at once
+          </p>
         </div>
       </div>
 
       {!session && (
         <div
-          onDragOver={e => { e.preventDefault(); setDragging(true); }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
+          }}
           onDragLeave={() => setDragging(false)}
           onDrop={onDrop}
           onClick={() => fileRef.current?.click()}
           className={`cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-colors
             ${dragging ? "border-teal-400 bg-teal-50" : "border-slate-200 hover:border-teal-300 hover:bg-slate-50"}`}
         >
-          <input ref={fileRef} type="file" accept=".pdf" multiple className="hidden" onChange={onFileChange} />
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".pdf"
+            multiple
+            className="hidden"
+            onChange={onFileChange}
+          />
           <div className="text-4xl mb-3">📂</div>
           <p className="text-sm font-semibold text-slate-700 mb-1">Drop all PDFs here or click to browse</p>
-          <p className="text-xs text-slate-400">Select multiple files at once — system processes them automatically</p>
+          <p className="text-xs text-slate-400">
+            Select multiple files at once — system processes them automatically
+          </p>
           <div className="mt-4 inline-flex items-center gap-4 text-xs text-slate-400">
             <span>✓ Daily price bulletins</span>
             <span>✓ Weekly bulletins</span>
@@ -131,19 +152,27 @@ export default function AdminPriceUploadWidget({ onUploaded }) {
               <p className="text-lg font-bold text-emerald-700">{session.done}</p>
               <p className="text-[10px] text-emerald-600">Uploaded</p>
             </div>
-            <div className={`rounded-xl px-3 py-2 text-center ${session.failed > 0 ? "bg-red-50" : "bg-slate-50"}`}>
+            <div
+              className={`rounded-xl px-3 py-2 text-center ${session.failed > 0 ? "bg-red-50" : "bg-slate-50"}`}
+            >
               <p className={`text-lg font-bold ${session.failed > 0 ? "text-red-600" : "text-slate-400"}`}>
                 {session.failed}
               </p>
-              <p className={`text-[10px] ${session.failed > 0 ? "text-red-500" : "text-slate-400"}`}>Failed</p>
+              <p className={`text-[10px] ${session.failed > 0 ? "text-red-500" : "text-slate-400"}`}>
+                Failed
+              </p>
             </div>
           </div>
 
           {session.finished && (
-            <div className={`rounded-xl border px-4 py-3 text-sm font-semibold
-              ${session.failed === 0
-                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                : "border-amber-200 bg-amber-50 text-amber-800"}`}>
+            <div
+              className={`rounded-xl border px-4 py-3 text-sm font-semibold
+              ${
+                session.failed === 0
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                  : "border-amber-200 bg-amber-50 text-amber-800"
+              }`}
+            >
               {session.failed === 0
                 ? `✓ All ${session.done} PDFs uploaded successfully`
                 : `✓ ${session.done} uploaded · ${session.failed} failed`}
@@ -152,16 +181,22 @@ export default function AdminPriceUploadWidget({ onUploaded }) {
 
           <div className="max-h-52 overflow-y-auto rounded-xl border border-slate-100 bg-white">
             <div className="grid grid-cols-3 text-[10px] font-semibold text-slate-500 px-3 py-1.5 border-b border-slate-100 sticky top-0 bg-white">
-              <span>File</span><span>Date</span><span className="text-right">Records</span>
+              <span>File</span>
+              <span>Date</span>
+              <span className="text-right">Records</span>
             </div>
             {session.results.map((r, i) => (
-              <div key={i} className={`grid grid-cols-3 text-[10px] px-3 py-1.5 border-b border-slate-50 last:border-0 ${r.error ? "bg-red-50" : ""}`}>
+              <div
+                key={i}
+                className={`grid grid-cols-3 text-[10px] px-3 py-1.5 border-b border-slate-50 last:border-0 ${r.error ? "bg-red-50" : ""}`}
+              >
                 <span className="truncate text-slate-600" title={r.filename}>
-                  {r.error ? "❌ " : "✓ "}{r.filename.replace(".pdf","").slice(-25)}
+                  {r.error ? "❌ " : "✓ "}
+                  {r.filename.replace(".pdf", "").slice(-25)}
                 </span>
                 <span className="text-slate-400">{r.date || "—"}</span>
                 <span className={`text-right font-medium ${r.error ? "text-red-500" : "text-teal-700"}`}>
-                  {r.error ? r.error.slice(0,20) : `${r.saved} rows`}
+                  {r.error ? r.error.slice(0, 20) : `${r.saved} rows`}
                 </span>
               </div>
             ))}
@@ -176,12 +211,16 @@ export default function AdminPriceUploadWidget({ onUploaded }) {
 
           {session.finished && (
             <div className="flex gap-2">
-              <button onClick={reset}
-                className="flex-1 rounded-xl border border-slate-200 bg-white py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 transition">
+              <button
+                onClick={reset}
+                className="flex-1 rounded-xl border border-slate-200 bg-white py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
+              >
                 Upload more files
               </button>
-              <button onClick={() => priceDataApi.downloadCsv()}
-                className="flex-1 rounded-xl border border-teal-200 bg-teal-50 py-2 text-xs font-medium text-teal-700 hover:bg-teal-100 transition">
+              <button
+                onClick={() => priceDataApi.downloadCsv()}
+                className="flex-1 rounded-xl border border-teal-200 bg-teal-50 py-2 text-xs font-medium text-teal-700 hover:bg-teal-100 transition"
+              >
                 ⬇ Export CSV
               </button>
             </div>

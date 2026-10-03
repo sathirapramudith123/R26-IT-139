@@ -14,11 +14,11 @@ import { supplierApi } from "@/services/api/supplier";
 import DetailDialog from "@/components/common/DetailDialog";
 
 const COLS = [
-  { key: "name", label: "Supplier" }, 
+  { key: "name", label: "Supplier" },
   { key: "company_name", label: "Company" },
-  { key: "contact_number", label: "Contact" }, 
+  { key: "contact_number", label: "Contact" },
   { key: "items_summary", label: "Items" },
-  { key: "status", label: "Status" }, 
+  { key: "status", label: "Status" },
   { key: "actions", label: "" },
 ];
 
@@ -27,22 +27,30 @@ export default function SuppliersPage() {
   const { items, loading, error, fetchAll } = useSuppliers();
   const [search, setSearch] = useState("");
   const [viewItem, setViewItem] = useState(null);
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
   async function handleDelete(id) {
     if (!confirm("Delete this supplier?")) return;
-    try { await supplierApi.remove(id); await fetchAll(); } catch (e) { alert(e.message || "Failed"); }
+    try {
+      await supplierApi.remove(id);
+      await fetchAll();
+    } catch (e) {
+      alert(e.message || "Failed");
+    }
   }
 
   const filtered = useMemo(() => {
     const kw = search.toLowerCase().trim();
-    return !kw ? items : items.filter(i => [i.name, i.company_name, i.contact_number].join(" ").toLowerCase().includes(kw));
+    return !kw
+      ? items
+      : items.filter((i) => [i.name, i.company_name, i.contact_number].join(" ").toLowerCase().includes(kw));
   }, [items, search]);
 
-  const rows = filtered.map(item => {
-    // ✅ Unit Price column එක අයින් කරලා — price දැන් per-item (items_supplied
-    // JSONB එක ඇතුළේ) නිසා, supplier-level එක price එකක් පෙන්නීම වැරදි.
-    // ඒ වෙනුවට items count එක පෙන්නනවා — item එකක්වත් නැත්නම් "—".
+  const rows = filtered.map((item) => {
+    // Prices are per item (inside items_supplied), so the list shows how many items a
+    // supplier carries instead of a single price ("—" when none).
     const itemCount = Array.isArray(item.items_supplied) ? item.items_supplied.length : 0;
     return {
       ...item,
@@ -51,9 +59,17 @@ export default function SuppliersPage() {
       status: <StatusBadge status={item.status} />,
       actions: (
         <div className="flex gap-2">
-          <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => setViewItem(item)}>View</Button>
-          <Link href={`/dashboard/suppliers/${item.id}/edit`}><Button variant="secondary" size="sm">Edit</Button></Link>
-          <Button variant="danger" size="sm" onClick={() => handleDelete(item.id)}>Delete</Button>
+          <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => setViewItem(item)}>
+            View
+          </Button>
+          <Link href={`/dashboard/suppliers/${item.id}/edit`}>
+            <Button variant="secondary" size="sm">
+              Edit
+            </Button>
+          </Link>
+          <Button variant="danger" size="sm" onClick={() => handleDelete(item.id)}>
+            Delete
+          </Button>
         </div>
       ),
     };
@@ -61,20 +77,49 @@ export default function SuppliersPage() {
 
   return (
     <div className="page-container">
-      <PageHeader title="Suppliers" description="Manage supplier details."
-        action={<Link href="/dashboard/suppliers/create"><Button>+ Add Supplier</Button></Link>} />
+      <PageHeader
+        title="Suppliers"
+        description="Manage supplier details."
+        action={
+          <Link href="/dashboard/suppliers/create">
+            <Button>+ Add Supplier</Button>
+          </Link>
+        }
+      />
       <Card className="mb-4">
-        <input type="text" placeholder="Search by name, company, contact..." value={search} onChange={e => setSearch(e.target.value)} className="input-field" />
+        <input
+          type="text"
+          placeholder="Search by name, company, contact..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="input-field"
+        />
       </Card>
-      {loading ? <LoadingSpinner label="Loading suppliers..." /> :
-       error ? <Card><p className="text-sm text-red-600">{error}</p></Card> :
-       items.length === 0 ? <EmptyState icon="🤝" title="No suppliers" description="Add your first supplier." action={<Link href="/dashboard/suppliers/create"><Button>Add Supplier</Button></Link>} /> :
-       <Table columns={COLS} rows={rows} />}
-       <DetailDialog
-               open={!!viewItem}
-               title={viewItem?.name || "Procument"}
-               data={viewItem}
-               onClose={() => setViewItem(null)}
+      {loading ? (
+        <LoadingSpinner label="Loading suppliers..." />
+      ) : error ? (
+        <Card>
+          <p className="text-sm text-red-600">{error}</p>
+        </Card>
+      ) : items.length === 0 ? (
+        <EmptyState
+          icon="🤝"
+          title="No suppliers"
+          description="Add your first supplier."
+          action={
+            <Link href="/dashboard/suppliers/create">
+              <Button>Add Supplier</Button>
+            </Link>
+          }
+        />
+      ) : (
+        <Table columns={COLS} rows={rows} />
+      )}
+      <DetailDialog
+        open={!!viewItem}
+        title={viewItem?.name || "Procument"}
+        data={viewItem}
+        onClose={() => setViewItem(null)}
       />
     </div>
   );

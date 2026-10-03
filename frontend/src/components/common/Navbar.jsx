@@ -11,7 +11,10 @@ export default function Navbar() {
   const router = useRouter();
   const isDashboard = pathname?.startsWith("/dashboard");
 
-  function handleLogout() { tokenService.clearToken(); router.push("/auth/login"); }
+  function handleLogout() {
+    tokenService.clearToken();
+    router.push("/auth/login");
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-950/90">
@@ -36,11 +39,17 @@ export default function Navbar() {
           <ThemeToggle />
           {!isDashboard ? (
             <>
-              <Link href="/auth/login" className="btn-ghost px-4 py-2 text-sm">Sign in</Link>
-              <Link href="/auth/register" className="btn-primary px-4 py-2 text-sm">Get Started</Link>
+              <Link href="/auth/login" className="btn-ghost px-4 py-2 text-sm">
+                Sign in
+              </Link>
+              <Link href="/auth/register" className="btn-primary px-4 py-2 text-sm">
+                Get Started
+              </Link>
             </>
           ) : (
-            <button onClick={handleLogout} className="btn-ghost px-4 py-2 text-sm">Sign out</button>
+            <button onClick={handleLogout} className="btn-ghost px-4 py-2 text-sm">
+              Sign out
+            </button>
           )}
         </nav>
       </div>

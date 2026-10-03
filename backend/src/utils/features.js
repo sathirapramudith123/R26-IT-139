@@ -2,8 +2,7 @@ import { supabase } from "../config/supabase.js";
 import { localParts, localDateStr, localWeekStart } from "./time.js";
 
 const num = (v) => Number(v || 0);
-const up  = (v) => String(v || "").toUpperCase();
-
+const up = (v) => String(v || "").toUpperCase();
 
 // Whole days from d's Sri Lanka date to the next Avurudu (14 April) — a date difference,
 // the same as the training data (week of 2022-06-13 -> 305).
@@ -16,13 +15,13 @@ function daysToAvurudu(d = new Date()) {
 }
 // ISO-8601 year (the year that owns the ISO week; differs from getFullYear() around New Year)
 function isoYear(d = new Date()) {
-  const p = localParts(d);                                   // Sri Lanka date
+  const p = localParts(d); // Sri Lanka date
   const t = new Date(Date.UTC(p.year, p.month - 1, p.day));
   t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7));
   return t.getUTCFullYear();
 }
 function isoWeek(d = new Date()) {
-  const p = localParts(d);                                   // Sri Lanka date
+  const p = localParts(d); // Sri Lanka date
   const t = new Date(Date.UTC(p.year, p.month - 1, p.day));
   const day = t.getUTCDay() || 7;
   t.setUTCDate(t.getUTCDate() + 4 - day);
@@ -33,9 +32,13 @@ function isoWeek(d = new Date()) {
 const itemPrice = (item) => num(item?.cost_price) || num(item?.unit_price) || 0;
 const itemCategory = (item) => (item?.category && String(item.category).trim()) || "general";
 
-const normName = (s) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
+const normName = (s) =>
+  String(s || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
 
-// ✅ Weighted-average REAL sale price per item, from actual SALE
+// Weighted-average real sale price per item, from actual SALE
 // transactions (amount actually charged ÷ quantity) — not the inventory
 // item's listed/wholesale price, which can differ from what customers were
 // actually charged (bulk discounts, price changes over time, etc). Used to
@@ -49,9 +52,12 @@ export async function getAvgSalePriceByItem(userId) {
 
   const sums = {}; // normalized item name -> { amount, qty }
   for (const t of txns || []) {
-    const rows = Array.isArray(t.items) && t.items.length
-      ? t.items
-      : (t.item_name ? [{ item_name: t.item_name, quantity: t.quantity }] : []);
+    const rows =
+      Array.isArray(t.items) && t.items.length
+        ? t.items
+        : t.item_name
+          ? [{ item_name: t.item_name, quantity: t.quantity }]
+          : [];
     for (const line of rows) {
       const key = normName(line.item_name);
       const qty = num(line.quantity);
@@ -72,7 +78,7 @@ export async function getAvgSalePriceByItem(userId) {
   return avgPrice;
 }
 
-// ✅ All-time real sales totals, one item name -> total units sold, from
+// All-time real sales totals, one item name -> total units sold, from
 // every SALE transaction (not scoped to a single item like
 // getWeeklySalesSeries above). Used to rank items by ACTUAL sales volume —
 // e.g. so a "top sellers" list reflects what really sells, not each item's
@@ -86,9 +92,12 @@ export async function getTotalSoldByItem(userId) {
 
   const totals = {}; // normalized item name -> total units sold (all-time)
   for (const t of txns || []) {
-    const rows = Array.isArray(t.items) && t.items.length
-      ? t.items
-      : (t.item_name ? [{ item_name: t.item_name, quantity: t.quantity }] : []);
+    const rows =
+      Array.isArray(t.items) && t.items.length
+        ? t.items
+        : t.item_name
+          ? [{ item_name: t.item_name, quantity: t.quantity }]
+          : [];
     for (const line of rows) {
       const key = normName(line.item_name);
       if (!key) continue;
@@ -98,7 +107,7 @@ export async function getTotalSoldByItem(userId) {
   return totals;
 }
 
-// ✅ Real weekly SALE history for one item, newest week first — built from
+// Real weekly SALE history for one item, newest week first — built from
 // the `transactions` table (SALE rows), not guessed from current stock.
 // Handles both the legacy item_name/quantity columns and the items[] JSONB
 // cart shape (a single SALE transaction can contain several items).
@@ -127,9 +136,12 @@ async function getWeeklySalesSeries(userId, itemName, weeks = 8, now = new Date(
 
   const lines = [];
   for (const t of txns || []) {
-    const rows = Array.isArray(t.items) && t.items.length
-      ? t.items
-      : (t.item_name ? [{ item_name: t.item_name, quantity: t.quantity }] : []);
+    const rows =
+      Array.isArray(t.items) && t.items.length
+        ? t.items
+        : t.item_name
+          ? [{ item_name: t.item_name, quantity: t.quantity }]
+          : [];
 
     for (const line of rows) {
       if (normName(line.item_name) !== target) continue;
@@ -149,7 +161,7 @@ async function getWeeklySalesSeries(userId, itemName, weeks = 8, now = new Date(
   const byWeek = new Map(); // ISO week (Monday, UTC ms) -> total (outlier-capped) units sold
   for (const l of lines) {
     const w = weekStart(l.date);
-    if (w > lastFullWeek) continue;                     // this week is not finished yet
+    if (w > lastFullWeek) continue; // this week is not finished yet
     byWeek.set(w, (byWeek.get(w) || 0) + Math.min(l.qty, cap));
   }
 
@@ -169,9 +181,8 @@ function median(arr) {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
 
-// Robust sales volatility — outliers වලින් අහසට යන එක වළක්වනවා.
-// Coefficient of variation (std/mean) එක median-normalise කරලා,
-// realistic range එකකට clip කරනවා (0 .. 1.5). 4.35 වගේ අගයන් නෑ.
+// Robust sales volatility: coefficient of variation (std / mean) of daily sales, with outlier
+// days capped, clipped to a realistic range (0 .. 1.5).
 function robustVolatility(dailyTotals) {
   const vals = dailyTotals.filter((v) => v > 0);
   if (vals.length < 2) return 0;
@@ -179,7 +190,7 @@ function robustVolatility(dailyTotals) {
   const med = median(vals);
   if (med <= 0) return 0;
 
-  // Outlier cap: median එකේ 3× ට වඩා වැඩි days cap කරනවා (festival/bulk days)
+  // cap days above 3× the median (festival / bulk days)
   const cap = med * 3;
   const capped = vals.map((v) => Math.min(v, cap));
 
@@ -187,10 +198,9 @@ function robustVolatility(dailyTotals) {
   const varc = capped.reduce((s, v) => s + (v - mean) ** 2, 0) / capped.length;
   const cv = mean > 0 ? Math.sqrt(varc) / mean : 0;
 
-  // realistic range එකට clip (0 .. 1.5)
+  // clip to the realistic range (0 .. 1.5)
   return Math.min(cv, 1.5);
 }
-
 
 // C1 credit features — the same definitions as the income statement (report.controller.js):
 //   revenue  = SALE amounts only (DEPOSIT / TRANSFER are money moved in, not income)
@@ -210,7 +220,10 @@ export async function buildCreditFeatures(userId) {
 
   const isDigital = (x) => ["DIGITAL", "BANK"].includes(up(x.payment_method));
 
-  const dates = t.map((x) => new Date(x.created_at)).filter((d) => !isNaN(d)).sort((a, b) => a - b);
+  const dates = t
+    .map((x) => new Date(x.created_at))
+    .filter((d) => !isNaN(d))
+    .sort((a, b) => a - b);
   const daysActive = Math.max(1, (Date.now() - dates[0]) / 86400000);
   const monthsActive = Math.max(1, Math.round(daysActive / 30));
 
@@ -221,7 +234,9 @@ export async function buildCreditFeatures(userId) {
     if (key && costMap[key] == null) costMap[key] = itemPrice(i);
   }
 
-  let revenue = 0, cogs = 0, digitalRevenue = 0;
+  let revenue = 0,
+    cogs = 0,
+    digitalRevenue = 0;
   const byDay = {};
   for (const x of sales) {
     const amount = num(x.amount);
@@ -229,14 +244,18 @@ export async function buildCreditFeatures(userId) {
     if (isDigital(x)) digitalRevenue += amount;
     const d = new Date(x.created_at);
     if (!isNaN(d)) {
-      const day = localDateStr(d);                 // Sri Lanka day, not the UTC day
+      const day = localDateStr(d); // Sri Lanka day, not the UTC day
       byDay[day] = (byDay[day] || 0) + amount;
     }
-    const lines = Array.isArray(x.items) && x.items.length
-      ? x.items
-      : (x.item_name ? [{ item_name: x.item_name, quantity: x.quantity }] : []);
+    const lines =
+      Array.isArray(x.items) && x.items.length
+        ? x.items
+        : x.item_name
+          ? [{ item_name: x.item_name, quantity: x.quantity }]
+          : [];
     for (const line of lines) {
-      const unitCost = line.cost_price != null ? num(line.cost_price) : (costMap[normName(line.item_name)] || 0);
+      const unitCost =
+        line.cost_price != null ? num(line.cost_price) : costMap[normName(line.item_name)] || 0;
       cogs += unitCost * num(line.quantity);
     }
   }
@@ -245,11 +264,10 @@ export async function buildCreditFeatures(userId) {
     .reduce((s, x) => s + num(x.amount), 0);
   const expenses = cogs + operatingExpenses;
 
-  const monthly_revenue_rs  = revenue / monthsActive;
+  const monthly_revenue_rs = revenue / monthsActive;
   const monthly_expenses_rs = expenses / monthsActive;
-  const monthly_profit_rs   = monthly_revenue_rs - monthly_expenses_rs;
-  const profit_margin_pct   = monthly_revenue_rs > 0
-    ? (monthly_profit_rs / monthly_revenue_rs) * 100 : 0;
+  const monthly_profit_rs = monthly_revenue_rs - monthly_expenses_rs;
+  const profit_margin_pct = monthly_revenue_rs > 0 ? (monthly_profit_rs / monthly_revenue_rs) * 100 : 0;
 
   const sales_volatility = robustVolatility(Object.values(byDay));
 
@@ -267,29 +285,24 @@ export async function buildCreditFeatures(userId) {
   const stockedOut = products.filter((p) => p.qty <= p.reorder).length;
 
   return {
-    monthly_revenue_rs:    Math.round(monthly_revenue_rs),
-    monthly_expenses_rs:   Math.round(monthly_expenses_rs),
-    monthly_profit_rs:     Math.round(monthly_profit_rs),
-    profit_margin_pct:     +profit_margin_pct.toFixed(2),
-    avg_daily_txns:        +(sales.length / daysActive).toFixed(2),   // sales per day
+    monthly_revenue_rs: Math.round(monthly_revenue_rs),
+    monthly_expenses_rs: Math.round(monthly_expenses_rs),
+    monthly_profit_rs: Math.round(monthly_profit_rs),
+    profit_margin_pct: +profit_margin_pct.toFixed(2),
+    avg_daily_txns: +(sales.length / daysActive).toFixed(2), // sales per day
     // The app has no "sold on credit" payment method yet, so this cannot be measured.
     // null → the ML service fills in the training median instead of a fake 0 (which
     // the model would read as "never sells on credit" and reward).
-    credit_sales_ratio:    null,
+    credit_sales_ratio: null,
     digital_payment_ratio: +(digitalRevenue / revenue || 0).toFixed(3), // share of sales revenue paid digitally
-    sales_volatility:      +sales_volatility.toFixed(3),   // දැන් robust (0..1.5)
-    stockout_rate:         products.length ? +(stockedOut / products.length).toFixed(3) : 0,
-    months_active:         monthsActive,
+    sales_volatility: +sales_volatility.toFixed(3), // robust, 0..1.5
+    stockout_rate: products.length ? +(stockedOut / products.length).toFixed(3) : 0,
+    months_active: monthsActive,
   };
 }
 
-// ✅ Previously this faked lag1_units/lag4_units/rolling4_mean_units by
-// copying `item.quantity` (current stock) — so an item's forecast reflected
-// its stock level, not its actual sales trend, and `item.quantity || 50`
-// meant a 0-stock item got a *bigger* fake number (50) than a 46-in-stock
-// item. Now it queries real SALE history and returns hasSalesHistory so the
-// caller can skip items that have never actually sold, instead of feeding
-// the model made-up data.
+// Demand-model inputs from the item's real weekly SALE history. hasSalesHistory is false when the
+// item has not sold in the last 8 completed weeks, so the caller can skip it instead of guessing.
 // avgRetailPrice: the item's real average selling price (getAvgSalePriceByItem), if known.
 export async function buildDemandFeatures(userId, item, avgRetailPrice = null, now = new Date()) {
   const series = await getWeeklySalesSeries(userId, item.item_name, 8, now);
@@ -299,8 +312,8 @@ export async function buildDemandFeatures(userId, item, avgRetailPrice = null, n
     return { hasSalesHistory: false, features: null };
   }
 
-  const lag1Units = units[0];                                   // last completed week
-  const lag4Units = units[3];                                   // 4 completed weeks ago
+  const lag1Units = units[0]; // last completed week
+  const lag4Units = units[3]; // 4 completed weeks ago
   const rollingMean = +((units[0] + units[1] + units[2] + units[3]) / 4).toFixed(2); // past 4 weeks only
 
   // Prices: retail = what customers actually paid, wholesale = what the shop pays.
@@ -312,32 +325,32 @@ export async function buildDemandFeatures(userId, item, avgRetailPrice = null, n
   return {
     hasSalesHistory: true,
     features: {
-      item:                   item.item_name || "Unknown",
-      category:               itemCategory(item),
-      iso_year:               isoYear(now),
-      iso_week:               isoWeek(now),
-      days_to_avurudu:        daysToAvurudu(now),
+      item: item.item_name || "Unknown",
+      category: itemCategory(item),
+      iso_year: isoYear(now),
+      iso_week: isoWeek(now),
+      days_to_avurudu: daysToAvurudu(now),
       // demand_forecast_weekly.csv: festival_season = 1 for 0..21 days before Avurudu
-      festival_season:        daysToAvurudu(now) <= 21 ? 1 : 0,
+      festival_season: daysToAvurudu(now) <= 21 ? 1 : 0,
       avg_wholesale_price_rs: +wholesale.toFixed(2),
-      avg_retail_price_rs:    +retail.toFixed(2),
+      avg_retail_price_rs: +retail.toFixed(2),
       // Only used by the older monthly model (component3_demand_forecast_model.pkl before
       // inventory_weekly.ipynb); the weekly model ignores them.
-      lag1_price:             +retail.toFixed(2),
-      lag4_price:             +retail.toFixed(2),
-      rolling4_mean_price:    +retail.toFixed(2),
-      lag1_units:             lag1Units,
-      lag4_units:             lag4Units,
-      rolling4_mean_units:    rollingMean,
-      weekend_share:          0.29,   // constant in the weekly training data
+      lag1_price: +retail.toFixed(2),
+      lag4_price: +retail.toFixed(2),
+      rolling4_mean_price: +retail.toFixed(2),
+      lag1_units: lag1Units,
+      lag4_units: lag4Units,
+      rolling4_mean_units: rollingMean,
+      weekend_share: 0.29, // constant in the weekly training data
     },
   };
 }
 
 // Reorder point from the weekly demand forecast (inventory_weekly.ipynb, section 7):
 // units needed until the next delivery + safety stock for the forecast error.
-const DEMAND_TEST_RMSE_UNITS = 24.79;   // weekly model, test period
-const SERVICE_LEVEL_Z = 1.65;           // ~95 % chance of not running out before delivery
+const DEMAND_TEST_RMSE_UNITS = 24.79; // weekly model, test period
+const SERVICE_LEVEL_Z = 1.65; // ~95 % chance of not running out before delivery
 
 export function forecastReorderLevel(weeklyForecastUnits, leadTimeDays) {
   const weeks = Math.max(num(leadTimeDays), 1) / 7;
@@ -348,32 +361,34 @@ export function forecastReorderLevel(weeklyForecastUnits, leadTimeDays) {
   };
 }
 
-
 export function buildProcurementFeatures(item, supplierPrice, trend = {}) {
   const now = new Date();
   const current = num(supplierPrice) || itemPrice(item) || 100;
 
   return {
-    item:                 item.item_name || "Unknown",
-    category:             itemCategory(item),
-    iso_year:             isoYear(now),                  // ISO year that owns iso_week (Sri Lanka date)
-    iso_week:             isoWeek(now),
-    current_price_rs:     +current.toFixed(2),
+    item: item.item_name || "Unknown",
+    category: itemCategory(item),
+    iso_year: isoYear(now), // ISO year that owns iso_week (Sri Lanka date)
+    iso_week: isoWeek(now),
+    current_price_rs: +current.toFixed(2),
     // null (no purchase history) -> the ML service uses 0, i.e. "no recent change"
     price_change_4wk_pct: trend.price_change_4wk_pct ?? null,
     price_vs_3mo_avg_pct: trend.price_vs_3mo_avg_pct ?? null,
-    days_to_festival:     daysToAvurudu(now),
+    days_to_festival: daysToAvurudu(now),
     // from_rice_veg_2023_2026.csv: festival_season = 1 for 1..43 days before Avurudu (ISO weeks 10-16)
-    festival_season:      daysToAvurudu(now) <= 45 ? 1 : 0,
+    festival_season: daysToAvurudu(now) <= 45 ? 1 : 0,
   };
 }
-
 
 export function buildAnomalyFeatures(txn, allTxns) {
   // Training data (paysim.csv): amount_zscore = amount standardised within its transaction type,
   // so a deposit is compared only with the agent's recent deposits, a withdrawal with withdrawals.
-  const sameType = (x) => String(x.transaction_type || "").toUpperCase() === String(txn.transaction_type || "").toUpperCase();
-  const amounts = (allTxns || []).filter(sameType).map((x) => num(x.amount)).filter((a) => a > 0);
+  const sameType = (x) =>
+    String(x.transaction_type || "").toUpperCase() === String(txn.transaction_type || "").toUpperCase();
+  const amounts = (allTxns || [])
+    .filter(sameType)
+    .map((x) => num(x.amount))
+    .filter((a) => a > 0);
   let z = 0;
   if (amounts.length > 1) {
     const mean = amounts.reduce((a, b) => a + b, 0) / amounts.length;
@@ -394,15 +409,15 @@ export function buildAnomalyFeatures(txn, allTxns) {
   const zscore = +z.toFixed(3);
 
   return {
-    txn_type:        txnType,
-    amount_abs_rs:   Math.abs(num(txn.amount)),
-    direction:       type.includes("deposit") ? "in" : "out",
-    channel:         "agency_banking_agent",           // matches training vocabulary
-    weekday:         d.weekday,                         // pandas convention: Monday=0 ... Sunday=6
-    day_of_month:    d.day,
+    txn_type: txnType,
+    amount_abs_rs: Math.abs(num(txn.amount)),
+    direction: type.includes("deposit") ? "in" : "out",
+    channel: "agency_banking_agent", // matches training vocabulary
+    weekday: d.weekday, // pandas convention: Monday=0 ... Sunday=6
+    day_of_month: d.day,
     created_offline: txn.created_offline ? 1 : 0,
-    amount_zscore:   zscore,
-    is_high_zscore:  Math.abs(zscore) > 2.0 ? 1 : 0,   // engineered feature (training Step 2)
+    amount_zscore: zscore,
+    is_high_zscore: Math.abs(zscore) > 2.0 ? 1 : 0, // engineered feature (training Step 2)
     unsupervised_anomaly_score: Math.abs(zscore) > 2.5 ? 1 : 0, // proxy for the iso-forest flag
   };
 }
@@ -423,10 +438,16 @@ const weekStart = (d) => localWeekStart(d);
 // All of a user's purchase prices, grouped by item: { normName -> [{ week, price }] }
 export async function getPriceHistories(userId) {
   const [{ data: txns }, { data: procs }] = await Promise.all([
-    supabase.from("transactions").select("created_at, items, item_name, quantity, amount")
-      .eq("user_id", userId).eq("transaction_type", "PURCHASE"),
-    supabase.from("procurement").select("created_at, order_date, arrival_date, items, item_name, quantity, total_cost")
-      .eq("user_id", userId).eq("procurement_status", "RECEIVED"),
+    supabase
+      .from("transactions")
+      .select("created_at, items, item_name, quantity, amount")
+      .eq("user_id", userId)
+      .eq("transaction_type", "PURCHASE"),
+    supabase
+      .from("procurement")
+      .select("created_at, order_date, arrival_date, items, item_name, quantity, total_cost")
+      .eq("user_id", userId)
+      .eq("procurement_status", "RECEIVED"),
   ]);
 
   const perItem = {}; // normName -> Map(week -> { v: price×qty, q: qty })

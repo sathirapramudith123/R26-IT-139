@@ -15,8 +15,8 @@ export default function AdminProcurementPage() {
       <div className="rounded-xl border border-teal-100 bg-teal-50 px-4 py-3 text-xs text-teal-700 leading-relaxed">
         <strong className="text-teal-800">How it works:</strong> Upload the daily price bulletin from the
         Hector Kobbekaduwa Agrarian Research and Training Institute. Once uploaded, merchants can open
-        Procurement from their sidebar and run supplier recommendations — their prices will be
-        benchmarked against the government wholesale average you uploaded here.
+        Procurement from their sidebar and run supplier recommendations — their prices will be benchmarked
+        against the government wholesale average you uploaded here.
       </div>
 
       {/* ML analytics shown to admin too */}

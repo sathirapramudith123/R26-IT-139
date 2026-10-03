@@ -13,7 +13,10 @@ function useCountUp(target, duration = 1200) {
   const [val, setVal] = useState(0);
   useEffect(() => {
     const end = Number(target) || 0;
-    if (end === 0) { setVal(0); return; }
+    if (end === 0) {
+      setVal(0);
+      return;
+    }
     let raf;
     const start = performance.now();
     const tick = (now) => {
@@ -40,22 +43,14 @@ export default function IncomeStatement({ data }) {
 
   const revenue = num(d.total_revenue ?? d.revenue);
   const cogs = num(d.cost_of_goods_sold ?? d.costOfGoodsSold);
-  const grossProfit =
-    d.gross_profit != null ? num(d.gross_profit) : revenue - cogs;
+  const grossProfit = d.gross_profit != null ? num(d.gross_profit) : revenue - cogs;
   const opex = num(d.operating_expenses ?? d.operatingExpenses);
-  const netProfit =
-    d.net_profit != null ? num(d.net_profit) : grossProfit - opex;
+  const netProfit = d.net_profit != null ? num(d.net_profit) : grossProfit - opex;
   const margin =
-    d.profit_margin_pct != null
-      ? num(d.profit_margin_pct)
-      : revenue
-      ? (netProfit / revenue) * 100
-      : 0;
+    d.profit_margin_pct != null ? num(d.profit_margin_pct) : revenue ? (netProfit / revenue) * 100 : 0;
 
   const isProfit = netProfit >= 0;
-  const posNeg = isProfit
-    ? "text-emerald-600 dark:text-emerald-400"
-    : "text-red-600 dark:text-red-400";
+  const posNeg = isProfit ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400";
 
   return (
     <div className="space-y-6">
@@ -77,34 +72,15 @@ export default function IncomeStatement({ data }) {
         <table className="w-full text-sm">
           <tbody>
             <Row label="Total Revenue / Sales" value={formatCurrency(revenue)} />
-            <Row
-              label="Cost of Goods Sold"
-              value={`(${formatCurrency(cogs)})`}
-              muted
-            />
-            <Row
-              label="Gross Profit"
-              value={formatCurrency(grossProfit)}
-              strong
-              divider
-            />
-            <Row
-              label="Operating Expenses"
-              value={`(${formatCurrency(opex)})`}
-              muted
-            />
+            <Row label="Cost of Goods Sold" value={`(${formatCurrency(cogs)})`} muted />
+            <Row label="Gross Profit" value={formatCurrency(grossProfit)} strong divider />
+            <Row label="Operating Expenses" value={`(${formatCurrency(opex)})`} muted />
 
             <tr className="border-t-2 border-gray-900 dark:border-gray-100">
-              <td className="px-4 py-4 font-semibold">
-                {isProfit ? "Net Income / Profit" : "Net Loss"}
-              </td>
+              <td className="px-4 py-4 font-semibold">{isProfit ? "Net Income / Profit" : "Net Loss"}</td>
               <td className={`px-4 py-4 text-right font-bold ${posNeg}`}>
                 <span className="inline-flex items-center gap-1.5">
-                  {isProfit ? (
-                    <TrendingUp className="h-4 w-4" />
-                  ) : (
-                    <TrendingDown className="h-4 w-4" />
-                  )}
+                  {isProfit ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
                   {formatCurrency(netProfit)}
                 </span>
               </td>
@@ -120,9 +96,7 @@ function Tile({ label, amount, sub, valueClass = "" }) {
   const animated = useCountUp(amount);
   return (
     <Card>
-      <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-        {label}
-      </p>
+      <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</p>
       <p className={`mt-2 text-2xl font-bold tabular-nums ${valueClass}`}>
         {formatCurrency(Math.round(animated))}
       </p>

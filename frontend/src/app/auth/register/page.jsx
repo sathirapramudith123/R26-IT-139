@@ -32,12 +32,7 @@ export default function RegisterPage() {
 
         {/* Card */}
         <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur-xl p-8 shadow-2xl">
-          <AuthForm
-            mode="register"
-            onSubmit={handleSubmit}
-            loading={loading}
-            error={error}
-          />
+          <AuthForm mode="register" onSubmit={handleSubmit} loading={loading} error={error} />
         </div>
       </div>
     </div>

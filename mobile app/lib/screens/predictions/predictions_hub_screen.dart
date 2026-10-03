@@ -85,15 +85,25 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(tag, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: tint)),
-              Text(title,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
-            ]),
-            const Spacer(),
-            Text(icon, style: const TextStyle(fontSize: 26)),
-          ]),
+          Row(
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tag,
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: tint),
+                  ),
+                  Text(
+                    title,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: "Nunito"),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Text(icon, style: const TextStyle(fontSize: 26)),
+            ],
+          ),
           const SizedBox(height: 14),
           child,
         ],
@@ -102,27 +112,34 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
   }
 
   Widget _unavailable(Map m) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        child: Text("${m["reason"] ?? "Not enough data yet to show this."}",
-            style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color)),
-      );
+    padding: const EdgeInsets.symmetric(vertical: 14),
+    child: Text(
+      "${m["reason"] ?? "Not enough data yet to show this."}",
+      style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
+    ),
+  );
 
   Widget _pill(String text, Color color) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(text, style: TextStyle(fontWeight: FontWeight.w800, color: color)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(999)),
+    child: Text(
+      text,
+      style: TextStyle(fontWeight: FontWeight.w800, color: color),
+    ),
+  );
 
   /* ------------------------------ Loan readiness ------------------------------ */
 
   Widget _creditCard(Map m, bool isDark) {
     if (m["available"] != true) {
       return _shell(
-          tag: "MONEY", title: "Loan Readiness", icon: "💳",
-          tint: KadeColors.teal, isDark: isDark, child: _unavailable(m));
+        tag: "MONEY",
+        title: "Loan Readiness",
+        icon: "💳",
+        tint: KadeColors.teal,
+        isDark: isDark,
+        child: _unavailable(m),
+      );
     }
     // API returns credit_score + status (not score / prediction)
     final score = (m["credit_score"] is num)
@@ -134,36 +151,54 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
     final sub = Theme.of(context).textTheme.bodySmall?.color;
 
     return _shell(
-      tag: "MONEY", title: "Loan Readiness", icon: "💳",
-      tint: KadeColors.teal, isDark: isDark,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          RingGauge(score: score),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _pill(ready ? "Ready to apply" : "Not ready yet",
-                  ready ? KadeColors.teal : KadeColors.amber),
-              if (ready && maxLoan > 0) ...[
-                const SizedBox(height: 6),
-                Text("Eligible up to LKR ${maxLoan.toStringAsFixed(0)}",
-                    style: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.w700, color: KadeColors.teal)),
-              ],
-              if (features != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  "In business: ${features["months_active"]} mo\n"
-                  "Daily sales: ${features["avg_daily_txns"]}  ·  "
-                  "Margin: ${features["profit_margin_pct"]}%",
-                  style: TextStyle(fontSize: 12, color: sub, height: 1.4),
+      tag: "MONEY",
+      title: "Loan Readiness",
+      icon: "💳",
+      tint: KadeColors.teal,
+      isDark: isDark,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              RingGauge(score: score),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _pill(
+                      ready ? "Ready to apply" : "Not ready yet",
+                      ready ? KadeColors.teal : KadeColors.amber,
+                    ),
+                    if (ready && maxLoan > 0) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        "Eligible up to LKR ${maxLoan.toStringAsFixed(0)}",
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: KadeColors.teal,
+                        ),
+                      ),
+                    ],
+                    if (features != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        "In business: ${features["months_active"]} mo\n"
+                        "Daily sales: ${features["avg_daily_txns"]}  ·  "
+                        "Margin: ${features["profit_margin_pct"]}%",
+                        style: TextStyle(fontSize: 12, color: sub, height: 1.4),
+                      ),
+                    ],
+                  ],
                 ),
-              ],
-            ]),
+              ),
+            ],
           ),
-        ]),
-        InfluenceBars(explanation: (m["explanation"] is List) ? m["explanation"] as List : const []),
-      ]),
+          InfluenceBars(explanation: (m["explanation"] is List) ? m["explanation"] as List : const []),
+        ],
+      ),
     );
   }
 
@@ -172,46 +207,74 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
   Widget _demandCard(Map m, bool isDark) {
     if (m["available"] != true) {
       return _shell(
-          tag: "INVENTORY", title: "Sales Forecast", icon: "📈",
-          tint: KadeColors.amber, isDark: isDark, child: _unavailable(m));
+        tag: "INVENTORY",
+        title: "Sales Forecast",
+        icon: "📈",
+        tint: KadeColors.amber,
+        isDark: isDark,
+        child: _unavailable(m),
+      );
     }
     final items = (m["items"] is List) ? m["items"] as List : const [];
     final sub = Theme.of(context).textTheme.bodySmall?.color;
 
     return _shell(
-      tag: "INVENTORY", title: "Sales Forecast", icon: "📈",
-      tint: KadeColors.amber, isDark: isDark,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        ...items.map((raw) {
-          final it = raw as Map;
-          final f = it["forecast_units"];
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: KadeColors.amber.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(children: [
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text("${it["item"]}",
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-                  Text("Stock: ${it["quantity"]} · Reorder: ${it["reorder_level"]}",
-                      style: TextStyle(fontSize: 11, color: sub)),
-                ]),
+      tag: "INVENTORY",
+      title: "Sales Forecast",
+      icon: "📈",
+      tint: KadeColors.amber,
+      isDark: isDark,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ...items.map((raw) {
+            final it = raw as Map;
+            final f = it["forecast_units"];
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: KadeColors.amber.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
               ),
-              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Text("≈ ${f is num ? f.toStringAsFixed(0) : "—"}",
-                    style: const TextStyle(
-                        fontSize: 22, fontWeight: FontWeight.w800,
-                        fontFamily: "Nunito", color: KadeColors.amber)),
-                Text("units / next wk", style: TextStyle(fontSize: 10, color: sub)),
-              ]),
-            ]),
-          );
-        }),
-      ]),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "${it["item"]}",
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                        ),
+                        Text(
+                          "Stock: ${it["quantity"]} · Reorder: ${it["reorder_level"]}",
+                          style: TextStyle(fontSize: 11, color: sub),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        "≈ ${f is num ? f.toStringAsFixed(0) : "—"}",
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          fontFamily: "Nunito",
+                          color: KadeColors.amber,
+                        ),
+                      ),
+                      Text("units / next wk", style: TextStyle(fontSize: 10, color: sub)),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
     );
   }
 
@@ -220,62 +283,92 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
   Widget _procurementCard(Map m, bool isDark) {
     if (m["available"] != true) {
       return _shell(
-          tag: "PURCHASING", title: "Buy or Wait", icon: "🛒",
-          tint: KadeColors.terra, isDark: isDark, child: _unavailable(m));
+        tag: "PURCHASING",
+        title: "Buy or Wait",
+        icon: "🛒",
+        tint: KadeColors.terra,
+        isDark: isDark,
+        child: _unavailable(m),
+      );
     }
     final items = (m["items"] is List) ? m["items"] as List : const [];
     final sub = Theme.of(context).textTheme.bodySmall?.color;
 
     return _shell(
-      tag: "PURCHASING", title: "Buy or Wait", icon: "🛒",
-      tint: KadeColors.terra, isDark: isDark,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        ...items.map((raw) {
-          final it = raw as Map;
-          final buy = it["action"] == "BUY";
-          final ctx = "${it["price_context"] ?? ""}";
-          final fromForecast = it["decision_basis"] == "forecast";
-          final reorderText = fromForecast
-              ? "${it["forecast_reorder_level"]} (≈${(it["forecast_units"] as num).round()}/week forecast)"
-              : "${it["reorder_level"]}";
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text("${it["item"]}",
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-                    Text("Stock: ${it["quantity"]} · Reorder: $reorderText",
-                        style: TextStyle(fontSize: 11, color: sub)),
-                  ]),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: (buy ? KadeColors.teal : Colors.grey).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
+      tag: "PURCHASING",
+      title: "Buy or Wait",
+      icon: "🛒",
+      tint: KadeColors.terra,
+      isDark: isDark,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ...items.map((raw) {
+            final it = raw as Map;
+            final buy = it["action"] == "BUY";
+            final ctx = "${it["price_context"] ?? ""}";
+            final fromForecast = it["decision_basis"] == "forecast";
+            final reorderText = fromForecast
+                ? "${it["forecast_reorder_level"]} (≈${(it["forecast_units"] as num).round()}/week forecast)"
+                : "${it["reorder_level"]}";
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "${it["item"]}",
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                            ),
+                            Text(
+                              "Stock: ${it["quantity"]} · Reorder: $reorderText",
+                              style: TextStyle(fontSize: 11, color: sub),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: (buy ? KadeColors.teal : Colors.grey).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          buy ? "🛒 Buy" : "⏳ Wait",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            fontFamily: "Nunito",
+                            color: buy ? KadeColors.teal : Colors.grey,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  child: Text(buy ? "🛒 Buy" : "⏳ Wait",
-                      style: TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w800,
-                          fontFamily: "Nunito", color: buy ? KadeColors.teal : Colors.grey)),
-                ),
-              ]),
-              if (ctx.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text("${buy ? "Stock low — restock needed. " : "Enough stock. "}$ctx",
-                    style: TextStyle(fontSize: 11, color: sub, fontStyle: FontStyle.italic)),
-              ],
-            ]),
-          );
-        }),
-      ]),
+                  if (ctx.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      "${buy ? "Stock low — restock needed. " : "Enough stock. "}$ctx",
+                      style: TextStyle(fontSize: 11, color: sub, fontStyle: FontStyle.italic),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
     );
   }
 
@@ -284,37 +377,57 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
   Widget _anomalyCard(Map m, bool isDark) {
     if (m["available"] != true) {
       return _shell(
-          tag: "SECURITY", title: "Account Activity", icon: "🛡️",
-          tint: Colors.blue, isDark: isDark, child: _unavailable(m));
+        tag: "SECURITY",
+        title: "Account Activity",
+        icon: "🛡️",
+        tint: Colors.blue,
+        isDark: isDark,
+        child: _unavailable(m),
+      );
     }
     final flagged = m["prediction"] == 1;
     final sub = Theme.of(context).textTheme.bodySmall?.color;
 
     return _shell(
-      tag: "SECURITY", title: "Account Activity", icon: "🛡️",
-      tint: Colors.blue, isDark: isDark,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text("Most recent: ${m["customer"]} · LKR ${m["amount"]}",
-            style: TextStyle(fontSize: 12, color: sub)),
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: (flagged ? KadeColors.terra : KadeColors.teal).withOpacity(0.15),
-            borderRadius: BorderRadius.circular(16),
+      tag: "SECURITY",
+      title: "Account Activity",
+      icon: "🛡️",
+      tint: Colors.blue,
+      isDark: isDark,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Most recent: ${m["customer"]} · LKR ${m["amount"]}",
+            style: TextStyle(fontSize: 12, color: sub),
           ),
-          child: Text(flagged ? "⚠ Looks unusual" : "✓ Looks normal",
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: (flagged ? KadeColors.terra : KadeColors.teal).withOpacity(0.15),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              flagged ? "⚠ Looks unusual" : "✓ Looks normal",
               style: TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w800, fontFamily: "Nunito",
-                  color: flagged ? KadeColors.terra : KadeColors.teal)),
-        ),
-        if (flagged) ...[
-          const SizedBox(height: 8),
-          Text("This looks different from your usual pattern — worth a quick check.",
-              style: TextStyle(fontSize: 12, color: KadeColors.terra)),
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                fontFamily: "Nunito",
+                color: flagged ? KadeColors.terra : KadeColors.teal,
+              ),
+            ),
+          ),
+          if (flagged) ...[
+            const SizedBox(height: 8),
+            Text(
+              "This looks different from your usual pattern — worth a quick check.",
+              style: TextStyle(fontSize: 12, color: KadeColors.terra),
+            ),
+          ],
+          InfluenceBars(explanation: (m["explanation"] is List) ? m["explanation"] as List : const []),
         ],
-        InfluenceBars(explanation: (m["explanation"] is List) ? m["explanation"] as List : const []),
-      ]),
+      ),
     );
   }
 }

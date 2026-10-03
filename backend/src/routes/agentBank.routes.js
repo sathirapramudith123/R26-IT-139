@@ -9,12 +9,12 @@ router.use(auth);
 
 router.post("/", validateBody(S.agentBankCreate), ctrl.create);
 router.get("/", ctrl.getAll);
-router.get("/summary", ctrl.summary);   
-router.post("/pool/add-cash", validateBody(S.amountOnly), ctrl.addCash);   
+router.get("/summary", ctrl.summary);
+router.post("/pool/add-cash", validateBody(S.amountOnly), ctrl.addCash);
 router.get("/:id", validateId, ctrl.getOne);
 router.put("/:id", validateId, validateBody(S.agentBankUpdate), ctrl.update);
 router.delete("/:id", validateId, ctrl.remove);
-router.post("/:id/topup", validateId, validateBody(S.amountOnly), ctrl.topup);   
-router.get("/:id/ledger", validateId, ctrl.ledger);  
+router.post("/:id/topup", validateId, validateBody(S.amountOnly), ctrl.topup);
+router.get("/:id/ledger", validateId, ctrl.ledger);
 
 export default router;

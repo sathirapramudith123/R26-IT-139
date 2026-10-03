@@ -18,10 +18,7 @@ class Loading extends StatelessWidget {
           SizedBox(
             width: 32,
             height: 32,
-            child: CircularProgressIndicator(
-              strokeWidth: 3,
-              color: theme.colorScheme.primary,
-            ),
+            child: CircularProgressIndicator(strokeWidth: 3, color: theme.colorScheme.primary),
           ),
           const SizedBox(height: KadeSpacing.md),
           Text(

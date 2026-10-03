@@ -10,7 +10,6 @@ import 'notifications_screen.dart';
 import 'predictions/predictions_hub_screen.dart';
 import 'reports/income_statement_screen.dart';
 
-
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -62,7 +61,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (n is Map && n["count"] is num) un = (n["count"] as num).toInt();
       } catch (_) {}
 
-      if (mounted) setState(() { income = inc; expense = exp; lowStock = low; unread = un; });
+      if (mounted)
+        setState(() {
+          income = inc;
+          expense = exp;
+          lowStock = low;
+          unread = un;
+        });
     } catch (_) {
       // leave metrics at 0 on error
     } finally {
@@ -71,10 +76,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _openIncomeStatement() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const IncomeStatementScreen()),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const IncomeStatementScreen()));
   }
 
   @override
@@ -92,87 +94,112 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   padding: const EdgeInsets.fromLTRB(24, 20, 24, 34),
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
-                      begin: Alignment.topLeft, end: Alignment.bottomRight,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                       colors: [Color(0xFF0D9488), Color(0xFF0F766E), Color(0xFF065F46)],
                     ),
                     borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(28), bottomRight: Radius.circular(28)),
+                      bottomLeft: Radius.circular(28),
+                      bottomRight: Radius.circular(28),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(children: [
-                        Container(
-                          height: 44, width: 44,
-                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.14), borderRadius: BorderRadius.circular(12)),
-                          child: const Center(child: Icon(Icons.storefront_outlined, color: Colors.white, size: 24)),
-                        ),
-                        const SizedBox(width: 10),
-                        Text("Lanka-Link", style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white)),
-                        const Spacer(),
-
-                        // ---- Notification bell with unread badge ----
-                        Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-                              tooltip: "Notifications",
-                              onPressed: () async {
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-                                );
-                                _loadMetrics(); // refresh the badge when coming back
-                              },
+                      Row(
+                        children: [
+                          Container(
+                            height: 44,
+                            width: 44,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.14),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            if (unread > 0)
-                              Positioned(
-                                right: 6,
-                                top: 6,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                  constraints: const BoxConstraints(minWidth: 18),
-                                  decoration: BoxDecoration(
-                                    color: KadeColors.terra,
-                                    borderRadius: BorderRadius.circular(999),
-                                  ),
-                                  child: Text(
-                                    unread > 9 ? "9+" : "$unread",
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
+                            child: const Center(
+                              child: Icon(Icons.storefront_outlined, color: Colors.white, size: 24),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            "Lanka-Link",
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white),
+                          ),
+                          const Spacer(),
+
+                          // ---- Notification bell with unread badge ----
+                          Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                                tooltip: "Notifications",
+                                onPressed: () async {
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                                  );
+                                  _loadMetrics(); // refresh the badge when coming back
+                                },
+                              ),
+                              if (unread > 0)
+                                Positioned(
+                                  right: 6,
+                                  top: 6,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                    constraints: const BoxConstraints(minWidth: 18),
+                                    decoration: BoxDecoration(
+                                      color: KadeColors.terra,
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Text(
+                                      unread > 9 ? "9+" : "$unread",
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                          ],
-                        ),
-
-                        ValueListenableBuilder<ThemeMode>(
-                          valueListenable: ThemeController.mode,
-                          builder: (context, mode, _) => IconButton(
-                            icon: Icon(mode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode, color: Colors.white),
-                            onPressed: () => ThemeController.toggle(),
+                            ],
                           ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.logout, color: Colors.white),
-                          onPressed: () async {
-                            await AuthService.logout();
-                            if (!context.mounted) return;
-                            Navigator.pushAndRemoveUntil(context,
-                                MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
-                          },
-                        ),
-                      ]),
+
+                          ValueListenableBuilder<ThemeMode>(
+                            valueListenable: ThemeController.mode,
+                            builder: (context, mode, _) => IconButton(
+                              icon: Icon(
+                                mode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode,
+                                color: Colors.white,
+                              ),
+                              onPressed: () => ThemeController.toggle(),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.logout, color: Colors.white),
+                            onPressed: () async {
+                              await AuthService.logout();
+                              if (!context.mounted) return;
+                              Navigator.pushAndRemoveUntil(
+                                context,
+                                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                                (route) => false,
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 18),
-                      Text("Ayubowan 👋",
-                          style: Theme.of(context).textTheme.headlineLarge?.copyWith(color: Colors.white)),
+                      Text(
+                        "Ayubowan 👋",
+                        style: Theme.of(context).textTheme.headlineLarge?.copyWith(color: Colors.white),
+                      ),
                       const SizedBox(height: 4),
-                      Text("Here's your Lanka-Link today.", style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 14)),
+                      Text(
+                        "Here's your Lanka-Link today.",
+                        style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 14),
+                      ),
                     ],
                   ),
                 ),
@@ -183,7 +210,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
                 sliver: SliverGrid(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.55,
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 1.55,
                   ),
                   delegate: SliverChildListDelegate([
                     _AnimatedStatCard(
@@ -229,20 +259,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                 sliver: SliverGrid(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2, mainAxisSpacing: 14, crossAxisSpacing: 14, childAspectRatio: 1.15,
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 14,
+                    crossAxisSpacing: 14,
+                    childAspectRatio: 1.15,
                   ),
                   delegate: SliverChildListDelegate([
-                    ...modules.map((m) => ModuleTile(
-                          icon: m.icon, title: m.title,
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ListScreen(module: m))),
-                        )),
+                    ...modules.map(
+                      (m) => ModuleTile(
+                        icon: m.icon,
+                        title: m.title,
+                        onTap: () =>
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => ListScreen(module: m))),
+                      ),
+                    ),
                     ModuleTile(
-                      icon: Icons.bar_chart_outlined, title: "Financial Statement",
+                      icon: Icons.bar_chart_outlined,
+                      title: "Financial Statement",
                       onTap: _openIncomeStatement,
                     ),
                     ModuleTile(
-                      icon: Icons.insights_outlined, title: "Predictions", highlight: true,
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PredictionsHubScreen())),
+                      icon: Icons.insights_outlined,
+                      title: "Predictions",
+                      highlight: true,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const PredictionsHubScreen()),
+                      ),
                     ),
                   ]),
                 ),
@@ -254,12 +297,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 }
+
 /// Gradient stat card whose number counts up from 0 to [value] on load.
 class _AnimatedStatCard extends StatelessWidget {
   final String label;
   final double value;
   final bool loading;
-  final bool isCount;      // integer count (no LKR prefix)
+  final bool isCount; // integer count (no LKR prefix)
   final List<Color> gradient;
   final VoidCallback? onTap;
 
@@ -275,8 +319,7 @@ class _AnimatedStatCard extends StatelessWidget {
   String _fmt(double v) {
     if (isCount) return v.round().toString();
     final n = v.round();
-    final s = n.toString().replaceAllMapped(
-      RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',');
+    final s = n.toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',');
     return "LKR $s";
   }
 
@@ -287,8 +330,7 @@ class _AnimatedStatCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient),
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(color: gradient.first.withOpacity(0.35), blurRadius: 16, offset: const Offset(0, 8)),
@@ -298,12 +340,22 @@ class _AnimatedStatCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(label,
-                maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.9), fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.white.withOpacity(0.9),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 8),
             loading
-                ? const Text("…", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white))
+                ? const Text(
+                    "…",
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white),
+                  )
                 : TweenAnimationBuilder<double>(
                     tween: Tween(begin: 0, end: value),
                     duration: const Duration(milliseconds: 1200),
@@ -311,9 +363,16 @@ class _AnimatedStatCard extends StatelessWidget {
                     builder: (context, v, _) => FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
-                      child: Text(_fmt(v),
-                          maxLines: 1,
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: "Nunito")),
+                      child: Text(
+                        _fmt(v),
+                        maxLines: 1,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          fontFamily: "Nunito",
+                        ),
+                      ),
                     ),
                   ),
           ],

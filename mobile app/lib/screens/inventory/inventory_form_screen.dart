@@ -30,7 +30,7 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
   final nameCtrl = TextEditingController();
   final quantityCtrl = TextEditingController();
   final reorderCtrl = TextEditingController();
-  final costPriceCtrl = TextEditingController(); // Unit Cost (selling price අයින්)
+  final costPriceCtrl = TextEditingController(); // Unit Cost (no separate selling price)
   final leadTimeCtrl = TextEditingController();
 
   String? category;
@@ -65,7 +65,7 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
     supplierName = it?["supplier_name"]?.toString();
     unit = (it?["unit"]?.toString().isNotEmpty ?? false) ? it!["unit"].toString() : "unit";
 
-    // Total Cost live update කරන්න listeners
+    // listeners that keep Total Cost up to date
     costPriceCtrl.addListener(_recalc);
     quantityCtrl.addListener(_recalc);
 
@@ -128,7 +128,9 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
       return;
     }
 
-    final costPrice = costPriceCtrl.text.trim().isNotEmpty ? (num.tryParse(costPriceCtrl.text.trim()) ?? 0) : 0;
+    final costPrice = costPriceCtrl.text.trim().isNotEmpty
+        ? (num.tryParse(costPriceCtrl.text.trim()) ?? 0)
+        : 0;
 
     final payload = <String, dynamic>{
       "name": nameCtrl.text.trim(),
@@ -136,8 +138,10 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
       "quantity": qty,
       "unit": unit,
       "reorder_level": reorderCtrl.text.trim().isNotEmpty ? (num.tryParse(reorderCtrl.text.trim()) ?? 0) : 0,
-      "cost_price": costPrice,   // selling price අයින් — cost විතරයි (backend: unit_price = cost)
-      "delivery_lead_time": leadTimeCtrl.text.trim().isNotEmpty ? (int.tryParse(leadTimeCtrl.text.trim()) ?? 1) : 1,
+      "cost_price": costPrice, // cost only (backend sets unit_price = cost)
+      "delivery_lead_time": leadTimeCtrl.text.trim().isNotEmpty
+          ? (int.tryParse(leadTimeCtrl.text.trim()) ?? 1)
+          : 1,
     };
 
     if (supplierName != null && supplierName!.isNotEmpty) {
@@ -177,10 +181,7 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            if (error != null) ...[
-              errorBox(error!),
-              const SizedBox(height: 12),
-            ],
+            if (error != null) ...[errorBox(error!), const SizedBox(height: 12)],
 
             fieldLabel("Item Name *"),
             TextField(
@@ -200,15 +201,21 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
             ),
             Padding(
               padding: const EdgeInsets.only(top: 6, left: 2),
-              child: Text("Required for AI demand forecasting",
-                  style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
+              child: Text(
+                "Required for AI demand forecasting",
+                style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
+              ),
             ),
             const SizedBox(height: 16),
 
             fieldLabel("Supplier"),
             DropdownButtonFormField<String>(
               value: supplierOptions.contains(supplierName) ? supplierName : null,
-              hint: Text(loadingSuppliers ? "Loading..." : (supplierOptions.isEmpty ? "No suppliers available" : "— Select Supplier —")),
+              hint: Text(
+                loadingSuppliers
+                    ? "Loading..."
+                    : (supplierOptions.isEmpty ? "No suppliers available" : "— Select Supplier —"),
+              ),
               items: supplierOptions.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
               onChanged: saving ? null : (v) => setState(() => supplierName = v),
             ),
@@ -252,7 +259,7 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
             ),
             const SizedBox(height: 16),
 
-            // NEW: Total Cost (read-only, auto-calculated) — selling price වෙනුවට
+            // Total Cost (read-only, calculated)
             fieldLabel("Total Cost (LKR)"),
             Container(
               width: double.infinity,
@@ -293,30 +300,50 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
   }
 }
 
-// ── Shared Helper Widgets (supplier_form_screen මේවා import කරනවා) ──
+// ── Shared helper widgets (also used by supplier_form_screen) ──
 Widget fieldLabel(String t) => Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Text(t, style: const TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito")),
-    );
+  padding: const EdgeInsets.only(bottom: 6),
+  child: Text(
+    t,
+    style: const TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito"),
+  ),
+);
 
 Widget errorBox(String msg) => Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: KadeColors.terra.withOpacity(0.12), borderRadius: BorderRadius.circular(14)),
-      child: Row(children: [
-        const Icon(Icons.error_outline, color: KadeColors.terra, size: 18),
-        const SizedBox(width: 8),
-        Expanded(child: Text(msg, style: const TextStyle(color: KadeColors.terra, fontSize: 13))),
-      ]),
-    );
+  margin: const EdgeInsets.only(bottom: 16),
+  padding: const EdgeInsets.all(12),
+  decoration: BoxDecoration(
+    color: KadeColors.terra.withOpacity(0.12),
+    borderRadius: BorderRadius.circular(14),
+  ),
+  child: Row(
+    children: [
+      const Icon(Icons.error_outline, color: KadeColors.terra, size: 18),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Text(msg, style: const TextStyle(color: KadeColors.terra, fontSize: 13)),
+      ),
+    ],
+  ),
+);
 
 Widget saveButton(bool saving, bool isEdit, Color teal, VoidCallback onSave) => SizedBox(
-      height: 52,
-      child: FilledButton(
-        style: FilledButton.styleFrom(backgroundColor: teal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999))),
-        onPressed: saving ? null : onSave,
-        child: saving
-            ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-            : Text(isEdit ? "Update" : "Save", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
-      ),
-    );
+  height: 52,
+  child: FilledButton(
+    style: FilledButton.styleFrom(
+      backgroundColor: teal,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+    ),
+    onPressed: saving ? null : onSave,
+    child: saving
+        ? const SizedBox(
+            height: 22,
+            width: 22,
+            child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+          )
+        : Text(
+            isEdit ? "Update" : "Save",
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: "Nunito"),
+          ),
+  ),
+);

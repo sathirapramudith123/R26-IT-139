@@ -74,137 +74,121 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
                 ? null
                 : () => shareIncomeStatementPdf(data!),
           ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _fetchStatement,
-            tooltip: "Refresh",
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchStatement, tooltip: "Refresh"),
         ],
       ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, color: KadeColors.terra, size: 48),
+                    const SizedBox(height: 12),
+                    Text(
+                      error!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: KadeColors.terra, fontFamily: "Nunito"),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(onPressed: _fetchStatement, child: const Text("Try Again")),
+                  ],
+                ),
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _fetchStatement,
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  // Net Profit / Loss Banner Card
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: netProfit >= 0
+                          ? tealColor.withOpacity(0.12)
+                          : KadeColors.terra.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: netProfit >= 0 ? tealColor : KadeColors.terra, width: 1.5),
+                    ),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.error_outline, color: KadeColors.terra, size: 48),
-                        const SizedBox(height: 12),
                         Text(
-                          error!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: KadeColors.terra, fontFamily: "Nunito"),
+                          netProfit >= 0 ? "NET PROFIT" : "NET LOSS",
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            fontFamily: "Nunito",
+                            color: netProfit >= 0 ? tealColor : KadeColors.terra,
+                            letterSpacing: 1.1,
+                          ),
                         ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _fetchStatement,
-                          child: const Text("Try Again"),
+                        const SizedBox(height: 6),
+                        Text(
+                          "LKR ${netProfit.toStringAsFixed(2)}",
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: "Nunito",
+                            color: netProfit >= 0 ? tealColor : KadeColors.terra,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Profit Margin: ${margin.toStringAsFixed(2)}%",
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: "Nunito",
+                            color: (netProfit >= 0 ? tealColor : KadeColors.terra).withOpacity(0.8),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _fetchStatement,
-                  child: ListView(
-                    padding: const EdgeInsets.all(20),
-                    children: [
-                      // Net Profit / Loss Banner Card
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: netProfit >= 0
-                              ? tealColor.withOpacity(0.12)
-                              : KadeColors.terra.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: netProfit >= 0 ? tealColor : KadeColors.terra,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Text(
-                              netProfit >= 0 ? "NET PROFIT" : "NET LOSS",
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                fontFamily: "Nunito",
-                                color: netProfit >= 0 ? tealColor : KadeColors.terra,
-                                letterSpacing: 1.1,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              "LKR ${netProfit.toStringAsFixed(2)}",
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.w900,
-                                fontFamily: "Nunito",
-                                color: netProfit >= 0 ? tealColor : KadeColors.terra,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              "Profit Margin: ${margin.toStringAsFixed(2)}%",
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                fontFamily: "Nunito",
-                                color: (netProfit >= 0 ? tealColor : KadeColors.terra).withOpacity(0.8),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-                      // Breakdown Card
-                      Card(
-                        color: cardBg,
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(18.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "Financial Summary",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                  fontFamily: "Nunito",
-                                ),
-                              ),
-                              const Divider(height: 24),
-
-                              _buildSummaryRow("Total Revenue / Sales", rev, Colors.green),
-                              const SizedBox(height: 12),
-                              _buildSummaryRow("Cost of Goods Sold", -cogs, Colors.orange),
-                              const Divider(height: 24),
-                              _buildSummaryRow("Gross Profit", grossProfit, Colors.blue, isBold: true),
-                              const SizedBox(height: 12),
-                              _buildSummaryRow("Operating Expenses", -opex, KadeColors.terra),
-                              const Divider(height: 24),
-                              _buildSummaryRow(
-                                "Net Income / Profit",
-                                netProfit,
-                                netProfit >= 0 ? tealColor : KadeColors.terra,
-                                isBold: true,
-                                isLarge: true,
-                              ),
-                            ],
+                  // Breakdown Card
+                  Card(
+                    color: cardBg,
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(18.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Financial Summary",
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: "Nunito"),
                           ),
-                        ),
+                          const Divider(height: 24),
+
+                          _buildSummaryRow("Total Revenue / Sales", rev, Colors.green),
+                          const SizedBox(height: 12),
+                          _buildSummaryRow("Cost of Goods Sold", -cogs, Colors.orange),
+                          const Divider(height: 24),
+                          _buildSummaryRow("Gross Profit", grossProfit, Colors.blue, isBold: true),
+                          const SizedBox(height: 12),
+                          _buildSummaryRow("Operating Expenses", -opex, KadeColors.terra),
+                          const Divider(height: 24),
+                          _buildSummaryRow(
+                            "Net Income / Profit",
+                            netProfit,
+                            netProfit >= 0 ? tealColor : KadeColors.terra,
+                            isBold: true,
+                            isLarge: true,
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
+              ),
+            ),
     );
   }
 

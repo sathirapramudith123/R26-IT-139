@@ -4,7 +4,7 @@ export default function Table({ columns = [], rows = [] }) {
       <table className="min-w-full text-left text-sm">
         <thead>
           <tr className="border-b border-slate-100 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-800">
-            {columns.map(col => (
+            {columns.map((col) => (
               <th
                 key={col.key}
                 className="px-5 py-3.5 font-outfit text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-300"
@@ -24,18 +24,20 @@ export default function Table({ columns = [], rows = [] }) {
                 No records found
               </td>
             </tr>
-          ) : rows.map((row, idx) => (
-            <tr
-              key={row.id ?? idx}
-              className="transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/50"
-            >
-              {columns.map(col => (
-                <td key={col.key} className="px-5 py-3.5 text-slate-700 dark:text-slate-200">
-                  {row[col.key] ?? "—"}
-                </td>
-              ))}
-            </tr>
-          ))}
+          ) : (
+            rows.map((row, idx) => (
+              <tr
+                key={row.id ?? idx}
+                className="transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/50"
+              >
+                {columns.map((col) => (
+                  <td key={col.key} className="px-5 py-3.5 text-slate-700 dark:text-slate-200">
+                    {row[col.key] ?? "—"}
+                  </td>
+                ))}
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>

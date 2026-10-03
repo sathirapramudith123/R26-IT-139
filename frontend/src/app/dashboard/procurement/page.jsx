@@ -27,44 +27,94 @@ export default function ProcurementPage() {
   const { items, loading, error, fetchAll } = useProcurement();
   const [search, setSearch] = useState("");
   const [viewItem, setViewItem] = useState(null);
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
   async function handleDelete(id) {
     if (!confirm("Delete this record?")) return;
-    try { await procurementApi.remove(id); await fetchAll(); } catch (e) { alert(e.message || "Failed"); }
+    try {
+      await procurementApi.remove(id);
+      await fetchAll();
+    } catch (e) {
+      alert(e.message || "Failed");
+    }
   }
 
   const filtered = useMemo(() => {
     const kw = search.toLowerCase().trim();
-    return !kw ? items : items.filter(i => [i.item_name, i.selected_supplier_name].join(" ").toLowerCase().includes(kw));
+    return !kw
+      ? items
+      : items.filter((i) => [i.item_name, i.selected_supplier_name].join(" ").toLowerCase().includes(kw));
   }, [items, search]);
 
-  const rows = filtered.map(item => ({
+  const rows = filtered.map((item) => ({
     ...item,
-    total_cost: <span className="font-medium text-slate-800 dark:text-slate-200">{formatCurrency(item.total_cost)}</span>,
+    total_cost: (
+      <span className="font-medium text-slate-800 dark:text-slate-200">
+        {formatCurrency(item.total_cost)}
+      </span>
+    ),
     status: <StatusBadge status={item.status} />,
     actions: (
       <div className="flex gap-2">
-        <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => setViewItem(item)}>View</Button>
-        <Link href={`/dashboard/procurement/${item.id}/edit`}><Button variant="secondary" size="sm">Edit</Button></Link>
-        <Button variant="danger" size="sm" onClick={() => handleDelete(item.id)}>Delete</Button>
+        <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => setViewItem(item)}>
+          View
+        </Button>
+        <Link href={`/dashboard/procurement/${item.id}/edit`}>
+          <Button variant="secondary" size="sm">
+            Edit
+          </Button>
+        </Link>
+        <Button variant="danger" size="sm" onClick={() => handleDelete(item.id)}>
+          Delete
+        </Button>
       </div>
     ),
   }));
 
   return (
     <div className="page-container">
-      <PageHeader title="Procurement" description="Manage procurement decisions."
-        action={<Link href="/dashboard/procurement/create"><Button>+ New Decision</Button></Link>} />
+      <PageHeader
+        title="Procurement"
+        description="Manage procurement decisions."
+        action={
+          <Link href="/dashboard/procurement/create">
+            <Button>+ New Decision</Button>
+          </Link>
+        }
+      />
       <Card className="mb-4">
-        <input type="text" placeholder="Search by item or supplier..." value={search} onChange={e => setSearch(e.target.value)} className="input-field" />
+        <input
+          type="text"
+          placeholder="Search by item or supplier..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="input-field"
+        />
       </Card>
-      {loading ? <LoadingSpinner label="Loading procurement..." /> :
-       error ? <Card><p className="text-sm text-red-600">{error}</p></Card> :
-       items.length === 0 ? <EmptyState icon="🛒" title="No procurement records" description="Create your first decision." action={<Link href="/dashboard/procurement/create"><Button>New Decision</Button></Link>} /> :
-       <Table columns={COLS} rows={rows} />}
+      {loading ? (
+        <LoadingSpinner label="Loading procurement..." />
+      ) : error ? (
+        <Card>
+          <p className="text-sm text-red-600">{error}</p>
+        </Card>
+      ) : items.length === 0 ? (
+        <EmptyState
+          icon="🛒"
+          title="No procurement records"
+          description="Create your first decision."
+          action={
+            <Link href="/dashboard/procurement/create">
+              <Button>New Decision</Button>
+            </Link>
+          }
+        />
+      ) : (
+        <Table columns={COLS} rows={rows} />
+      )}
 
-       <DetailDialog
+      <DetailDialog
         open={!!viewItem}
         title={viewItem?.item_name || "Procurement Order"}
         data={viewItem}

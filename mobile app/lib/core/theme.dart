@@ -8,17 +8,17 @@ import 'package:google_fonts/google_fonts.dart';
 class KadeColors {
   // shared brand — deep navy for light mode, a brighter corporate blue for
   // dark mode (so it still reads clearly against a near-black background)
-  static const teal = Color(0xFF0F2C59);       // deep navy — primary (light)
-  static const tealDark = Color(0xFF4C8DFF);   // corporate blue — primary (dark)
-  static const amber = Color(0xFFB8860B);      // muted gold — warning accent
-  static const terra = Color(0xFFC62828);      // corporate red — error accent
+  static const teal = Color(0xFF0F2C59); // deep navy — primary (light)
+  static const tealDark = Color(0xFF4C8DFF); // corporate blue — primary (dark)
+  static const amber = Color(0xFFB8860B); // muted gold — warning accent
+  static const terra = Color(0xFFC62828); // corporate red — error accent
 
   // semantic (used across both themes for status/state)
   static const success = Color(0xFF1E7A46);
   static const successDark = Color(0xFF4CAF7D);
-  static const danger = terra;        // reuse terra as the "error" accent
+  static const danger = terra; // reuse terra as the "error" accent
   static const dangerDark = Color(0xFFEF5350);
-  static const warning = amber;       // reuse amber as the "warning" accent
+  static const warning = amber; // reuse amber as the "warning" accent
   static const warningDark = Color(0xFFFFC107);
   static const info = teal;
   static const infoDark = tealDark;
@@ -106,13 +106,22 @@ ThemeData buildLightTheme() {
         side: const BorderSide(color: KadeColors.borderLight),
       ),
     ),
-    inputDecorationTheme: _inputTheme(KadeColors.surfaceLight, KadeColors.borderLight, KadeColors.teal, KadeColors.danger),
+    inputDecorationTheme: _inputTheme(
+      KadeColors.surfaceLight,
+      KadeColors.borderLight,
+      KadeColors.teal,
+      KadeColors.danger,
+    ),
     appBarTheme: AppBarTheme(
       backgroundColor: KadeColors.bgLight,
       foregroundColor: KadeColors.textLight,
       elevation: 0,
       centerTitle: false,
-      titleTextStyle: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w700, color: KadeColors.textLight),
+      titleTextStyle: GoogleFonts.inter(
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        color: KadeColors.textLight,
+      ),
     ),
     elevatedButtonTheme: _elevatedButtonTheme(KadeColors.teal, Colors.white),
     outlinedButtonTheme: _outlinedButtonTheme(KadeColors.teal, KadeColors.borderLight),
@@ -147,13 +156,22 @@ ThemeData buildDarkTheme() {
         side: const BorderSide(color: KadeColors.borderDark),
       ),
     ),
-    inputDecorationTheme: _inputTheme(KadeColors.surfaceDark, KadeColors.borderDark, KadeColors.tealDark, KadeColors.dangerDark),
+    inputDecorationTheme: _inputTheme(
+      KadeColors.surfaceDark,
+      KadeColors.borderDark,
+      KadeColors.tealDark,
+      KadeColors.dangerDark,
+    ),
     appBarTheme: AppBarTheme(
       backgroundColor: KadeColors.bgDark,
       foregroundColor: KadeColors.textDark,
       elevation: 0,
       centerTitle: false,
-      titleTextStyle: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w700, color: KadeColors.textDark),
+      titleTextStyle: GoogleFonts.inter(
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        color: KadeColors.textDark,
+      ),
     ),
     elevatedButtonTheme: _elevatedButtonTheme(KadeColors.tealDark, KadeColors.bgDark),
     outlinedButtonTheme: _outlinedButtonTheme(KadeColors.tealDark, KadeColors.borderDark),
@@ -165,9 +183,9 @@ ThemeData buildDarkTheme() {
 
 InputDecorationTheme _inputTheme(Color fill, Color border, Color focus, Color error) {
   OutlineInputBorder side(Color c, [double w = 1]) => OutlineInputBorder(
-        borderRadius: BorderRadius.circular(KadeRadius.md),
-        borderSide: BorderSide(color: c, width: w),
-      );
+    borderRadius: BorderRadius.circular(KadeRadius.md),
+    borderSide: BorderSide(color: c, width: w),
+  );
   return InputDecorationTheme(
     filled: true,
     fillColor: fill,

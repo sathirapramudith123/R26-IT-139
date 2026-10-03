@@ -10,8 +10,8 @@ import '../core/theme.dart';
 /// or with a login check:
 ///   home: SplashScreen(next: () => token != null ? Dashboard() : LoginScreen()),
 class SplashScreen extends StatefulWidget {
-  final Widget Function() next;          // what to open after the splash
-  final Duration duration;               // how long to show it
+  final Widget Function() next; // what to open after the splash
+  final Duration duration; // how long to show it
   const SplashScreen({super.key, required this.next, this.duration = const Duration(milliseconds: 2600)});
 
   @override
@@ -19,8 +19,8 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
-  late final AnimationController _logoCtrl;   // fade + scale
-  late final AnimationController _pulseCtrl;  // subtle breathing loop
+  late final AnimationController _logoCtrl; // fade + scale
+  late final AnimationController _pulseCtrl; // subtle breathing loop
   late final Animation<double> _fade;
   late final Animation<double> _scale;
 
@@ -29,9 +29,11 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     super.initState();
 
     _logoCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100));
-    _fade  = CurvedAnimation(parent: _logoCtrl, curve: Curves.easeIn);
-    _scale = Tween<double>(begin: 0.7, end: 1.0)
-        .animate(CurvedAnimation(parent: _logoCtrl, curve: Curves.elasticOut));
+    _fade = CurvedAnimation(parent: _logoCtrl, curve: Curves.easeIn);
+    _scale = Tween<double>(
+      begin: 0.7,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _logoCtrl, curve: Curves.elasticOut));
     _logoCtrl.forward();
 
     _pulseCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))
@@ -44,8 +46,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
         PageRouteBuilder(
           transitionDuration: const Duration(milliseconds: 500),
           pageBuilder: (_, __, ___) => widget.next(),
-          transitionsBuilder: (_, anim, __, child) =>
-              FadeTransition(opacity: anim, child: child),
+          transitionsBuilder: (_, anim, __, child) => FadeTransition(opacity: anim, child: child),
         ),
       );
     });
@@ -105,8 +106,11 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     child: const Text(
                       "Lanka-Link",
                       style: TextStyle(
-                        fontSize: 30, fontWeight: FontWeight.w900,
-                        color: Colors.white, fontFamily: "Nunito", letterSpacing: 0.5,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        fontFamily: "Nunito",
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ),
@@ -116,8 +120,10 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     child: Text(
                       "Smart Merchant Platform",
                       style: TextStyle(
-                        fontSize: 13, color: Colors.white.withOpacity(0.85),
-                        fontWeight: FontWeight.w500, letterSpacing: 0.3,
+                        fontSize: 13,
+                        color: Colors.white.withOpacity(0.85),
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.3,
                       ),
                     ),
                   ),
@@ -125,7 +131,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
                   // Loading spinner
                   SizedBox(
-                    width: 30, height: 30,
+                    width: 30,
+                    height: 30,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.6,
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.9)),
@@ -137,7 +144,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
             // Footer
             Positioned(
-              left: 0, right: 0, bottom: 28,
+              left: 0,
+              right: 0,
+              bottom: 28,
               child: FadeTransition(
                 opacity: _fade,
                 child: Text(
@@ -153,14 +162,17 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     );
   }
 
-  Widget _circle(double size, Color color) =>
-      Container(width: size, height: size,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle));
+  Widget _circle(double size, Color color) => Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+  );
 
   // Logo badge — uses the asset if present, else a leaf emoji fallback.
   Widget _logoBadge() {
     return Container(
-      width: 120, height: 120,
+      width: 120,
+      height: 120,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
@@ -175,9 +187,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
           child: Image.asset(
             "assets/icon/app_icon.png",
             fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => const Center(
-              child: Text("assets/images/app_icon.png", style: TextStyle(fontSize: 56)),
-            ),
+            errorBuilder: (_, __, ___) =>
+                const Center(child: Text("assets/images/app_icon.png", style: TextStyle(fontSize: 56))),
           ),
         ),
       ),

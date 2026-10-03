@@ -1,5 +1,4 @@
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1";
 
 function getToken() {
   if (typeof window === "undefined") return null;
@@ -40,13 +39,13 @@ async function request(path, options = {}) {
 // { from: "2026-09-01", to: "" } -> "?from=2026-09-01" (empty values are left out)
 function withQuery(path, params) {
   const qs = new URLSearchParams(
-    Object.entries(params || {}).filter(([, v]) => v !== undefined && v !== null && v !== "")
+    Object.entries(params || {}).filter(([, v]) => v !== undefined && v !== null && v !== ""),
   ).toString();
   return qs ? `${path}${path.includes("?") ? "&" : "?"}${qs}` : path;
 }
 export const apiClient = {
-  get:    (p, opts) => request(withQuery(p, opts?.params)),
-  post:   (p, body) => request(p, { method: "POST",   body: JSON.stringify(body) }),
-  put:    (p, body) => request(p, { method: "PUT",    body: JSON.stringify(body) }),
-  delete: (p)       => request(p, { method: "DELETE" }),
+  get: (p, opts) => request(withQuery(p, opts?.params)),
+  post: (p, body) => request(p, { method: "POST", body: JSON.stringify(body) }),
+  put: (p, body) => request(p, { method: "PUT", body: JSON.stringify(body) }),
+  delete: (p) => request(p, { method: "DELETE" }),
 };

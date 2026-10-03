@@ -7,13 +7,7 @@ class EmptyState extends StatelessWidget {
   final String description;
   final Widget? action;
 
-  const EmptyState({
-    super.key,
-    this.icon = "📭",
-    required this.title,
-    this.description = "",
-    this.action,
-  });
+  const EmptyState({super.key, this.icon = "📭", required this.title, this.description = "", this.action});
 
   @override
   Widget build(BuildContext context) {
@@ -37,11 +31,7 @@ class EmptyState extends StatelessWidget {
               child: Text(icon, style: const TextStyle(fontSize: 32)),
             ),
             const SizedBox(height: KadeSpacing.md),
-            Text(
-              title,
-              style: theme.textTheme.titleLarge,
-              textAlign: TextAlign.center,
-            ),
+            Text(title, style: theme.textTheme.titleLarge, textAlign: TextAlign.center),
             if (description.isNotEmpty) ...[
               const SizedBox(height: KadeSpacing.xs),
               Text(
@@ -52,10 +42,7 @@ class EmptyState extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
             ],
-            if (action != null) ...[
-              const SizedBox(height: KadeSpacing.lg),
-              action!,
-            ],
+            if (action != null) ...[const SizedBox(height: KadeSpacing.lg), action!],
           ],
         ),
       ),

@@ -48,8 +48,7 @@ class AuthService {
     } catch (_) {}
   }
 
-  static Map<String, dynamic>? get currentUser =>
-      Api.token == null ? null : _claims(Api.token!);
+  static Map<String, dynamic>? get currentUser => Api.token == null ? null : _claims(Api.token!);
 
   static Map<String, dynamic>? _claims(String token) {
     try {

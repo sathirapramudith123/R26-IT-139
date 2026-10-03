@@ -63,9 +63,7 @@ export default function EditAgencyBankingPage() {
             <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-800/80 text-slate-500">
               <FileX className="h-6 w-6" />
             </div>
-            <p className="text-sm font-medium text-slate-400">
-              Transaction record not found.
-            </p>
+            <p className="text-sm font-medium text-slate-400">Transaction record not found.</p>
           </div>
         ) : (
           <AgencyBankingForm initialData={item} agencyId={Id} />

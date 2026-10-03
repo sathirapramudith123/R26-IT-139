@@ -32,8 +32,8 @@ class KadeCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(KadeRadius.lg),
         border: (cardTheme.shape is RoundedRectangleBorder)
             ? (cardTheme.shape as RoundedRectangleBorder).side.style == BorderStyle.none
-                ? null
-                : Border.all(color: (cardTheme.shape as RoundedRectangleBorder).side.color)
+                  ? null
+                  : Border.all(color: (cardTheme.shape as RoundedRectangleBorder).side.color)
             : null,
       ),
       child: child,
@@ -43,11 +43,7 @@ class KadeCard extends StatelessWidget {
 
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(KadeRadius.lg),
-        child: content,
-      ),
+      child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(KadeRadius.lg), child: content),
     );
   }
 }

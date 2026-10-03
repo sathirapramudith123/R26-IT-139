@@ -26,7 +26,10 @@ class _ListScreenState extends State<ListScreen> {
   String query = "";
 
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() {
+    super.initState();
+    _load();
+  }
 
   @override
   void dispose() {
@@ -35,10 +38,17 @@ class _ListScreenState extends State<ListScreen> {
   }
 
   Future<void> _load() async {
-    setState(() { loading = true; error = null; });
-    try { items = await service.list(); }
-    catch (e) { error = e.toString().replaceFirst("Exception: ", ""); }
-    finally { if (mounted) setState(() => loading = false); }
+    setState(() {
+      loading = true;
+      error = null;
+    });
+    try {
+      items = await service.list();
+    } catch (e) {
+      error = e.toString().replaceFirst("Exception: ", "");
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
   }
 
   Future<void> _delete(String id) async {
@@ -59,8 +69,12 @@ class _ListScreenState extends State<ListScreen> {
       ),
     );
     if (ok != true) return;
-    try { await service.remove(id); _load(); }
-    catch (e) { _snack(e.toString().replaceFirst("Exception: ", "")); }
+    try {
+      await service.remove(id);
+      _load();
+    } catch (e) {
+      _snack(e.toString().replaceFirst("Exception: ", ""));
+    }
   }
 
   void _snack(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
@@ -83,39 +97,55 @@ class _ListScreenState extends State<ListScreen> {
   Future<void> _openForm([Map<String, dynamic>? item]) async {
     Widget screen;
     switch (widget.module.path) {
-      case "/transactions":   screen = TransactionFormScreen(item: item); break;
-      case "/inventory":      screen = InventoryFormScreen(item: item); break;
-      case "/suppliers":      screen = SupplierFormScreen(item: item); break;
-      case "/procurement":    screen = ProcurementFormScreen(item: item); break;
-      case "/agency-banking": screen = AgencyBankingFormScreen(item: item); break;
-      default:                screen = FormScreen(module: widget.module, item: item);
+      case "/transactions":
+        screen = TransactionFormScreen(item: item);
+        break;
+      case "/inventory":
+        screen = InventoryFormScreen(item: item);
+        break;
+      case "/suppliers":
+        screen = SupplierFormScreen(item: item);
+        break;
+      case "/procurement":
+        screen = ProcurementFormScreen(item: item);
+        break;
+      case "/agency-banking":
+        screen = AgencyBankingFormScreen(item: item);
+        break;
+      default:
+        screen = FormScreen(module: widget.module, item: item);
     }
-    final changed = await Navigator.push<bool>(
-      context, MaterialPageRoute(builder: (_) => screen),
-    ) ?? false;
+    final changed = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => screen)) ?? false;
     if (changed) _load();
   }
 
   // ---------- Details dialog ----------
 
   static const _hidden = [
-    "id", "user_id",
-    "item_name", "item_status",
-    "supplier_status", "procurement_status", "banking_status",
+    "id",
+    "user_id",
+    "item_name",
+    "item_status",
+    "supplier_status",
+    "procurement_status",
+    "banking_status",
   ];
   static const _dateFields = ["created_at", "updated_at", "read_at"];
   static const _moneyFields = [
-  "amount", "unit_price", "cost_price", "delivery_cost", "total_cost",
-  "estimated_profit", "expected_selling_price", "service_fee", "commission",
-];
-  static const _months = [
-    "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"
+    "amount",
+    "unit_price",
+    "cost_price",
+    "delivery_cost",
+    "total_cost",
+    "estimated_profit",
+    "expected_selling_price",
+    "service_fee",
+    "commission",
   ];
+  static const _months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-  String _titleCase(String s) => s
-      .split("_")
-      .map((w) => w.isEmpty ? w : "${w[0].toUpperCase()}${w.substring(1)}")
-      .join(" ");
+  String _titleCase(String s) =>
+      s.split("_").map((w) => w.isEmpty ? w : "${w[0].toUpperCase()}${w.substring(1)}").join(" ");
 
   String _fmtDate(dynamic v) {
     final d = DateTime.tryParse("$v");
@@ -147,10 +177,7 @@ class _ListScreenState extends State<ListScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final entries = item.entries
-        .where((e) =>
-            !_hidden.contains(e.key) &&
-            e.value != null &&
-            "${e.value}".isNotEmpty)
+        .where((e) => !_hidden.contains(e.key) && e.value != null && "${e.value}".isNotEmpty)
         .toList();
 
     showDialog(
@@ -261,68 +288,74 @@ class _ListScreenState extends State<ListScreen> {
             child: loading
                 ? const Center(child: CircularProgressIndicator())
                 : error != null
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Text(error!, style: const TextStyle(color: KadeColors.terra)),
-                        ),
-                      )
-                    : _filteredItems.isEmpty
-                        ? _empty()
-                        : RefreshIndicator(
-                            onRefresh: _load,
-                            child: ListView.builder(
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 90),
-                              itemCount: _filteredItems.length,
-                              itemBuilder: (_, i) {
-                                final it = _filteredItems[i];
-                                final title = "${it[cols.first] ?? "—"}";
-                                final subtitle = cols
-                                    .skip(1)
-                                    .map((k) => _display(k, it[k]))
-                                    .join("  ·  ");
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 10),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context).cardTheme.color,
-                                    borderRadius: BorderRadius.circular(KadeRadius.md),
-                                    border: Border.all(
-                                        color: isDark ? KadeColors.borderDark : KadeColors.borderLight),
-                                  ),
-                                  child: ListTile(
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                                    onTap: () => _viewDetails(it),
-                                    leading: Container(
-                                      height: 40, width: 40,
-                                      decoration: BoxDecoration(
-                                        color: teal.withOpacity(0.10),
-                                        borderRadius: BorderRadius.circular(KadeRadius.sm),
-                                      ),
-                                      child: Icon(widget.module.icon, size: 20, color: teal),
-                                    ),
-                                    title: Text(title,
-                                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                                    subtitle: Text(subtitle,
-                                        style: TextStyle(
-                                            fontSize: 12,
-                                            color: Theme.of(context).textTheme.bodySmall?.color)),
-                                    trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                                      IconButton(
-                                          icon: const Icon(Icons.visibility_outlined, size: 20),
-                                          onPressed: () => _viewDetails(it)),
-                                      IconButton(
-                                          icon: const Icon(Icons.edit_outlined, size: 20),
-                                          onPressed: () => _openForm(it)),
-                                      IconButton(
-                                          icon: const Icon(Icons.delete_outline,
-                                              size: 20, color: KadeColors.terra),
-                                          onPressed: () => _delete("${it["id"]}")),
-                                    ]),
-                                  ),
-                                );
-                              },
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(error!, style: const TextStyle(color: KadeColors.terra)),
+                    ),
+                  )
+                : _filteredItems.isEmpty
+                ? _empty()
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 90),
+                      itemCount: _filteredItems.length,
+                      itemBuilder: (_, i) {
+                        final it = _filteredItems[i];
+                        final title = "${it[cols.first] ?? "—"}";
+                        final subtitle = cols.skip(1).map((k) => _display(k, it[k])).join("  ·  ");
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardTheme.color,
+                            borderRadius: BorderRadius.circular(KadeRadius.md),
+                            border: Border.all(
+                              color: isDark ? KadeColors.borderDark : KadeColors.borderLight,
                             ),
                           ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                            onTap: () => _viewDetails(it),
+                            leading: Container(
+                              height: 40,
+                              width: 40,
+                              decoration: BoxDecoration(
+                                color: teal.withOpacity(0.10),
+                                borderRadius: BorderRadius.circular(KadeRadius.sm),
+                              ),
+                              child: Icon(widget.module.icon, size: 20, color: teal),
+                            ),
+                            title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                            subtitle: Text(
+                              subtitle,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context).textTheme.bodySmall?.color,
+                              ),
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.visibility_outlined, size: 20),
+                                  onPressed: () => _viewDetails(it),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.edit_outlined, size: 20),
+                                  onPressed: () => _openForm(it),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, size: 20, color: KadeColors.terra),
+                                  onPressed: () => _delete("${it["id"]}"),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),
@@ -332,20 +365,26 @@ class _ListScreenState extends State<ListScreen> {
   Widget _empty() {
     final searching = query.trim().isNotEmpty;
     return Center(
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(searching ? Icons.search_off : widget.module.icon,
-            size: 52, color: Theme.of(context).textTheme.bodySmall?.color),
-        const SizedBox(height: 12),
-        Text(
-          searching ? "No matches found" : "No ${widget.module.title.toLowerCase()} yet",
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        const SizedBox(height: 6),
-        Text(
-          searching ? "Try a different search term." : "Tap + to add one.",
-          style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
-        ),
-      ]),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            searching ? Icons.search_off : widget.module.icon,
+            size: 52,
+            color: Theme.of(context).textTheme.bodySmall?.color,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            searching ? "No matches found" : "No ${widget.module.title.toLowerCase()} yet",
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            searching ? "Try a different search term." : "Tap + to add one.",
+            style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
+          ),
+        ],
+      ),
     );
   }
 }

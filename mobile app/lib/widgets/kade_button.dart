@@ -69,11 +69,7 @@ class KadeButton extends StatelessWidget {
       final fg = variant == KadeButtonVariant.primary || variant == KadeButtonVariant.danger
           ? Colors.white
           : Theme.of(context).colorScheme.primary;
-      return SizedBox(
-        height: 18,
-        width: 18,
-        child: CircularProgressIndicator(strokeWidth: 2.2, color: fg),
-      );
+      return SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2.2, color: fg));
     }
     if (icon != null) {
       return Row(

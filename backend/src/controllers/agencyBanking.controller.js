@@ -4,8 +4,14 @@ import { notify } from "./notification.controller.js";
 import { predict } from "../utils/mlClient.js";
 import { buildAnomalyFeatures } from "../utils/features.js";
 import { localParts } from "../utils/time.js";
-import { checkFloat, floatHealth, postBanking, updateBanking, deleteBanking,
-         bankingError } from "../utils/float.js";
+import {
+  checkFloat,
+  floatHealth,
+  postBanking,
+  updateBanking,
+  deleteBanking,
+  bankingError,
+} from "../utils/float.js";
 
 const TABLE = "agency_banking";
 const ID = "agency_banking_id";
@@ -14,9 +20,9 @@ const num = (v) => (v === "" || v == null ? 0 : Number(v));
 // ── Rural agent build: fixed LOW-tier daily limits (no KYC dropdown) ──────
 // (matches the CBSL "Low volume / rural" agent tier)
 const DAILY_LIMITS = {
-  CASH_DEPOSIT:    50000,
+  CASH_DEPOSIT: 50000,
   CASH_WITHDRAWAL: 25000,
-  FUND_TRANSFER:   50000,
+  FUND_TRANSFER: 50000,
 };
 
 // Max transactions/day per NIC (point 3 — Commercial Bank agency limits)
@@ -31,7 +37,7 @@ function cbslAmountRisk(type, amount) {
   const limit = DAILY_LIMITS[type];
   if (!limit) return { level: "LOW", ratio: 0, flag: false };
   const ratio = amount / limit;
-  if (ratio >= 1.0) return { level: "HIGH",   ratio, flag: true };
+  if (ratio >= 1.0) return { level: "HIGH", ratio, flag: true };
   if (ratio >= 0.8) return { level: "MEDIUM", ratio, flag: false };
   return { level: "LOW", ratio, flag: false };
 }
@@ -40,20 +46,20 @@ function cbslAmountRisk(type, amount) {
 const SOURCE_OF_FUNDS = ["SALARY", "BUSINESS_INCOME", "REMITTANCE", "SAVINGS", "SALE_OF_PROPERTY", "OTHER"];
 
 const toDb = (b) => ({
-  customer_name:    b.customer_name,
-  customer_phone:   b.customer_phone,
-  customer_nic:     b.customer_nic || null,
-  account_number:   b.account_number || null,          // NEW (mandatory in form)
-  source_of_funds:  b.source_of_funds || null,         // NEW (mandatory in form)
+  customer_name: b.customer_name,
+  customer_phone: b.customer_phone,
+  customer_nic: b.customer_nic || null,
+  account_number: b.account_number || null, // NEW (mandatory in form)
+  source_of_funds: b.source_of_funds || null, // NEW (mandatory in form)
   transaction_type: up(b.transaction_type),
-  agent_bank_id:    b.agent_bank_id || null,
-  amount:           Number(b.amount),
-  service_fee:      num(b.service_fee),
-  commission:       num(b.commission),
-  channel:          b.channel || "pos_terminal",
-  tx_hour:          b.tx_hour ?? localParts().hour,     // Sri Lanka hour, not the server's
-  created_offline:  Boolean(b.created_offline),
-  banking_status:   up(b.status || b.banking_status || "completed"),
+  agent_bank_id: b.agent_bank_id || null,
+  amount: Number(b.amount),
+  service_fee: num(b.service_fee),
+  commission: num(b.commission),
+  channel: b.channel || "pos_terminal",
+  tx_hour: b.tx_hour ?? localParts().hour, // Sri Lanka hour, not the server's
+  created_offline: Boolean(b.created_offline),
+  banking_status: up(b.status || b.banking_status || "completed"),
 });
 
 const shape = (row) => {
@@ -84,7 +90,10 @@ async function scoreRisk(userId, payload, createdAt = null) {
     amtRisk,
     // final flag = ML anomaly OR CBSL amount over limit
     is_anomaly: mlResult.is_anomaly || amtRisk.flag,
-    anomaly_score: Math.min(100, Math.max(Number(mlResult.anomaly_score) || 0, Math.round(amtRisk.ratio * 100))),
+    anomaly_score: Math.min(
+      100,
+      Math.max(Number(mlResult.anomaly_score) || 0, Math.round(amtRisk.ratio * 100)),
+    ),
   };
 }
 
@@ -94,7 +103,8 @@ async function runAnomaly(userId, payload, createdAt = null) {
   let result = { is_anomaly: false, anomaly_score: 0 };
   try {
     const { data: history } = await supabase
-      .from(TABLE).select("amount")
+      .from(TABLE)
+      .select("amount")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(50);
@@ -111,21 +121,31 @@ async function runAnomaly(userId, payload, createdAt = null) {
 export const getAll = async (req, res, next) => {
   try {
     const { data, error } = await supabase
-      .from(TABLE).select("*").eq("user_id", req.user.id)
+      .from(TABLE)
+      .select("*")
+      .eq("user_id", req.user.id)
       .order("created_at", { ascending: false });
     if (error) throw error;
     res.json((data || []).map(shape));
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 export const getOne = async (req, res, next) => {
   try {
     const { data, error } = await supabase
-      .from(TABLE).select("*").eq(ID, req.params.id).eq("user_id", req.user.id).maybeSingle();
+      .from(TABLE)
+      .select("*")
+      .eq(ID, req.params.id)
+      .eq("user_id", req.user.id)
+      .maybeSingle();
     if (error) throw error;
     if (!data) return res.status(404).json({ error: "Transaction not found" });
     res.json(shape(data));
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 export const create = async (req, res, next) => {
@@ -138,9 +158,11 @@ export const create = async (req, res, next) => {
     const risk = await scoreRisk(req.user.id, payload);
 
     // 2. One DB transaction: daily limits -> float / cash check -> insert -> ledger + balances
-    const { data: out, error } = await postBanking(req.user.id,
+    const { data: out, error } = await postBanking(
+      req.user.id,
       { ...payload, is_anomaly: risk.is_anomaly, anomaly_score: risk.anomaly_score },
-      limitsFor(payload.transaction_type));
+      limitsFor(payload.transaction_type),
+    );
     if (error) {
       const known = bankingError(error, payload.transaction_type);
       if (known) return res.status(known.status).json({ error: known.message });
@@ -150,26 +172,45 @@ export const create = async (req, res, next) => {
     const bank = out.bank_before;
     const floatAfter = out.float_after ?? null;
     const cashAfter = out.cash_after ?? null;
-    const floatWarn = bank ? checkFloat(bank, out.pool_before, payload.transaction_type, payload.amount).warn : null;
+    const floatWarn = bank
+      ? checkFloat(bank, out.pool_before, payload.transaction_type, payload.amount).warn
+      : null;
     const health = bank ? floatHealth({ ...bank, float_balance: floatAfter }) : null;
 
     // 3. Notifications (after the commit)
     const alerts = [];
-    if (risk.is_anomaly) alerts.push(risk.amtRisk.flag ? `Amount at ${Math.round(risk.amtRisk.ratio * 100)}% of CBSL limit` : "Suspicious transaction");
+    if (risk.is_anomaly)
+      alerts.push(
+        risk.amtRisk.flag
+          ? `Amount at ${Math.round(risk.amtRisk.ratio * 100)}% of CBSL limit`
+          : "Suspicious transaction",
+      );
     if (floatWarn) alerts.push(floatWarn);
-    if (health && health !== "HEALTHY") alerts.push(`Float ${health.replace("_", " ").toLowerCase()} — top-up recommended`);
+    if (health && health !== "HEALTHY")
+      alerts.push(`Float ${health.replace("_", " ").toLowerCase()} — top-up recommended`);
 
     await notify(req.user.id, {
       title: alerts.length ? "Banking alert" : "Banking transaction posted",
-      message: `${String(data.transaction_type).replace(/_/g, " ").toLowerCase()} of LKR ${data.amount} for ${data.customer_name}.` +
-               (alerts.length ? ` (${alerts.join("; ")})` : ""),
+      message:
+        `${String(data.transaction_type).replace(/_/g, " ").toLowerCase()} of LKR ${data.amount} for ${data.customer_name}.` +
+        (alerts.length ? ` (${alerts.join("; ")})` : ""),
       type: alerts.length ? "WARNING" : "SUCCESS",
       category: "BANKING",
       link: "/dashboard/agency-banking",
     });
 
-    res.status(201).json({ ...shape(data), float_after: floatAfter, cash_after: cashAfter, float_health: health, float_warning: floatWarn });
-  } catch (e) { next(e); }
+    res
+      .status(201)
+      .json({
+        ...shape(data),
+        float_after: floatAfter,
+        cash_after: cashAfter,
+        float_health: health,
+        float_warning: floatWarn,
+      });
+  } catch (e) {
+    next(e);
+  }
 };
 
 export const update = async (req, res, next) => {
@@ -179,8 +220,11 @@ export const update = async (req, res, next) => {
     if (missing) return res.status(400).json({ error: missing });
 
     const { data: old } = await supabase
-      .from(TABLE).select("created_at")
-      .eq(ID, req.params.id).eq("user_id", req.user.id).maybeSingle();
+      .from(TABLE)
+      .select("created_at")
+      .eq(ID, req.params.id)
+      .eq("user_id", req.user.id)
+      .maybeSingle();
     if (!old) return res.status(404).json({ error: "Transaction not found" });
 
     // original timestamp so weekday/day_of_month features stay correct on edit
@@ -188,16 +232,21 @@ export const update = async (req, res, next) => {
 
     // One DB transaction: limits -> reverse the old float movement -> apply the new one
     // -> update the record. If the new movement is blocked, the reversal is undone too.
-    const { data: out, error } = await updateBanking(req.user.id, req.params.id,
+    const { data: out, error } = await updateBanking(
+      req.user.id,
+      req.params.id,
       { ...payload, is_anomaly: risk.is_anomaly, anomaly_score: risk.anomaly_score },
-      limitsFor(payload.transaction_type));
+      limitsFor(payload.transaction_type),
+    );
     if (error) {
       const known = bankingError(error, payload.transaction_type);
       if (known) return res.status(known.status).json({ error: known.message });
       throw error;
     }
     res.json(shape(out.row));
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 // PATCH /agency-banking/:id/mark-safe
@@ -207,11 +256,16 @@ export const markSafe = async (req, res, next) => {
     const { data, error } = await supabase
       .from(TABLE)
       .update({ is_anomaly: false, anomaly_score: 0, updated_at: new Date().toISOString() })
-      .eq(ID, req.params.id).eq("user_id", req.user.id).select().maybeSingle();
+      .eq(ID, req.params.id)
+      .eq("user_id", req.user.id)
+      .select()
+      .maybeSingle();
     if (error) throw error;
     if (!data) return res.status(404).json({ error: "Transaction not found" });
     res.json({ ...shape(data), message: "Transaction marked as safe." });
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 export const remove = async (req, res, next) => {
@@ -224,5 +278,7 @@ export const remove = async (req, res, next) => {
       throw error;
     }
     res.json({ message: "Transaction deleted" });
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };

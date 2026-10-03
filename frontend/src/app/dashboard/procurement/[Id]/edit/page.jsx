@@ -18,16 +18,33 @@ export default function EditProcurementPage() {
 
   useEffect(() => {
     if (!Id) return;
-    procurementApi.getById(Id).then(setItem).catch(e => setError(e.message || "Failed")).finally(() => setLoading(false));
+    procurementApi
+      .getById(Id)
+      .then(setItem)
+      .catch((e) => setError(e.message || "Failed"))
+      .finally(() => setLoading(false));
   }, [Id]);
 
   return (
     <div className="page-container">
-      <PageHeader title="Edit Procurement" description="Update decision details."
-        action={<Link href="/dashboard/procurement"><Button variant="secondary">← Back</Button></Link>} />
-      {loading ? <LoadingSpinner /> : error ? <p className="text-sm text-red-600">{error}</p> :
-       !item ? <p className="text-sm text-slate-500">Not found.</p> :
-       <ProcurementForm initialData={item} procurementId={Id} />}
+      <PageHeader
+        title="Edit Procurement"
+        description="Update decision details."
+        action={
+          <Link href="/dashboard/procurement">
+            <Button variant="secondary">← Back</Button>
+          </Link>
+        }
+      />
+      {loading ? (
+        <LoadingSpinner />
+      ) : error ? (
+        <p className="text-sm text-red-600">{error}</p>
+      ) : !item ? (
+        <p className="text-sm text-slate-500">Not found.</p>
+      ) : (
+        <ProcurementForm initialData={item} procurementId={Id} />
+      )}
     </div>
   );
 }

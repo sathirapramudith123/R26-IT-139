@@ -40,7 +40,7 @@ export default function ForgotPasswordPage() {
             Forgot password?
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            No worries, we'll send you reset instructions.
+            No worries, we&apos;ll send you reset instructions.
           </p>
         </div>
 
@@ -54,7 +54,7 @@ export default function ForgotPasswordPage() {
               <div className="space-y-1">
                 <h3 className="font-semibold text-slate-900 dark:text-slate-100">Check your email</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400">
-                  If an account exists, we've sent reset instructions to your inbox.
+                  If an account exists, we&apos;ve sent reset instructions to your inbox.
                 </p>
               </div>
               <Link
@@ -74,7 +74,10 @@ export default function ForgotPasswordPage() {
               )}
 
               <div className="space-y-1.5">
-                <label htmlFor="email" className="block text-sm font-medium text-slate-600 dark:text-slate-300">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-slate-600 dark:text-slate-300"
+                >
                   Email Address
                 </label>
                 <div className="relative">

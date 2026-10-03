@@ -47,7 +47,11 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
     latitude = (it?["latitude"] as num?)?.toDouble();
     longitude = (it?["longitude"] as num?)?.toDouble();
     deliveryCtrl.text = it?["delivery_cost"]?.toString() ?? "";
-    leadTimeCtrl.text = it?["lead_time_days"]?.toString() ?? it?["delivery_lead_time"]?.toString() ?? it?["lead_time"]?.toString() ?? "";
+    leadTimeCtrl.text =
+        it?["lead_time_days"]?.toString() ??
+        it?["delivery_lead_time"]?.toString() ??
+        it?["lead_time"]?.toString() ??
+        "";
     qtyCtrl.text = it?["available_quantity"]?.toString() ?? it?["quantity"]?.toString() ?? "";
   }
 
@@ -100,10 +104,14 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
       "delivery_location": deliveryLocationCtrl.text.trim(),
       "latitude": latitude,
       "longitude": longitude,
-      "delivery_cost": deliveryCtrl.text.trim().isNotEmpty ? (num.tryParse(deliveryCtrl.text.trim()) ?? 0) : 0,
-      "lead_time_days": leadTimeCtrl.text.trim().isNotEmpty ? (int.tryParse(leadTimeCtrl.text.trim()) ?? 1) : 1,
+      "delivery_cost": deliveryCtrl.text.trim().isNotEmpty
+          ? (num.tryParse(deliveryCtrl.text.trim()) ?? 0)
+          : 0,
+      "lead_time_days": leadTimeCtrl.text.trim().isNotEmpty
+          ? (int.tryParse(leadTimeCtrl.text.trim()) ?? 1)
+          : 1,
       "available_quantity": qtyCtrl.text.trim().isNotEmpty ? (num.tryParse(qtyCtrl.text.trim()) ?? 0) : 0,
-      // unit_price + status form එකෙන් තව යවන්නෙ නෑ (backend defaults)
+      // unit_price and status are not sent (backend defaults apply)
     };
 
     setState(() {
@@ -133,10 +141,7 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            if (error != null) ...[
-              errorBox(error!),
-              const SizedBox(height: 12),
-            ],
+            if (error != null) ...[errorBox(error!), const SizedBox(height: 12)],
 
             fieldLabel("Supplier Name *"),
             TextField(
@@ -193,7 +198,9 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
               enabled: !saving,
               maxLines: 2,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(hintText: "Address (auto-filled from the map — edit if needed)"),
+              decoration: const InputDecoration(
+                hintText: "Address (auto-filled from the map — edit if needed)",
+              ),
             ),
             const SizedBox(height: 16),
 

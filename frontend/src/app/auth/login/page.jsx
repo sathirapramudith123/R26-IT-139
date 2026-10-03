@@ -23,12 +23,8 @@ function LoginContent() {
         <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 shadow-inner">
           <LogIn className="h-6 w-6" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-          Welcome back
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Sign in to your Lanka-Link account
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Welcome back</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Sign in to your Lanka-Link account</p>
       </div>
 
       {searchParams.get("reset") === "1" && (
@@ -39,12 +35,7 @@ function LoginContent() {
 
       {/* Card */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur-xl p-8 shadow-2xl">
-        <AuthForm
-          mode="login"
-          onSubmit={handleSubmit}
-          loading={loading}
-          error={error}
-        />
+        <AuthForm mode="login" onSubmit={handleSubmit} loading={loading} error={error} />
       </div>
     </div>
   );

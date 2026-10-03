@@ -10,14 +10,7 @@ import NotificationList from "@/components/notifications/NotificationList";
 import useNotifications from "@/hooks/useNotifications";
 
 export default function NotificationsPage() {
-  const {
-    items,
-    loading,
-    error,
-    fetchAll,
-    markRead,
-    deleteNotification,
-  } = useNotifications();
+  const { items, loading, error, fetchAll, markRead, deleteNotification } = useNotifications();
 
   const [filter, setFilter] = useState("all");
 
@@ -99,17 +92,9 @@ export default function NotificationsPage() {
       {loading ? (
         <LoadingSpinner label="Loading notifications..." />
       ) : filteredItems.length === 0 ? (
-        <EmptyState
-          icon="🔔"
-          title="No notifications"
-          description="You're all caught up."
-        />
+        <EmptyState icon="🔔" title="No notifications" description="You're all caught up." />
       ) : (
-        <NotificationList
-          items={filteredItems}
-          onMarkRead={handleMarkRead}
-          onDelete={handleDelete}
-        />
+        <NotificationList items={filteredItems} onMarkRead={handleMarkRead} onDelete={handleDelete} />
       )}
     </div>
   );

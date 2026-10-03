@@ -42,16 +42,15 @@ class ModuleTile extends StatelessWidget {
                 height: 40,
                 width: 40,
                 decoration: BoxDecoration(
-                  color: highlight ? teal.withOpacity(0.16) : (isDark ? Colors.white10 : KadeColors.surfaceMutedLight),
+                  color: highlight
+                      ? teal.withOpacity(0.16)
+                      : (isDark ? Colors.white10 : KadeColors.surfaceMutedLight),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, size: 20, color: teal),
               ),
               const Spacer(),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
+              Text(title, style: Theme.of(context).textTheme.titleSmall),
             ],
           ),
         ),

@@ -12,8 +12,7 @@ Future<void> shareIncomeStatementPdf(Map<String, dynamic> data) async {
   final num gross = data["gross_profit"] ?? (rev - cogs);
   final num opex = data["operating_expenses"] ?? 0;
   final num net = data["net_profit"] ?? (gross - opex);
-  final num margin =
-      data["profit_margin_pct"] ?? (rev != 0 ? (net / rev) * 100 : 0);
+  final num margin = data["profit_margin_pct"] ?? (rev != 0 ? (net / rev) * 100 : 0);
 
   final doc = pw.Document();
 
@@ -28,42 +27,28 @@ Future<void> shareIncomeStatementPdf(Map<String, dynamic> data) async {
             pw.Center(
               child: pw.Text(
                 "Income & Expense Statement",
-                style: pw.TextStyle(
-                  fontSize: 20,
-                  fontWeight: pw.FontWeight.bold,
-                ),
+                style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
               ),
             ),
             pw.SizedBox(height: 4),
             pw.Center(
               child: pw.Text(
                 "Generated: ${DateTime.now().toString().split('.').first}",
-                style: const pw.TextStyle(
-                  fontSize: 10,
-                  color: PdfColors.grey700,
-                ),
+                style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
               ),
             ),
             pw.SizedBox(height: 24),
             pw.Table(
               border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
-              columnWidths: {
-                0: const pw.FlexColumnWidth(3),
-                1: const pw.FlexColumnWidth(2),
-              },
+              columnWidths: {0: const pw.FlexColumnWidth(3), 1: const pw.FlexColumnWidth(2)},
               children: [
                 _row("Description", "Amount", header: true),
                 _row("Total Revenue / Sales", _lkr(rev)),
                 _row("Cost of Goods Sold (Purchases)", "(${_lkr(cogs)})"),
                 _row("Gross Profit", _lkr(gross), bold: true),
                 _row("Operating Expenses", "(${_lkr(opex)})"),
-                _row(
-                  net >= 0 ? "Net Income / Profit" : "Net Loss",
-                  _lkr(net),
-                  bold: true,
-                ),
-                _row("Profit Margin", "${margin.toStringAsFixed(2)}%",
-                    bold: true),
+                _row(net >= 0 ? "Net Income / Profit" : "Net Loss", _lkr(net), bold: true),
+                _row("Profit Margin", "${margin.toStringAsFixed(2)}%", bold: true),
               ],
             ),
           ],
@@ -72,10 +57,7 @@ Future<void> shareIncomeStatementPdf(Map<String, dynamic> data) async {
     ),
   );
 
-  await Printing.sharePdf(
-    bytes: await doc.save(),
-    filename: "income-statement.pdf",
-  );
+  await Printing.sharePdf(bytes: await doc.save(), filename: "income-statement.pdf");
 }
 
 pw.TableRow _row(String a, String b, {bool header = false, bool bold = false}) {

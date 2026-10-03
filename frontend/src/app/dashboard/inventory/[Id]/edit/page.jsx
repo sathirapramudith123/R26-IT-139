@@ -12,14 +12,15 @@ import { inventoryApi } from "@/services/api/inventory";
 
 export default function EditInventoryPage() {
   useAuthGuard();
-  const { Id } = useParams();          // ← capital Id, matches [Id] folder
+  const { Id } = useParams(); // ← capital Id, matches [Id] folder
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!Id) return;
-    inventoryApi.getById(Id)
+    inventoryApi
+      .getById(Id)
       .then(setItem)
       .catch((e) => setError(e.message || "Failed to load"))
       .finally(() => setLoading(false));
@@ -27,12 +28,24 @@ export default function EditInventoryPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Edit Inventory Item" description="Update the details."
-        action={<Link href="/dashboard/inventory"><Button variant="outline">← Back</Button></Link>} />
-      {loading ? <LoadingSpinner /> :
-       error ? <p className="text-red-500">{error}</p> :
-       !item ? <p className="text-soft">Not found.</p> :
-       <InventoryForm initialData={item} itemId={Id} />}
+      <PageHeader
+        title="Edit Inventory Item"
+        description="Update the details."
+        action={
+          <Link href="/dashboard/inventory">
+            <Button variant="outline">← Back</Button>
+          </Link>
+        }
+      />
+      {loading ? (
+        <LoadingSpinner />
+      ) : error ? (
+        <p className="text-red-500">{error}</p>
+      ) : !item ? (
+        <p className="text-soft">Not found.</p>
+      ) : (
+        <InventoryForm initialData={item} itemId={Id} />
+      )}
     </div>
   );
 }

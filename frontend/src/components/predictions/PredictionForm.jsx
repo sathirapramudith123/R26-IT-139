@@ -34,11 +34,17 @@ export default function PredictionForm({ fields = [], loading = false, onSubmit 
   };
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 space-y-6">
+    <form
+      onSubmit={handleSubmit}
+      className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 space-y-6"
+    >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {fields.map((field) => (
           <div key={field.name} className="space-y-1.5">
-            <label htmlFor={field.name} className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+            <label
+              htmlFor={field.name}
+              className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider"
+            >
               {field.label}
             </label>
             <input

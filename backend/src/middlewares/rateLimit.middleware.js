@@ -12,9 +12,11 @@ const MIN = 60 * 1000;
 export const loginLimiter = rateLimit({
   windowMs: 15 * MIN,
   limit: 10,
-  skipSuccessfulRequests: true,          // a successful login is not counted
+  skipSuccessfulRequests: true, // a successful login is not counted
   keyGenerator: (req) =>
-    `${ipKeyGenerator(req.ip || "")}|${String(req.body?.email || "").trim().toLowerCase()}`,
+    `${ipKeyGenerator(req.ip || "")}|${String(req.body?.email || "")
+      .trim()
+      .toLowerCase()}`,
   handler: tooMany("Too many failed login attempts. Try again in 15 minutes."),
 });
 

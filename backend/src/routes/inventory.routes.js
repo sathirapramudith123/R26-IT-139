@@ -9,7 +9,7 @@ router.use(auth);
 
 router.post("/", validateBody(S.inventory), ctrl.create);
 router.get("/", ctrl.getAll);
-router.get("/status", ctrl.status);          
+router.get("/status", ctrl.status);
 router.get("/:id", validateId, ctrl.getOne);
 router.put("/:id", validateId, validateBody(S.inventory), ctrl.update);
 router.delete("/:id", validateId, ctrl.remove);

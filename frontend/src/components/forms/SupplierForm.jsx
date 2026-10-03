@@ -28,7 +28,7 @@ function normalizeSuppliedItems(raw) {
           quantity: it.quantity ?? "",
           unit: it.unit ?? "kg",
           unit_price: it.unit_price ?? "",
-        }
+        },
   );
 }
 
@@ -40,16 +40,15 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
   const [errors, setErrors] = useState({});
 
   const [v, setV] = useState({
-    name:               initialData.name               ?? "",
-    company_name:       initialData.company_name       ?? "",
-    contact_number:     initialData.contact_number     ?? "",
-    email:              initialData.email              ?? "",
-    delivery_cost:      initialData.delivery_cost      ?? "",
-    lead_time_days:     initialData.lead_time_days     ?? "1", // AI Reorder Safety Stock Model සඳහා
+    name: initialData.name ?? "",
+    company_name: initialData.company_name ?? "",
+    contact_number: initialData.contact_number ?? "",
+    email: initialData.email ?? "",
+    delivery_cost: initialData.delivery_cost ?? "",
+    lead_time_days: initialData.lead_time_days ?? "1", // used for the safety-stock reorder point
   });
 
-  // ✅ Items Supplied + Available Quantity දෙකම මෙතනට — item එකකට quantity
-  // එකක් වශයෙන් (Procurement form එකේ "Add Item" pattern එකම).
+  // Items supplied with an available quantity per item (same "Add Item" pattern as the Procurement form).
   const [suppliedItems, setSuppliedItems] = useState(normalizeSuppliedItems(initialData.items_supplied));
   const [supplyItem, setSupplyItem] = useState(emptySupplyItem);
   const [supplyItemErrors, setSupplyItemErrors] = useState({});
@@ -64,9 +63,14 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
   function addSuppliedItem() {
     const er = {};
     if (!supplyItem.item_name.trim()) er.item_name = "Item name is required.";
-    if (supplyItem.quantity === "" || Number(supplyItem.quantity) <= 0) er.quantity = "Enter a valid quantity.";
-    if (supplyItem.unit_price !== "" && Number(supplyItem.unit_price) < 0) er.unit_price = "Unit price cannot be negative.";
-    if (Object.keys(er).length) { setSupplyItemErrors(er); return; }
+    if (supplyItem.quantity === "" || Number(supplyItem.quantity) <= 0)
+      er.quantity = "Enter a valid quantity.";
+    if (supplyItem.unit_price !== "" && Number(supplyItem.unit_price) < 0)
+      er.unit_price = "Unit price cannot be negative.";
+    if (Object.keys(er).length) {
+      setSupplyItemErrors(er);
+      return;
+    }
 
     setSuppliedItems((prev) => [
       ...prev,
@@ -85,49 +89,54 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
     setSuppliedItems((prev) => prev.filter((_, i) => i !== index));
   }
 
-  // ✅ Delivery Location dropdown එක අයින් කරලා — Procurement form එකේම
-  // "Location" pattern එකම: full auto-filled address string + map pin.
-  // District එකත් මේ address string එකේම ඇතුළත් වෙනවා.
+  // Location: full auto-filled address (district included) + map pin, as in the Procurement form.
   const [location, setLocation] = useState(initialData.delivery_location ?? "");
   const [coords, setCoords] = useState(
     initialData.latitude != null && initialData.longitude != null
       ? { lat: Number(initialData.latitude), lng: Number(initialData.longitude) }
-      : null
+      : null,
   );
 
   function set(k, val) {
-    setV(p => ({ ...p, [k]: val }));
-    setErrors(p => ({ ...p, [k]: undefined }));
+    setV((p) => ({ ...p, [k]: val }));
+    setErrors((p) => ({ ...p, [k]: undefined }));
   }
 
-  // Procurement form එකේම copy — browser GPS එකෙන් coords ලබාගෙන,
-  // address field එක හිස් නම් coordinates විදිහටම pre-fill කරනවා.
+  // Same as the Procurement form: take coordinates from the browser's GPS and pre-fill an empty
+  // address with them.
   function handleLocate() {
     if (!navigator.geolocation) {
-      setErrors(p => ({ ...p, location: "Geolocation isn't supported on this browser." }));
+      setErrors((p) => ({ ...p, location: "Geolocation isn't supported on this browser." }));
       return;
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
         setCoords({ lat: latitude, lng: longitude });
-        setErrors(p => ({ ...p, location: undefined }));
+        setErrors((p) => ({ ...p, location: undefined }));
         fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
           .then((r) => r.json())
           .then((d) => setLocation(d.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`))
           .catch(() => setLocation(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`));
       },
-      () => setErrors(p => ({ ...p, location: "Couldn't get your location. Try picking it on the map instead." })),
-      { enableHighAccuracy: true }
+      () =>
+        setErrors((p) => ({
+          ...p,
+          location: "Couldn't get your location. Try picking it on the map instead.",
+        })),
+      { enableHighAccuracy: true },
     );
   }
 
-  // Procurement form එකේම copy — map click කළ coordinate එකට reverse-geocode
-  // කරලා, full formatted address string එකෙන් Location field එක fill කරනවා.
+  // Same as the Procurement form: reverse-geocode the clicked map point and fill the Location
+  // field with the full address.
   function handleMapPick(lat, lng, displayName) {
     setCoords({ lat, lng });
-    setErrors(p => ({ ...p, location: undefined }));
-    if (displayName) { setLocation(displayName); return; }
+    setErrors((p) => ({ ...p, location: undefined }));
+    if (displayName) {
+      setLocation(displayName);
+      return;
+    }
     fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
       .then((r) => r.json())
       .then((d) => setLocation(d.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`))
@@ -162,19 +171,22 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
       er.lead_time_days = "Lead time cannot be negative.";
     }
 
-    // Errors තිබේ නම් Form Submission එක නතර කිරීම
-    if (Object.keys(er).length) { setErrors(er); return; }
+    // stop the submission when there are validation errors
+    if (Object.keys(er).length) {
+      setErrors(er);
+      return;
+    }
 
     setSaving(true);
     setServerError(null);
 
-    // Backend Payload එක සකස් කිරීම (Numbers බවට Convert කිරීම)
+    // build the backend payload (convert numbers)
     const payload = {
       ...v,
       delivery_location: location.trim(),
       delivery_cost: v.delivery_cost === "" ? 0 : Number(v.delivery_cost),
       lead_time_days: v.lead_time_days === "" ? 1 : Number(v.lead_time_days),
-      items_supplied: suppliedItems,             // [{item_name, quantity}]
+      items_supplied: suppliedItems, // [{item_name, quantity}]
       available_quantity: totalAvailableQuantity, // derived — sum of all item quantities
       latitude: coords?.lat ?? null,
       longitude: coords?.lng ?? null,
@@ -191,7 +203,7 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
     }
   }
 
-  const cls = k => `input-field ${errors[k] ? "border-red-400 ring-2 ring-red-100" : ""}`;
+  const cls = (k) => `input-field ${errors[k] ? "border-red-400 ring-2 ring-red-100" : ""}`;
 
   return (
     <form onSubmit={handleSubmit} noValidate className="card-elevated max-w-3xl mx-auto space-y-5">
@@ -203,33 +215,77 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <FormField label="Supplier Name" error={errors.name} required>
-          <input className={cls("name")} value={v.name} onChange={e => set("name", e.target.value)} placeholder="e.g. ABC Traders" />
+          <input
+            className={cls("name")}
+            value={v.name}
+            onChange={(e) => set("name", e.target.value)}
+            placeholder="e.g. ABC Traders"
+          />
         </FormField>
 
         <FormField label="Company Name">
-          <input className="input-field" value={v.company_name} onChange={e => set("company_name", e.target.value)} placeholder="e.g. ABC Holdings (Pvt) Ltd" />
+          <input
+            className="input-field"
+            value={v.company_name}
+            onChange={(e) => set("company_name", e.target.value)}
+            placeholder="e.g. ABC Holdings (Pvt) Ltd"
+          />
         </FormField>
 
         <FormField label="Contact Number" error={errors.contact_number} required>
-          <input className={cls("contact_number")} value={v.contact_number} onChange={e => set("contact_number", e.target.value)} placeholder="0771234567" />
+          <input
+            className={cls("contact_number")}
+            value={v.contact_number}
+            onChange={(e) => set("contact_number", e.target.value)}
+            placeholder="0771234567"
+          />
         </FormField>
 
         <FormField label="Email" error={errors.email}>
-          <input className={cls("email")} type="email" value={v.email} onChange={e => set("email", e.target.value)} placeholder="supplier@example.com" />
+          <input
+            className={cls("email")}
+            type="email"
+            value={v.email}
+            onChange={(e) => set("email", e.target.value)}
+            placeholder="supplier@example.com"
+          />
         </FormField>
 
-        <FormField label="Delivery Cost (LKR)" error={errors.delivery_cost} hint="Fixed delivery fee per shipment">
-          <input className={cls("delivery_cost")} type="number" min="0" step="0.01" value={v.delivery_cost} onChange={e => set("delivery_cost", e.target.value)} placeholder="0.00" />
+        <FormField
+          label="Delivery Cost (LKR)"
+          error={errors.delivery_cost}
+          hint="Fixed delivery fee per shipment"
+        >
+          <input
+            className={cls("delivery_cost")}
+            type="number"
+            min="0"
+            step="0.01"
+            value={v.delivery_cost}
+            onChange={(e) => set("delivery_cost", e.target.value)}
+            placeholder="0.00"
+          />
         </FormField>
 
-        {/* Dynamic Safety Stock Reorder Engine එකට අවශ්‍ය Lead Time */}
-        <FormField label="Delivery Lead Time (Days)" error={errors.lead_time_days} hint="Days needed to deliver items (For AI Reorder Buffer)">
-          <input className={cls("lead_time_days")} type="number" min="0" step="1" value={v.lead_time_days} onChange={e => set("lead_time_days", e.target.value)} placeholder="e.g. 2" />
+        {/* Lead time, used for the safety-stock reorder point */}
+        <FormField
+          label="Delivery Lead Time (Days)"
+          error={errors.lead_time_days}
+          hint="Days needed to deliver items (For AI Reorder Buffer)"
+        >
+          <input
+            className={cls("lead_time_days")}
+            type="number"
+            min="0"
+            step="1"
+            value={v.lead_time_days}
+            onChange={(e) => set("lead_time_days", e.target.value)}
+            placeholder="e.g. 2"
+          />
         </FormField>
       </div>
 
-      {/* ✅ Items Supplied + Available Quantity — item එකකට quantity එකක්,
-          Procurement form එකේ "Add Item" pattern එකම. */}
+      {/* Items supplied with an available quantity per item (same "Add Item" pattern as the Procurement form) */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
         <div className="bg-blue-50 px-5 py-4 text-base font-semibold text-blue-700 dark:bg-slate-800 dark:text-blue-300">
           Items Supplied
@@ -238,7 +294,11 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_100px_100px_130px_auto] sm:items-end">
             <FormField label="Item Name" error={supplyItemErrors.item_name}>
               <input
-                className={supplyItemErrors.item_name ? "input-field border-red-400 ring-2 ring-red-100" : "input-field"}
+                className={
+                  supplyItemErrors.item_name
+                    ? "input-field border-red-400 ring-2 ring-red-100"
+                    : "input-field"
+                }
                 value={supplyItem.item_name}
                 onChange={(e) => setSupplyItemField("item_name", e.target.value)}
                 placeholder="e.g. Rice 5kg"
@@ -246,28 +306,48 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
             </FormField>
             <FormField label="Quantity" error={supplyItemErrors.quantity}>
               <input
-                className={supplyItemErrors.quantity ? "input-field border-red-400 ring-2 ring-red-100" : "input-field"}
-                type="number" min="0" step="0.01"
+                className={
+                  supplyItemErrors.quantity ? "input-field border-red-400 ring-2 ring-red-100" : "input-field"
+                }
+                type="number"
+                min="0"
+                step="0.01"
                 value={supplyItem.quantity}
                 onChange={(e) => setSupplyItemField("quantity", e.target.value)}
                 placeholder="0"
               />
             </FormField>
             <FormField label="Unit">
-              <select className="select-field" value={supplyItem.unit} onChange={(e) => setSupplyItemField("unit", e.target.value)}>
-                {INVENTORY_UNITS.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
+              <select
+                className="select-field"
+                value={supplyItem.unit}
+                onChange={(e) => setSupplyItemField("unit", e.target.value)}
+              >
+                {INVENTORY_UNITS.map((u) => (
+                  <option key={u.value} value={u.value}>
+                    {u.label}
+                  </option>
+                ))}
               </select>
             </FormField>
             <FormField label="Unit Price (LKR)" error={supplyItemErrors.unit_price}>
               <input
-                className={supplyItemErrors.unit_price ? "input-field border-red-400 ring-2 ring-red-100" : "input-field"}
-                type="number" min="0" step="0.01"
+                className={
+                  supplyItemErrors.unit_price
+                    ? "input-field border-red-400 ring-2 ring-red-100"
+                    : "input-field"
+                }
+                type="number"
+                min="0"
+                step="0.01"
                 value={supplyItem.unit_price}
                 onChange={(e) => setSupplyItemField("unit_price", e.target.value)}
                 placeholder="0.00"
               />
             </FormField>
-            <Button type="button" variant="secondary" onClick={addSuppliedItem}>+ Add Item</Button>
+            <Button type="button" variant="secondary" onClick={addSuppliedItem}>
+              + Add Item
+            </Button>
           </div>
 
           <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
@@ -284,17 +364,30 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
               </thead>
               <tbody>
                 {suppliedItems.length === 0 ? (
-                  <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">No items added yet.</td></tr>
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                      No items added yet.
+                    </td>
+                  </tr>
                 ) : (
                   suppliedItems.map((it, i) => (
                     <tr key={i} className="border-t border-slate-100 dark:border-slate-800">
                       <td className="px-3 py-3 text-slate-500">{i + 1}</td>
-                      <td className="px-3 py-3 font-medium text-slate-800 dark:text-slate-100">{it.item_name}</td>
+                      <td className="px-3 py-3 font-medium text-slate-800 dark:text-slate-100">
+                        {it.item_name}
+                      </td>
                       <td className="px-3 py-3 text-right">{it.quantity}</td>
                       <td className="px-3 py-3 text-slate-500">{it.unit}</td>
                       <td className="px-3 py-3 text-right">{Number(it.unit_price || 0).toFixed(2)}</td>
                       <td className="px-3 py-3 text-center">
-                        <button type="button" onClick={() => removeSuppliedItem(i)} className="text-red-500 hover:text-red-700" aria-label="Remove">✕</button>
+                        <button
+                          type="button"
+                          onClick={() => removeSuppliedItem(i)}
+                          className="text-red-500 hover:text-red-700"
+                          aria-label="Remove"
+                        >
+                          ✕
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -309,7 +402,7 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
         </div>
       </div>
 
-      {/* ✅ Location + map — same pattern as the Procurement form:
+      {/* Location + map — same pattern as the Procurement form:
           address field auto-fills from the map pin (district included). */}
       <div className="space-y-3 border-t border-slate-100 pt-5 dark:border-slate-800">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -318,12 +411,17 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
               <input
                 className={cls("location")}
                 value={location}
-                onChange={(e) => { setLocation(e.target.value); setErrors(p => ({ ...p, location: undefined })); }}
+                onChange={(e) => {
+                  setLocation(e.target.value);
+                  setErrors((p) => ({ ...p, location: undefined }));
+                }}
                 placeholder="e.g. Panguwa, Thambana, Monaragala District"
               />
             </FormField>
           </div>
-          <Button type="button" onClick={handleLocate}>📍 Use My Location</Button>
+          <Button type="button" onClick={handleLocate}>
+            📍 Use My Location
+          </Button>
         </div>
         <p className="text-xs text-slate-400">Tip: You can click on the map and pick the exact location</p>
         <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
@@ -332,8 +430,14 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
       </div>
 
       <div className="flex justify-end gap-3 border-t border-slate-100 pt-5 dark:border-slate-800">
-        <Link href="/dashboard/suppliers"><Button variant="secondary" type="button">Cancel</Button></Link>
-        <Button type="submit" disabled={saving}>{saving ? "Saving..." : (isEdit ? "Update Supplier" : "Add Supplier")}</Button>
+        <Link href="/dashboard/suppliers">
+          <Button variant="secondary" type="button">
+            Cancel
+          </Button>
+        </Link>
+        <Button type="submit" disabled={saving}>
+          {saving ? "Saving..." : isEdit ? "Update Supplier" : "Add Supplier"}
+        </Button>
       </div>
     </form>
   );

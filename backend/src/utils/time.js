@@ -6,9 +6,14 @@
 export const APP_TZ = process.env.APP_TIMEZONE || "Asia/Colombo";
 
 const fmt = new Intl.DateTimeFormat("en-US", {
-  timeZone: APP_TZ, hourCycle: "h23",
-  year: "numeric", month: "2-digit", day: "2-digit",
-  hour: "2-digit", minute: "2-digit", second: "2-digit",
+  timeZone: APP_TZ,
+  hourCycle: "h23",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
 });
 
 // Offset of APP_TZ from UTC (ms) at instant t. Intl is slow, so the offset is cached per
@@ -31,12 +36,18 @@ function offsetAt(t) {
 // { year, month (1-12), day, hour, minute, second, weekday (Mon=0..Sun=6), date: "YYYY-MM-DD" }
 export function localParts(d = new Date()) {
   const t = new Date(d).getTime();
-  const x = new Date(t + offsetAt(t));          // wall-clock time, read with the UTC getters
-  const year = x.getUTCFullYear(), month = x.getUTCMonth() + 1, day = x.getUTCDate();
+  const x = new Date(t + offsetAt(t)); // wall-clock time, read with the UTC getters
+  const year = x.getUTCFullYear(),
+    month = x.getUTCMonth() + 1,
+    day = x.getUTCDate();
   return {
-    year, month, day,
-    hour: x.getUTCHours(), minute: x.getUTCMinutes(), second: x.getUTCSeconds(),
-    weekday: (x.getUTCDay() + 6) % 7,             // pandas: Monday=0 ... Sunday=6
+    year,
+    month,
+    day,
+    hour: x.getUTCHours(),
+    minute: x.getUTCMinutes(),
+    second: x.getUTCSeconds(),
+    weekday: (x.getUTCDay() + 6) % 7, // pandas: Monday=0 ... Sunday=6
     date: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
   };
 }
@@ -50,7 +61,7 @@ export function localDayStart(dateStr = localDateStr()) {
   const [y, m, d] = String(dateStr).slice(0, 10).split("-").map(Number);
   const guess = Date.UTC(y, m - 1, d);
   let t = guess - offsetAt(guess);
-  t = guess - offsetAt(t);          // second pass handles a DST change near midnight
+  t = guess - offsetAt(t); // second pass handles a DST change near midnight
   return new Date(t);
 }
 
@@ -65,11 +76,10 @@ export function addDays(dateStr, n) {
 const DAY = 86400000;
 export function localWeekStart(d) {
   const t = new Date(d).getTime();
-  const wall = t + offsetAt(t);                              // local wall-clock time
-  const dayWall = wall - (((wall % DAY) + DAY) % DAY);       // local midnight
+  const wall = t + offsetAt(t); // local wall-clock time
+  const dayWall = wall - (((wall % DAY) + DAY) % DAY); // local midnight
   const monday = dayWall - ((new Date(dayWall).getUTCDay() + 6) % 7) * DAY;
   let u = monday - offsetAt(monday);
-  u = monday - offsetAt(u);                                  // second pass handles DST
+  u = monday - offsetAt(u); // second pass handles DST
   return u;
 }
-

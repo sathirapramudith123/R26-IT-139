@@ -33,7 +33,9 @@ export default function ReportsPage() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const hasData = data && Object.keys(data).length > 0;
 
@@ -45,15 +47,15 @@ export default function ReportsPage() {
         description="Revenue, costs, and net profit."
         action={
           <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              disabled={!hasData}
-              onClick={() => downloadIncomeStatementPdf(data)}
-            >
+            <Button variant="secondary" disabled={!hasData} onClick={() => downloadIncomeStatementPdf(data)}>
               ⬇ PDF
             </Button>
-            <Button variant="secondary" onClick={load}>↻ Refresh</Button>
-            <Button variant="secondary" onClick={() => router.back()}>← Back</Button>
+            <Button variant="secondary" onClick={load}>
+              ↻ Refresh
+            </Button>
+            <Button variant="secondary" onClick={() => router.back()}>
+              ← Back
+            </Button>
           </div>
         }
       />
@@ -68,11 +70,7 @@ export default function ReportsPage() {
           </div>
         </Card>
       ) : !hasData ? (
-        <EmptyState
-          icon="📊"
-          title="No data yet"
-          description="No financial records for this period."
-        />
+        <EmptyState icon="📊" title="No data yet" description="No financial records for this period." />
       ) : (
         <IncomeStatement data={data} />
       )}

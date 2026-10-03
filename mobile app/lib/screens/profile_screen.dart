@@ -81,7 +81,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  Text(name, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      fontFamily: "Nunito",
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Text(email, style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 13)),
                   const SizedBox(height: 10),
@@ -91,7 +99,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: Colors.white.withOpacity(0.18),
                       borderRadius: BorderRadius.circular(999),
                     ),
-                    child: Text(role, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                    child: Text(
+                      role,
+                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
                   ),
                 ],
               ),
@@ -102,7 +113,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // ---- Account details ----
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-              child: Text("Account Details", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Theme.of(context).textTheme.bodySmall?.color)),
+              child: Text(
+                "Account Details",
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: Theme.of(context).textTheme.bodySmall?.color,
+                ),
+              ),
             ),
             ListTile(
               leading: const Icon(Icons.person_outline),
