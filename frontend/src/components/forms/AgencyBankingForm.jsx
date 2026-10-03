@@ -12,6 +12,7 @@ import { isValidPhone } from "@/lib/validators";
 import { formatCurrency } from "@/lib/formatters";
 import { User, Phone, AlertCircle, Loader2, Landmark, CreditCard } from "lucide-react";
 
+import { t } from "@/lib/i18n";
 const STATUSES = ["completed", "pending", "failed"];
 
 const DAILY_LIMITS = {
@@ -21,12 +22,42 @@ const DAILY_LIMITS = {
 };
 
 const SOURCE_OF_FUNDS = [
-  { value: "SALARY", label: "Salary" },
-  { value: "BUSINESS_INCOME", label: "Business Income" },
-  { value: "REMITTANCE", label: "Remittance" },
-  { value: "SAVINGS", label: "Savings" },
-  { value: "SALE_OF_PROPERTY", label: "Sale of Property" },
-  { value: "OTHER", label: "Other" },
+  {
+    value: "SALARY",
+    get label() {
+      return t("Salary");
+    },
+  },
+  {
+    value: "BUSINESS_INCOME",
+    get label() {
+      return t("Business Income");
+    },
+  },
+  {
+    value: "REMITTANCE",
+    get label() {
+      return t("Remittance");
+    },
+  },
+  {
+    value: "SAVINGS",
+    get label() {
+      return t("Savings");
+    },
+  },
+  {
+    value: "SALE_OF_PROPERTY",
+    get label() {
+      return t("Sale of Property");
+    },
+  },
+  {
+    value: "OTHER",
+    get label() {
+      return t("Other");
+    },
+  },
 ];
 
 const HEALTH_COLORS = {
@@ -112,16 +143,37 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
     if (v.transaction_type === "cash_deposit") {
       floatAfter = bal - amt; // float down
       cashAfter = cash + amt;
-      if (floatAfter < 0) floatMsg = { type: "error", text: "Insufficient float to fund this deposit." };
+      if (floatAfter < 0)
+        floatMsg = {
+          type: "error",
+          get text() {
+            return t("Insufficient float to fund this deposit.");
+          },
+        };
       else if (floatAfter < Number(selectedBank.float_floor))
-        floatMsg = { type: "warn", text: "Float will drop below floor — top-up recommended." };
+        floatMsg = {
+          type: "warn",
+          get text() {
+            return t("Float will drop below floor — top-up recommended.");
+          },
+        };
     } else if (v.transaction_type === "cash_withdrawal") {
       floatAfter = bal + amt;
       cashAfter = cash - amt;
       if (cashAfter < 0)
-        floatMsg = { type: "error", text: "Insufficient cash on hand to pay out this withdrawal." };
+        floatMsg = {
+          type: "error",
+          get text() {
+            return t("Insufficient cash on hand to pay out this withdrawal.");
+          },
+        };
       else if (floatAfter > Number(selectedBank.float_ceiling))
-        floatMsg = { type: "warn", text: "Float will exceed ceiling — schedule a sweep." };
+        floatMsg = {
+          type: "warn",
+          get text() {
+            return t("Float will exceed ceiling — schedule a sweep.");
+          },
+        };
     }
   }
 
@@ -132,7 +184,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
     if (!isValidPhone(v.customer_phone)) er.customer_phone = "Enter a valid Sri Lankan number.";
     if (!v.amount || Number(v.amount) <= 0) er.amount = "Enter an amount greater than 0.";
     if (limit && Number(v.amount) > limit) {
-      er.amount = `Daily limit is ${formatCurrency(limit)}.`;
+      er.amount = `${t("Daily limit is")} ${formatCurrency(limit)}.`;
     }
     if (!v.account_number.trim()) er.account_number = "Account number is required.";
     if (v.transaction_type === "cash_deposit") {
@@ -172,7 +224,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
       else await agencyBankingApi.create(payload);
       router.push("/dashboard/agency-banking");
     } catch (err) {
-      setServerError(err.message || "Save failed.");
+      setServerError(err.message || t("Save failed."));
     } finally {
       setSaving(false);
     }
@@ -205,11 +257,11 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
       <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 p-4">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <FormField
-            label="Agent Bank (Float Account)"
+            label={t("Agent Bank (Float Account)")}
             hint={
               banks.length === 0 && !loadingBanks
-                ? "Add a bank in 'My Banks' first"
-                : "Which float account funds this transaction"
+                ? t("Add a bank in 'My Banks' first")
+                : t("Which float account funds this transaction")
             }
           >
             <div className="relative">
@@ -220,7 +272,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
                 onChange={(e) => set("agent_bank_id", e.target.value)}
               >
                 <option value="" className="bg-white dark:bg-slate-900">
-                  {loadingBanks ? "Loading banks…" : "— No bank (skip float) —"}
+                  {loadingBanks ? t("Loading banks…") : t("— No bank (skip float) —")}
                 </option>
                 {banks.map((b) => (
                   <option
@@ -239,7 +291,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
             <div className="flex flex-col justify-center rounded-xl bg-slate-100 dark:bg-slate-900/60 px-4 py-3 text-sm">
               {/* Float */}
               <div className="flex items-center justify-between">
-                <span className="text-slate-500 dark:text-slate-400">Current float</span>
+                <span className="text-slate-500 dark:text-slate-400">{t("Current float")}</span>
                 <span className="font-semibold text-slate-900 dark:text-slate-100">
                   {formatCurrency(selectedBank.float_balance)}
                 </span>
@@ -247,7 +299,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
               {floatAfter !== null && (
                 <div className="mt-1 flex items-center justify-between">
                   <span className="text-slate-500 dark:text-slate-400">
-                    Float after {v.transaction_type === "cash_deposit" ? "↓" : "↑"}
+                    {t("Float after")} {v.transaction_type === "cash_deposit" ? "↓" : "↑"}
                   </span>
                   <span
                     className={`font-semibold ${floatAfter < Number(selectedBank.float_floor) ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}
@@ -259,7 +311,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
               <div className="my-2 border-t border-slate-300/60 dark:border-slate-700/60" />
               {/* Cash on hand (shared global pool) */}
               <div className="flex items-center justify-between">
-                <span className="text-slate-500 dark:text-slate-400">Cash on hand (pool)</span>
+                <span className="text-slate-500 dark:text-slate-400">{t("Cash on hand (pool)")}</span>
                 <span className="font-semibold text-slate-900 dark:text-slate-100">
                   {cashPool ? formatCurrency(cashPool.cash_on_hand) : "—"}
                 </span>
@@ -267,7 +319,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
               {cashAfter !== null && (
                 <div className="mt-1 flex items-center justify-between">
                   <span className="text-slate-500 dark:text-slate-400">
-                    Cash after {v.transaction_type === "cash_deposit" ? "↑" : "↓"}
+                    {t("Cash after")} {v.transaction_type === "cash_deposit" ? "↑" : "↓"}
                   </span>
                   <span
                     className={`font-semibold ${cashAfter < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}
@@ -278,11 +330,11 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
               )}
               <div className="my-2 border-t border-slate-300/60 dark:border-slate-700/60" />
               <div className="flex items-center justify-between">
-                <span className="text-slate-500 dark:text-slate-400">Health</span>
+                <span className="text-slate-500 dark:text-slate-400">{t("Health")}</span>
                 <span
                   className={`font-semibold ${HEALTH_COLORS[selectedBank.float_health] || "text-slate-600 dark:text-slate-300"}`}
                 >
-                  {(selectedBank.float_health || "—").replace("_", " ")}
+                  {t((selectedBank.float_health || "—").replace("_", " "))}
                 </span>
               </div>
               {floatMsg && (
@@ -298,19 +350,19 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <FormField label="Customer Name" error={errors.customer_name} required>
+        <FormField label={t("Customer Name")} error={errors.customer_name} required>
           <div className="relative">
             <User className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
             <input
               className={getInputClass("customer_name")}
               value={v.customer_name}
               onChange={(e) => set("customer_name", e.target.value)}
-              placeholder="e.g. Nimal Perera"
+              placeholder={t("e.g. Nimal Perera")}
             />
           </div>
         </FormField>
 
-        <FormField label="Customer Phone" error={errors.customer_phone} required>
+        <FormField label={t("Customer Phone")} error={errors.customer_phone} required>
           <div className="relative">
             <Phone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
             <input
@@ -323,19 +375,19 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
         </FormField>
 
         {/* NEW: Customer NIC */}
-        <FormField label="Customer NIC" hint="Used for daily transaction-count limits (max 5/day)">
+        <FormField label={t("Customer NIC")} hint={t("Used for daily transaction-count limits (max 5/day)")}>
           <div className="relative">
             <CreditCard className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
             <input
               className={getInputClass("customer_nic")}
               value={v.customer_nic}
               onChange={(e) => set("customer_nic", e.target.value)}
-              placeholder="e.g. 199012345678"
+              placeholder={t("e.g. 199012345678")}
             />
           </div>
         </FormField>
 
-        <FormField label="Transaction Type" required>
+        <FormField label={t("Transaction Type")} required>
           <select
             className={selectClass}
             value={v.transaction_type}
@@ -353,24 +405,24 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
           </select>
         </FormField>
 
-        <FormField label="Account Number" error={errors.account_number} required>
+        <FormField label={t("Account Number")} error={errors.account_number} required>
           <div className="relative">
             <CreditCard className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
             <input
               className={getInputClass("account_number")}
               value={v.account_number}
               onChange={(e) => set("account_number", e.target.value)}
-              placeholder="e.g. 8001234567"
+              placeholder={t("e.g. 8001234567")}
             />
           </div>
         </FormField>
 
         {v.transaction_type === "cash_deposit" && (
           <FormField
-            label="Source of Funds"
+            label={t("Source of Funds")}
             error={errors.source_of_funds}
             required
-            hint="Required for deposits (AML record)"
+            hint={t("Required for deposits (AML record)")}
           >
             <select
               className={selectClass}
@@ -378,7 +430,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
               onChange={(e) => set("source_of_funds", e.target.value)}
             >
               <option value="" className="bg-white dark:bg-slate-900">
-                — Select source —
+                {t("— Select source —")}
               </option>
               {SOURCE_OF_FUNDS.map((o) => (
                 <option
@@ -394,25 +446,25 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
         )}
 
         {v.transaction_type === "cash_deposit" && v.source_of_funds === "OTHER" && (
-          <FormField label="Specify Source of Funds" error={errors.source_other} required>
+          <FormField label={t("Specify Source of Funds")} error={errors.source_other} required>
             <input
               className={getInputClass("source_other")}
               value={v.source_other}
               onChange={(e) => set("source_other", e.target.value)}
-              placeholder="Describe the source of funds"
+              placeholder={t("Describe the source of funds")}
             />
           </FormField>
         )}
 
         <FormField
-          label="Amount (LKR)"
+          label={t("Amount (LKR)")}
           error={errors.amount}
-          hint={limit ? `Daily limit: ${formatCurrency(limit)}` : undefined}
+          hint={limit ? `${t("Daily limit:")} ${formatCurrency(limit)}` : undefined}
           required
         >
           <div className="relative">
             <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 dark:text-slate-500 select-none">
-              Rs.
+              {t("Rs.")}
             </span>
             <input
               className={getInputClass("amount")}
@@ -426,10 +478,10 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
           </div>
         </FormField>
 
-        <FormField label="Service Fee (LKR)" hint="">
+        <FormField label={t("Service Fee (LKR)")} hint="">
           <div className="relative">
             <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 dark:text-slate-500 select-none">
-              Rs.
+              {t("Rs.")}
             </span>
             <input
               className={getInputClass("service_fee")}
@@ -443,10 +495,10 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
           </div>
         </FormField>
 
-        <FormField label="Commission (LKR)" hint="Bank agent payout">
+        <FormField label={t("Commission (LKR)")} hint={t("Bank agent payout")}>
           <div className="relative">
             <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 dark:text-slate-500 select-none">
-              Rs.
+              {t("Rs.")}
             </span>
             <input
               className={getInputClass("commission")}
@@ -461,7 +513,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
         </FormField>
 
         {isEdit && (
-          <FormField label="Status">
+          <FormField label={t("Status")}>
             <select className={selectClass} value={v.status} onChange={(e) => set("status", e.target.value)}>
               {STATUSES.map((s) => (
                 <option
@@ -469,7 +521,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
                   value={s}
                   className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
                 >
-                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                  {t(s.charAt(0).toUpperCase() + s.slice(1))}
                 </option>
               ))}
             </select>
@@ -484,7 +536,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
             type="button"
             className="rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/50 px-5 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 transition-all"
           >
-            Cancel
+            {t("Cancel")}
           </Button>
         </Link>
         <Button
@@ -495,12 +547,12 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
           {saving ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
+              {t("Saving...")}
             </>
           ) : isEdit ? (
-            "Update Transaction"
+            t("Update Transaction")
           ) : (
-            "Post Transaction"
+            t("Post Transaction")
           )}
         </Button>
       </div>

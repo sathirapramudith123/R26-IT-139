@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 
+import { t } from "@/lib/i18n";
 const ThemeContext = createContext({ theme: "light", toggle: () => {} });
 
 export function ThemeProvider({ children }) {
@@ -33,9 +34,9 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggle}
-      aria-label="Toggle light or dark mode"
+      aria-label={t("Toggle light or dark mode")}
       className="btn-ghost text-base !px-3 !py-2"
-      title={theme === "light" ? "Switch to dark" : "Switch to light"}
+      title={theme === "light" ? t("Switch to dark") : t("Switch to light")}
     >
       {theme === "light" ? "🌙" : "☀️"}
     </button>

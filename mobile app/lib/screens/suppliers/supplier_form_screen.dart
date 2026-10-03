@@ -4,6 +4,7 @@ import '../../core/theme.dart';
 import '../../services/crud_service.dart';
 import '../common/location_picker_map.dart';
 import '../inventory/inventory_form_screen.dart' show fieldLabel, errorBox, saveButton;
+import '../../core/i18n.dart';
 
 class SupplierFormScreen extends StatefulWidget {
   final Map<String, dynamic>? item;
@@ -72,18 +73,18 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
     FocusScope.of(context).unfocus();
 
     if (nameCtrl.text.trim().isEmpty) {
-      setState(() => error = "Supplier Name is required.");
+      setState(() => error = tr("Supplier Name is required."));
       return;
     }
 
     final phone = contactCtrl.text.trim();
     if (phone.isEmpty) {
-      setState(() => error = "Contact Number is required.");
+      setState(() => error = tr("Contact Number is required."));
       return;
     }
     final digits = phone.replaceAll(RegExp(r'\D'), '');
     if (digits.length < 9 || digits.length > 12) {
-      setState(() => error = "Enter a valid contact number (e.g. 0771234567).");
+      setState(() => error = tr("Enter a valid contact number (e.g. 0771234567)."));
       return;
     }
 
@@ -91,7 +92,7 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
     if (email.isNotEmpty) {
       final emailRegExp = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
       if (!emailRegExp.hasMatch(email)) {
-        setState(() => error = "Please enter a valid email address.");
+        setState(() => error = tr("Please enter a valid email address."));
         return;
       }
     }
@@ -143,45 +144,45 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
           children: [
             if (error != null) ...[errorBox(error!), const SizedBox(height: 12)],
 
-            fieldLabel("Supplier Name *"),
+            fieldLabel(tr("Supplier Name *")),
             TextField(
               controller: nameCtrl,
               enabled: !saving,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(hintText: "Enter supplier name"),
+              decoration: InputDecoration(hintText: tr("Enter supplier name")),
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Company"),
+            fieldLabel(tr("Company")),
             TextField(
               controller: companyCtrl,
               enabled: !saving,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(hintText: "Enter company name"),
+              decoration: InputDecoration(hintText: tr("Enter company name")),
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Contact Number *"),
+            fieldLabel(tr("Contact Number *")),
             TextField(
               controller: contactCtrl,
               enabled: !saving,
               keyboardType: TextInputType.phone,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               maxLength: 12,
-              decoration: const InputDecoration(hintText: "07XXXXXXXX", counterText: ""),
+              decoration: InputDecoration(hintText: tr("07XXXXXXXX"), counterText: ""),
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Email"),
+            fieldLabel(tr("Email")),
             TextField(
               controller: emailCtrl,
               enabled: !saving,
               keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(hintText: "name@example.com"),
+              decoration: InputDecoration(hintText: tr("name@example.com")),
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Delivery Location"),
+            fieldLabel(tr("Delivery Location")),
             LocationPickerMap(
               initialLat: latitude,
               initialLng: longitude,
@@ -198,13 +199,13 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
               enabled: !saving,
               maxLines: 2,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                hintText: "Address (auto-filled from the map — edit if needed)",
+              decoration: InputDecoration(
+                hintText: tr("Address (auto-filled from the map — edit if needed)"),
               ),
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Available Quantity"),
+            fieldLabel(tr("Available Quantity")),
             TextField(
               controller: qtyCtrl,
               enabled: !saving,
@@ -214,23 +215,23 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Delivery Lead Time (Days)"),
+            fieldLabel(tr("Delivery Lead Time (Days)")),
             TextField(
               controller: leadTimeCtrl,
               enabled: !saving,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(hintText: "e.g. 3 (for AI reorder buffer)"),
+              decoration: InputDecoration(hintText: tr("e.g. 3 (for AI reorder buffer)")),
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Delivery Cost (LKR)"),
+            fieldLabel(tr("Delivery Cost (LKR)")),
             TextField(
               controller: deliveryCtrl,
               enabled: !saving,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-              decoration: const InputDecoration(hintText: "0.00", prefixText: "LKR "),
+              decoration: InputDecoration(hintText: "0.00", prefixText: tr("LKR ")),
             ),
             const SizedBox(height: 28),
 

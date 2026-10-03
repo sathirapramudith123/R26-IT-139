@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../core/theme.dart';
 import '../../core/api.dart';
 import '../../services/crud_service.dart';
+import '../../core/i18n.dart';
 
 const List<Map<String, String>> _txTypes = [
   {"value": "sale", "label": "Sale"},
@@ -204,16 +205,18 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     final price = double.tryParse(priceCtrl.text.trim()) ?? 0;
 
     if (name == null || name.isEmpty) {
-      setState(() => error = "Select an item first.");
+      setState(() => error = tr("Select an item first."));
       return;
     }
     if (units <= 0) {
-      setState(() => error = "Enter a valid quantity.");
+      setState(() => error = tr("Enter a valid quantity."));
       return;
     }
     if (price <= 0) {
       setState(
-        () => error = isPurchase ? "Enter the cost price per unit." : "Enter the selling price per unit.",
+        () => error = isPurchase
+            ? tr("Enter the cost price per unit.")
+            : tr("Enter the selling price per unit."),
       );
       return;
     }
@@ -264,11 +267,11 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
     // Payment method guard (same rules as the web app)
     if (txType == "transfer" && paymentMethod == "cash") {
-      setState(() => error = "Cash isn't allowed for Transfer transactions.");
+      setState(() => error = tr("Cash isn't allowed for Transfer transactions."));
       return;
     }
     if (txType == "deposit" && paymentMethod != "cash") {
-      setState(() => error = "Deposit must be paid via Cash.");
+      setState(() => error = tr("Deposit must be paid via Cash."));
       return;
     }
 
@@ -276,7 +279,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
     if (usesItems) {
       if (cart.isEmpty) {
-        setState(() => error = "Add at least one item.");
+        setState(() => error = tr("Add at least one item."));
         return;
       }
       payload["items"] = cart
@@ -294,11 +297,11 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     } else {
       final amt = double.tryParse(amountCtrl.text.trim()) ?? 0;
       if (amt <= 0) {
-        setState(() => error = "Enter an amount greater than 0.");
+        setState(() => error = tr("Enter an amount greater than 0."));
         return;
       }
       if (showCategory && (category == null || category!.isEmpty)) {
-        setState(() => error = "Please select a category.");
+        setState(() => error = tr("Please select a category."));
         return;
       }
       payload["amount"] = amt;
@@ -357,13 +360,13 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                     const Icon(Icons.error_outline, color: KadeColors.terra, size: 18),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(error!, style: const TextStyle(color: KadeColors.terra, fontSize: 13)),
+                      child: Text(tr(error!), style: const TextStyle(color: KadeColors.terra, fontSize: 13)),
                     ),
                   ],
                 ),
               ),
 
-            _label("Transaction Type *"),
+            _label(tr("Transaction Type *")),
             DropdownButtonFormField<String>(
               value: _txTypes.any((t) => t["value"] == txType) ? txType : _txTypes.first["value"],
               items: _txTypes
@@ -373,7 +376,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
             ),
             const SizedBox(height: 16),
 
-            _label("Payment Method *"),
+            _label(tr("Payment Method *")),
             DropdownButtonFormField<String>(
               value: payValue,
               items: payOpts
@@ -411,7 +414,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
                       )
                     : Text(
-                        isEdit ? "Update" : "Save",
+                        isEdit ? tr("Update") : tr("Save"),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
@@ -429,39 +432,39 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   Widget _label(String t) => Padding(
     padding: const EdgeInsets.only(bottom: 6),
     child: Text(
-      t,
+      tr(t),
       style: const TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito"),
     ),
   );
 
   List<Widget> _simpleSection() {
     return [
-      _label("Amount (LKR) *"),
+      _label(tr("Amount (LKR) *")),
       TextField(
         controller: amountCtrl,
         enabled: !saving,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-        decoration: const InputDecoration(hintText: "0.00", prefixText: "LKR "),
+        decoration: InputDecoration(hintText: "0.00", prefixText: tr("LKR ")),
       ),
       if (showCategory) ...[
         const SizedBox(height: 16),
-        _label("Category *"),
+        _label(tr("Category *")),
         DropdownButtonFormField<String>(
           value: _categoryOptions.contains(category) ? category : null,
-          hint: const Text("Select category…"),
-          items: _categoryOptions.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+          hint: Text(tr("Select category…")),
+          items: _categoryOptions.map((c) => DropdownMenuItem(value: c, child: Text(tr(c)))).toList(),
           onChanged: saving ? null : (v) => setState(() => category = v),
         ),
       ],
       if (showDescription) ...[
         const SizedBox(height: 16),
-        _label("Description"),
+        _label(tr("Description")),
         TextField(
           controller: descriptionCtrl,
           enabled: !saving,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(hintText: "Optional notes"),
+          decoration: InputDecoration(hintText: tr("Optional notes")),
         ),
       ],
     ];
@@ -477,11 +480,13 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         : "Enter your selling price per unit";
 
     return [
-      _label(itemLabel),
+      _label(tr(itemLabel)),
       DropdownButtonFormField<String>(
         value: names.contains(pickItem) ? pickItem : null,
         hint: Text(
-          loadingInventory ? "Loading..." : (names.isEmpty ? "No inventory items yet" : "Select an item…"),
+          loadingInventory
+              ? tr("Loading...")
+              : (names.isEmpty ? "No inventory items yet" : tr("Select an item…")),
         ),
         items: names.map((o) {
           final inv = _findItem(o);
@@ -491,24 +496,24 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       ),
       const SizedBox(height: 10),
 
-      _label(unitsLabel),
+      _label(tr(unitsLabel)),
       TextField(
         controller: qtyCtrl,
         enabled: !saving,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-        decoration: InputDecoration(hintText: unitsLabel),
+        decoration: InputDecoration(hintText: tr(unitsLabel)),
       ),
       const SizedBox(height: 10),
 
       // per-unit price — cost for a purchase, selling price for a sale
-      _label(priceLabel),
+      _label(tr(priceLabel)),
       TextField(
         controller: priceCtrl,
         enabled: !saving,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-        decoration: InputDecoration(hintText: "0.00", prefixText: "LKR ", helperText: priceHint),
+        decoration: InputDecoration(hintText: "0.00", prefixText: tr("LKR "), helperText: tr(priceHint)),
       ),
       const SizedBox(height: 10),
 
@@ -516,7 +521,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         alignment: Alignment.centerRight,
         child: FilledButton.tonal(
           onPressed: (pickItem == null || saving) ? null : _addToCart,
-          child: const Text("+ Add item"),
+          child: Text(tr("+ Add item")),
         ),
       ),
       const SizedBox(height: 14),
@@ -531,14 +536,14 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              isPurchase ? "Items in this purchase" : "Items in this sale",
+              isPurchase ? tr("Items in this purchase") : tr("Items in this sale"),
               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
             ),
             const SizedBox(height: 6),
             if (cart.isEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(vertical: 6),
-                child: Text("No items added yet.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                child: Text(tr("No items added yet."), style: TextStyle(fontSize: 12, color: Colors.grey)),
               )
             else
               ...cart.asMap().entries.map((e) {
@@ -579,7 +584,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("Total", style: TextStyle(fontWeight: FontWeight.w800)),
+                Text(tr("Total"), style: TextStyle(fontWeight: FontWeight.w800)),
                 Text(
                   "LKR ${cartTotal.toStringAsFixed(2)}",
                   style: const TextStyle(fontWeight: FontWeight.w800),

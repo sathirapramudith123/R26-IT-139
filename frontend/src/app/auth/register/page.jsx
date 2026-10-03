@@ -5,6 +5,7 @@ import AuthForm from "@/components/forms/AuthForm";
 import useAuth from "@/hooks/useAuth";
 import { UserPlus } from "lucide-react";
 
+import { t } from "@/lib/i18n";
 export default function RegisterPage() {
   const router = useRouter();
   const { register, loading, error } = useAuth();
@@ -23,10 +24,10 @@ export default function RegisterPage() {
             <UserPlus className="h-6 w-6" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            Create an account
+            {t("Create an account")}
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Join Lanka-Link and manage your business
+            {t("Join Lanka-Link and manage your business")}
           </p>
         </div>
 

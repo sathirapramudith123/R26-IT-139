@@ -7,21 +7,75 @@ import PredictionForm from "@/components/predictions/PredictionForm";
 import PredictionResult from "@/components/predictions/PredictionResult";
 import usePrediction from "@/hooks/usePrediction";
 
+import { t } from "@/lib/i18n";
 const FIELDS = [
   {
     name: "txn_type",
-    label: "Transaction Type",
+    get label() {
+      return t("Transaction Type");
+    },
     type: "text",
     options: ["cash_deposit", "cash_withdrawal", "fund_transfer", "balance_inquiry"],
     default: "cash_deposit",
   },
-  { name: "amount_abs_rs", label: "Amount (LKR)", type: "number", default: 5000 },
-  { name: "direction", label: "Direction", type: "text", options: ["in", "out"], default: "in" },
-  { name: "channel", label: "Channel", type: "text", options: ["agent", "online", "atm"], default: "agent" },
-  { name: "weekday", label: "Weekday (0-6)", type: "number", default: 3 },
-  { name: "day_of_month", label: "Day of Month", type: "number", default: 15 },
-  { name: "created_offline", label: "Created Offline (0/1)", type: "number", default: 0 },
-  { name: "amount_zscore", label: "Amount Z-score", type: "number", default: 0.4 },
+  {
+    name: "amount_abs_rs",
+    get label() {
+      return t("Amount (LKR)");
+    },
+    type: "number",
+    default: 5000,
+  },
+  {
+    name: "direction",
+    get label() {
+      return t("Direction");
+    },
+    type: "text",
+    options: ["in", "out"],
+    default: "in",
+  },
+  {
+    name: "channel",
+    get label() {
+      return t("Channel");
+    },
+    type: "text",
+    options: ["agent", "online", "atm"],
+    default: "agent",
+  },
+  {
+    name: "weekday",
+    get label() {
+      return t("Weekday (0-6)");
+    },
+    type: "number",
+    default: 3,
+  },
+  {
+    name: "day_of_month",
+    get label() {
+      return t("Day of Month");
+    },
+    type: "number",
+    default: 15,
+  },
+  {
+    name: "created_offline",
+    get label() {
+      return t("Created Offline (0/1)");
+    },
+    type: "number",
+    default: 0,
+  },
+  {
+    name: "amount_zscore",
+    get label() {
+      return t("Amount Z-score");
+    },
+    type: "number",
+    default: 0.4,
+  },
 ];
 
 export default function AnomalyPredictionPage() {
@@ -30,11 +84,11 @@ export default function AnomalyPredictionPage() {
   return (
     <div className="page-container">
       <PageHeader
-        title="Banking Anomaly"
-        description="Component 4 — flag suspicious transactions."
+        title={t("Banking Anomaly")}
+        description={t("Component 4 — flag suspicious transactions.")}
         action={
           <Link href="/dashboard/predictions">
-            <Button variant="secondary">← All Models</Button>
+            <Button variant="secondary">{t("← All Models")}</Button>
           </Link>
         }
       />

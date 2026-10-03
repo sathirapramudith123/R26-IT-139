@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../core/theme.dart';
 import '../../core/api.dart';
 import '../../services/crud_service.dart';
+import '../../core/i18n.dart';
 
 // Standardized categories (mirror web ITEM_CATEGORIES) — feed the AI model.
 const List<String> kItemCategories = [
@@ -115,16 +116,16 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
     FocusScope.of(context).unfocus();
 
     if (nameCtrl.text.trim().isEmpty) {
-      setState(() => error = "Item Name is required.");
+      setState(() => error = tr("Item Name is required."));
       return;
     }
     if (category == null || category!.isEmpty) {
-      setState(() => error = "Please select a category (needed for AI forecasting).");
+      setState(() => error = tr("Please select a category (needed for AI forecasting)."));
       return;
     }
     final qty = num.tryParse(quantityCtrl.text.trim());
     if (quantityCtrl.text.trim().isEmpty || qty == null || qty < 0) {
-      setState(() => error = "Please enter a valid Quantity.");
+      setState(() => error = tr("Please enter a valid Quantity."));
       return;
     }
 
@@ -183,45 +184,45 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
           children: [
             if (error != null) ...[errorBox(error!), const SizedBox(height: 12)],
 
-            fieldLabel("Item Name *"),
+            fieldLabel(tr("Item Name *")),
             TextField(
               controller: nameCtrl,
               enabled: !saving,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(hintText: "Enter item name"),
+              decoration: InputDecoration(hintText: tr("Enter item name")),
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Category *"),
+            fieldLabel(tr("Category *")),
             DropdownButtonFormField<String>(
               value: (category != null && categoryOptions.contains(category)) ? category : null,
-              hint: const Text("Select category…"),
-              items: categoryOptions.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
+              hint: Text(tr("Select category…")),
+              items: categoryOptions.map((o) => DropdownMenuItem(value: o, child: Text(tr(o)))).toList(),
               onChanged: saving ? null : (v) => setState(() => category = v),
             ),
             Padding(
               padding: const EdgeInsets.only(top: 6, left: 2),
               child: Text(
-                "Required for AI demand forecasting",
+                tr("Required for AI demand forecasting"),
                 style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
               ),
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Supplier"),
+            fieldLabel(tr("Supplier")),
             DropdownButtonFormField<String>(
               value: supplierOptions.contains(supplierName) ? supplierName : null,
               hint: Text(
                 loadingSuppliers
-                    ? "Loading..."
+                    ? tr("Loading...")
                     : (supplierOptions.isEmpty ? "No suppliers available" : "— Select Supplier —"),
               ),
-              items: supplierOptions.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
+              items: supplierOptions.map((o) => DropdownMenuItem(value: o, child: Text(tr(o)))).toList(),
               onChanged: saving ? null : (v) => setState(() => supplierName = v),
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Quantity *"),
+            fieldLabel(tr("Quantity *")),
             TextField(
               controller: quantityCtrl,
               enabled: !saving,
@@ -231,36 +232,36 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Reorder Level"),
+            fieldLabel(tr("Reorder Level")),
             TextField(
               controller: reorderCtrl,
               enabled: !saving,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-              decoration: const InputDecoration(hintText: "Leave blank for auto (AI)"),
+              decoration: InputDecoration(hintText: tr("Leave blank for auto (AI)")),
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Unit"),
+            fieldLabel(tr("Unit")),
             DropdownButtonFormField<String>(
               value: units.contains(unit) ? unit : "unit",
-              items: units.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
+              items: units.map((o) => DropdownMenuItem(value: o, child: Text(tr(o)))).toList(),
               onChanged: saving ? null : (v) => setState(() => unit = v ?? "unit"),
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Unit Cost per Unit (LKR)"),
+            fieldLabel(tr("Unit Cost per Unit (LKR)")),
             TextField(
               controller: costPriceCtrl,
               enabled: !saving,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-              decoration: const InputDecoration(hintText: "0.00", prefixText: "LKR "),
+              decoration: InputDecoration(hintText: "0.00", prefixText: tr("LKR ")),
             ),
             const SizedBox(height: 16),
 
             // Total Cost (read-only, calculated)
-            fieldLabel("Total Cost (LKR)"),
+            fieldLabel(tr("Total Cost (LKR)")),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
@@ -282,13 +283,13 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Item Delivery Lead Time (Days)"),
+            fieldLabel(tr("Item Delivery Lead Time (Days)")),
             TextField(
               controller: leadTimeCtrl,
               enabled: !saving,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(hintText: "e.g. 3 (used for safety stock)"),
+              decoration: InputDecoration(hintText: tr("e.g. 3 (used for safety stock)")),
             ),
             const SizedBox(height: 28),
 
@@ -304,7 +305,7 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
 Widget fieldLabel(String t) => Padding(
   padding: const EdgeInsets.only(bottom: 6),
   child: Text(
-    t,
+    tr(t),
     style: const TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito"),
   ),
 );
@@ -321,7 +322,7 @@ Widget errorBox(String msg) => Container(
       const Icon(Icons.error_outline, color: KadeColors.terra, size: 18),
       const SizedBox(width: 8),
       Expanded(
-        child: Text(msg, style: const TextStyle(color: KadeColors.terra, fontSize: 13)),
+        child: Text(tr(msg), style: const TextStyle(color: KadeColors.terra, fontSize: 13)),
       ),
     ],
   ),
@@ -342,7 +343,7 @@ Widget saveButton(bool saving, bool isEdit, Color teal, VoidCallback onSave) => 
             child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
           )
         : Text(
-            isEdit ? "Update" : "Save",
+            isEdit ? tr("Update") : tr("Save"),
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: "Nunito"),
           ),
   ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../services/insights_service.dart';
 import '../predictions/prediction_widgets.dart';
+import '../../core/i18n.dart';
 
 class PredictionsHubScreen extends StatefulWidget {
   const PredictionsHubScreen({super.key});
@@ -40,7 +41,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
     final anomaly = (data["anomaly"] ?? {}) as Map;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Your Forecasts")),
+      appBar: AppBar(title: Text(tr("Your Forecasts"))),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -49,8 +50,10 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
                 padding: const EdgeInsets.all(16),
                 children: [
                   Text(
-                    "Simple predictions based on your recent activity. "
-                    "Green means something is helping you; red means it's holding you back.",
+                    tr(
+                      "Simple predictions based on your recent activity. "
+                      "Green means something is helping you; red means it's holding you back.",
+                    ),
                     style: TextStyle(color: sub, height: 1.4),
                   ),
                   const SizedBox(height: 16),
@@ -91,17 +94,17 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    tag,
+                    tr(tag),
                     style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: tint),
                   ),
                   Text(
-                    title,
+                    tr(title),
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: "Nunito"),
                   ),
                 ],
               ),
               const Spacer(),
-              Text(icon, style: const TextStyle(fontSize: 26)),
+              Text(tr(icon), style: const TextStyle(fontSize: 26)),
             ],
           ),
           const SizedBox(height: 14),
@@ -123,7 +126,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
     decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(999)),
     child: Text(
-      text,
+      tr(text),
       style: TextStyle(fontWeight: FontWeight.w800, color: color),
     ),
   );
@@ -134,7 +137,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
     if (m["available"] != true) {
       return _shell(
         tag: "MONEY",
-        title: "Loan Readiness",
+        title: tr("Loan Readiness"),
         icon: "💳",
         tint: KadeColors.teal,
         isDark: isDark,
@@ -152,7 +155,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
 
     return _shell(
       tag: "MONEY",
-      title: "Loan Readiness",
+      title: tr("Loan Readiness"),
       icon: "💳",
       tint: KadeColors.teal,
       isDark: isDark,
@@ -208,7 +211,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
     if (m["available"] != true) {
       return _shell(
         tag: "INVENTORY",
-        title: "Sales Forecast",
+        title: tr("Sales Forecast"),
         icon: "📈",
         tint: KadeColors.amber,
         isDark: isDark,
@@ -220,7 +223,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
 
     return _shell(
       tag: "INVENTORY",
-      title: "Sales Forecast",
+      title: tr("Sales Forecast"),
       icon: "📈",
       tint: KadeColors.amber,
       isDark: isDark,
@@ -266,7 +269,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
                           color: KadeColors.amber,
                         ),
                       ),
-                      Text("units / next wk", style: TextStyle(fontSize: 10, color: sub)),
+                      Text(tr("units / next wk"), style: TextStyle(fontSize: 10, color: sub)),
                     ],
                   ),
                 ],
@@ -284,7 +287,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
     if (m["available"] != true) {
       return _shell(
         tag: "PURCHASING",
-        title: "Buy or Wait",
+        title: tr("Buy or Wait"),
         icon: "🛒",
         tint: KadeColors.terra,
         isDark: isDark,
@@ -296,7 +299,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
 
     return _shell(
       tag: "PURCHASING",
-      title: "Buy or Wait",
+      title: tr("Buy or Wait"),
       icon: "🛒",
       tint: KadeColors.terra,
       isDark: isDark,
@@ -345,7 +348,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          buy ? "🛒 Buy" : "⏳ Wait",
+                          buy ? tr("🛒 Buy") : tr("⏳ Wait"),
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
@@ -378,7 +381,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
     if (m["available"] != true) {
       return _shell(
         tag: "SECURITY",
-        title: "Account Activity",
+        title: tr("Account Activity"),
         icon: "🛡️",
         tint: Colors.blue,
         isDark: isDark,
@@ -390,7 +393,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
 
     return _shell(
       tag: "SECURITY",
-      title: "Account Activity",
+      title: tr("Account Activity"),
       icon: "🛡️",
       tint: Colors.blue,
       isDark: isDark,
@@ -409,7 +412,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
-              flagged ? "⚠ Looks unusual" : "✓ Looks normal",
+              flagged ? tr("⚠ Looks unusual") : tr("✓ Looks normal"),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
@@ -421,7 +424,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
           if (flagged) ...[
             const SizedBox(height: 8),
             Text(
-              "This looks different from your usual pattern — worth a quick check.",
+              tr("This looks different from your usual pattern — worth a quick check."),
               style: TextStyle(fontSize: 12, color: KadeColors.terra),
             ),
           ],

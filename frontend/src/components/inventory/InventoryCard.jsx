@@ -7,6 +7,7 @@ import { formatCurrency } from "@/lib/formatters/index";
 import { transactionApi } from "@/services/api/transaction";
 import { inventoryApi } from "@/services/api/inventory";
 
+import { t } from "@/lib/i18n";
 export default function InventoryCard({ item, onSold }) {
   const [selling, setSelling] = useState(false);
   const [qty, setQty] = useState(1);
@@ -46,7 +47,7 @@ export default function InventoryCard({ item, onSold }) {
       setQty(1);
       if (onSold) onSold(); // refresh parent list
     } catch (err) {
-      setError(err.message || "Sale failed.");
+      setError(err.message || t("Sale failed."));
     } finally {
       setSelling(false);
     }
@@ -70,7 +71,7 @@ export default function InventoryCard({ item, onSold }) {
 
       {/* Stock level */}
       <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
-        <span className="text-xs font-medium text-slate-500">In stock</span>
+        <span className="text-xs font-medium text-slate-500">{t("In stock")}</span>
         <span
           className={`text-lg font-bold ${isLow ? "text-amber-600" : isOut ? "text-red-600" : "text-slate-900"}`}
         >
@@ -81,10 +82,10 @@ export default function InventoryCard({ item, onSold }) {
       {/* Price and reorder */}
       <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
         <div>
-          Cost: <span className="font-medium text-slate-700">{formatCurrency(item.unit_price)}</span>
+          {t("Cost:")} <span className="font-medium text-slate-700">{formatCurrency(item.unit_price)}</span>
         </div>
         <div>
-          Reorder at: <span className="font-medium text-slate-700">{item.reorder_level}</span>
+          {t("Reorder at:")} <span className="font-medium text-slate-700">{item.reorder_level}</span>
         </div>
       </div>
 
@@ -100,7 +101,7 @@ export default function InventoryCard({ item, onSold }) {
           onSubmit={handleQuickSell}
           className="rounded-xl bg-teal-50 border border-teal-100 p-3 space-y-2"
         >
-          <p className="text-xs font-semibold text-teal-800">Quick Sell</p>
+          <p className="text-xs font-semibold text-teal-800">{t("Quick Sell")}</p>
           <div className="flex items-center gap-2">
             <input
               type="number"
@@ -112,7 +113,7 @@ export default function InventoryCard({ item, onSold }) {
             />
             <span className="text-xs text-slate-500">{item.unit || "units"}</span>
             <Button type="submit" size="sm" disabled={selling} className="ml-auto">
-              {selling ? "Saving…" : "Confirm"}
+              {selling ? t("Saving…") : t("Confirm")}
             </Button>
             <button
               type="button"
@@ -142,19 +143,21 @@ export default function InventoryCard({ item, onSold }) {
             }}
             className="flex-1"
           >
-            ⚡ Quick Sell
+            {t("⚡ Quick Sell")}
           </Button>
         ) : (
-          <span className="flex-1 text-center text-xs text-red-500 font-medium py-1">Out of stock</span>
+          <span className="flex-1 text-center text-xs text-red-500 font-medium py-1">
+            {t("Out of stock")}
+          </span>
         )}
         <Link href={`/dashboard/inventory/${item.id}`}>
           <Button size="sm" variant="ghost">
-            View
+            {t("View")}
           </Button>
         </Link>
         <Link href={`/dashboard/inventory/${item.id}/edit`}>
           <Button size="sm" variant="ghost">
-            Edit
+            {t("Edit")}
           </Button>
         </Link>
       </div>

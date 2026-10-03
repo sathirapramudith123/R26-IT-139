@@ -8,6 +8,7 @@ import { transactionApi } from "@/services/api/transaction";
 import { inventoryApi } from "@/services/api/inventory";
 import { TRANSACTION_TYPES, PAYMENT_METHODS } from "@/lib/constants";
 
+import { t } from "@/lib/i18n";
 // 1. Config for Transaction Modes
 const TYPE_CONFIG = {
   sale: { mode: "items" },
@@ -74,10 +75,10 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
   const total = cart.reduce((s, l) => s + (l.amount || 0), 0);
 
   // >>> Price field labels/hints depend on the mode
-  const priceLabel = isPurchase ? "Cost Price per Unit (LKR)" : "Selling Price per Unit (LKR)";
+  const priceLabel = isPurchase ? t("Cost Price per Unit (LKR)") : t("Selling Price per Unit (LKR)");
   const priceHint = isPurchase
-    ? "Auto-filled from inventory cost — editable"
-    : "Enter your selling price per unit";
+    ? t("Auto-filled from inventory cost — editable")
+    : t("Enter your selling price per unit");
 
   // Transfer can't be Cash; Deposit can ONLY be Cash.
   const paymentMethodOptions =
@@ -171,7 +172,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
     if (!price || price <= 0) {
       setErrors((p) => ({
         ...p,
-        unit_price: isPurchase ? "Enter the cost price per unit." : "Enter the selling price per unit.",
+        unit_price: isPurchase ? t("Enter the cost price per unit.") : t("Enter the selling price per unit."),
       }));
       return;
     }
@@ -226,7 +227,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
     e.preventDefault();
     const er = {};
     if (usesItems && cart.length === 0) er.amount = "Add at least one item.";
-    if (!v.amount || Number(v.amount) <= 0) er.amount = er.amount || "Enter an amount greater than 0.";
+    if (!v.amount || Number(v.amount) <= 0) er.amount = er.amount || t("Enter an amount greater than 0.");
     if (cfg.category && !v.category) er.category = "Please select a category.";
 
     if (type === "transfer" && v.payment_method === "cash") {
@@ -279,7 +280,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
       }
       router.push("/dashboard/transactions");
     } catch (err) {
-      setServerError(err.message || "Save failed.");
+      setServerError(err.message || t("Save failed."));
     } finally {
       setSaving(false);
     }
@@ -287,10 +288,10 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
 
   const cls = (k) => `input-field ${errors[k] ? "border-red-400 ring-2 ring-red-100" : ""}`;
 
-  const itemLabel = isPurchase ? "Item Purchased" : "Item Sold";
-  const unitsLabel = isPurchase ? "Units Bought" : "Units Sold";
-  const listLabel = isPurchase ? "Items in this purchase" : "Items in this sale";
-  const stockHint = isPurchase ? "Stock is added automatically" : "Stock is deducted automatically";
+  const itemLabel = isPurchase ? t("Item Purchased") : t("Item Sold");
+  const unitsLabel = isPurchase ? t("Units Bought") : t("Units Sold");
+  const listLabel = isPurchase ? t("Items in this purchase") : t("Items in this sale");
+  const stockHint = isPurchase ? t("Stock is added automatically") : t("Stock is deducted automatically");
 
   return (
     <form onSubmit={handleSubmit} noValidate className="card-elevated max-w-4xl mx-auto space-y-5">
@@ -301,7 +302,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
       )}
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-        <FormField label="Transaction Type" required>
+        <FormField label={t("Transaction Type")} required>
           <select className="select-field" value={type} onChange={(e) => changeType(e.target.value)}>
             {TRANSACTION_TYPES.map((o) => (
               <option key={o.value} value={o.value}>
@@ -312,14 +313,14 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
         </FormField>
 
         <FormField
-          label="Payment Method"
+          label={t("Payment Method")}
           required
           error={errors.payment_method}
           hint={
             type === "transfer"
-              ? "Cash isn't available for transfers"
+              ? t("Cash isn't available for transfers")
               : type === "deposit"
-                ? "Deposits are always Cash"
+                ? t("Deposits are always Cash")
                 : undefined
           }
         >
@@ -347,9 +348,9 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
                 label={itemLabel}
                 hint={
                   loadingInventory
-                    ? "Loading items..."
+                    ? t("Loading items...")
                     : items.length === 0
-                      ? "No inventory items yet."
+                      ? t("No inventory items yet.")
                       : stockHint
                 }
               >
@@ -359,10 +360,12 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
                   onChange={(e) => pickItem(e.target.value)}
                   disabled={loadingInventory}
                 >
-                  <option value="">{loadingInventory ? "Loading inventory..." : "Select an item…"}</option>
+                  <option value="">
+                    {loadingInventory ? t("Loading inventory...") : t("Select an item…")}
+                  </option>
                   {items.map((i) => (
                     <option key={i.id} value={i.name}>
-                      {i.name} ({i.quantity} in stock)
+                      {i.name} ({i.quantity} {t("in stock)")}
                     </option>
                   ))}
                 </select>
@@ -371,7 +374,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
               <FormField
                 label={unitsLabel}
                 error={errors.quantity}
-                hint={picked ? `${picked.quantity} currently in stock` : "Select an item first"}
+                hint={picked ? `${picked.quantity} ${t("currently in stock")}` : t("Select an item first")}
               >
                 <input
                   className={cls("quantity")}
@@ -404,7 +407,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
                 onClick={addLine}
                 disabled={!v.item_name || !v.quantity || !v.unit_price}
               >
-                + Add item
+                {t("+ Add item")}
               </Button>
             </div>
 
@@ -412,7 +415,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800">
               <p className="mb-2 text-sm font-semibold text-slate-700">{listLabel}</p>
               {cart.length === 0 ? (
-                <p className="text-xs text-slate-400">No items added yet.</p>
+                <p className="text-xs text-slate-400">{t("No items added yet.")}</p>
               ) : (
                 <ul className="divide-y divide-slate-200">
                   {cart.map((line, idx) => (
@@ -420,7 +423,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
                       <div>
                         <p className="font-medium text-slate-800">{line.item_name}</p>
                         <p className="text-xs text-slate-500">
-                          {line.quantity} × LKR {(line.unit_price || 0).toFixed(2)}
+                          {line.quantity} {t("× LKR")} {(line.unit_price || 0).toFixed(2)}
                         </p>
                       </div>
                       <div className="flex items-center gap-3">
@@ -431,7 +434,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
                           type="button"
                           onClick={() => removeLine(idx)}
                           className="text-slate-400 hover:text-red-500"
-                          aria-label="Remove item"
+                          aria-label={t("Remove item")}
                         >
                           ×
                         </button>
@@ -441,17 +444,17 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
                 </ul>
               )}
               <div className="mt-3 flex justify-between border-t border-slate-200 pt-3 text-sm font-semibold text-slate-800">
-                <span>Total</span>
+                <span>{t("Total")}</span>
                 <span>LKR {total.toFixed(2)}</span>
               </div>
             </div>
           </div>
 
           <FormField
-            label="Amount (LKR)"
+            label={t("Amount (LKR)")}
             error={errors.amount}
             required
-            hint="Auto-calculated from items — editable"
+            hint={t("Auto-calculated from items — editable")}
           >
             <input
               className={cls("amount")}
@@ -464,18 +467,18 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
             />
           </FormField>
 
-          <FormField label="Description / Note" hint="Optional">
+          <FormField label={t("Description / Note")} hint={t("Optional")}>
             <input
               className="input-field"
               value={v.description}
               onChange={(e) => set("description", e.target.value)}
-              placeholder="Add optional note for sale/purchase..."
+              placeholder={t("Add optional note for sale/purchase...")}
             />
           </FormField>
         </>
       ) : (
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <FormField label="Amount (LKR)" error={errors.amount} required>
+          <FormField label={t("Amount (LKR)")} error={errors.amount} required>
             <input
               className={cls("amount")}
               type="number"
@@ -488,13 +491,18 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
           </FormField>
 
           {cfg.category && (
-            <FormField label="Category" error={errors.category} required hint="Required for AI Analytics">
+            <FormField
+              label={t("Category")}
+              error={errors.category}
+              required
+              hint={t("Required for AI Analytics")}
+            >
               <select
                 className="select-field"
                 value={v.category}
                 onChange={(e) => set("category", e.target.value)}
               >
-                <option value="">Select Category...</option>
+                <option value="">{t("Select Category...")}</option>
                 {(CATEGORIES_BY_TYPE[type] || []).map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
@@ -506,12 +514,12 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
 
           {cfg.description && (
             <div className="md:col-span-2">
-              <FormField label="Description" hint="Optional">
+              <FormField label={t("Description")} hint={t("Optional")}>
                 <input
                   className="input-field"
                   value={v.description}
                   onChange={(e) => set("description", e.target.value)}
-                  placeholder="Add optional note..."
+                  placeholder={t("Add optional note...")}
                 />
               </FormField>
             </div>
@@ -522,11 +530,11 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
       <div className="flex justify-end gap-3 border-t border-slate-100 pt-5 dark:border-slate-800">
         <Link href="/dashboard/transactions">
           <Button variant="secondary" type="button">
-            Cancel
+            {t("Cancel")}
           </Button>
         </Link>
         <Button type="submit" disabled={saving}>
-          {saving ? "Saving..." : isEdit ? "Update" : "Create"}
+          {saving ? t("Saving...") : isEdit ? t("Update") : t("Create")}
         </Button>
       </div>
     </form>

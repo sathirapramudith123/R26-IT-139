@@ -208,7 +208,9 @@ Follows Central Bank of Sri Lanka rules: Direction No. 02 of 2018 (Agent Banking
 ## The look and feel
 
 Web and mobile share one warm "kade" design — teal with turmeric touches, rounded shapes and a friendly
-font, made to feel welcoming for rural shop owners. Light and dark modes are available.
+font, made to feel welcoming for rural shop owners. Light and dark modes are available, and every screen
+can be switched between **Sinhala and English** (සිංහල / English button in the top bar on web, Settings on
+mobile).
 
 ---
 
@@ -228,7 +230,7 @@ performance. Each model card lists its limitations.
 - Retrain with real data — loan repayment outcomes, real shop sales, Sri Lankan agency-banking records
 - Safety stock per item instead of one error figure for all items
 - Count agency-banking commission as income in the credit score
-- Full offline mode and Sinhala / Tamil language support
+- Full offline mode and Tamil language support
 
 ---
 

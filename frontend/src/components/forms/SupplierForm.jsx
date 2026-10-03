@@ -9,6 +9,7 @@ import { supplierApi } from "@/services/api/supplier";
 import { isValidEmail } from "@/lib/validators";
 import { INVENTORY_UNITS } from "@/lib/constants";
 
+import { t } from "@/lib/i18n";
 // LocationPickerMap uses Leaflet, which touches `window` — must be loaded
 // client-side only, same as it's used on the Procurement form.
 const LocationPickerMap = dynamic(() => import("./LocationPickerMap"), { ssr: false });
@@ -197,7 +198,7 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
       else await supplierApi.create(payload);
       router.push("/dashboard/suppliers");
     } catch (err) {
-      setServerError(err.message || "Failed to save supplier details.");
+      setServerError(err.message || t("Failed to save supplier details."));
     } finally {
       setSaving(false);
     }
@@ -214,25 +215,25 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
       )}
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-        <FormField label="Supplier Name" error={errors.name} required>
+        <FormField label={t("Supplier Name")} error={errors.name} required>
           <input
             className={cls("name")}
             value={v.name}
             onChange={(e) => set("name", e.target.value)}
-            placeholder="e.g. ABC Traders"
+            placeholder={t("e.g. ABC Traders")}
           />
         </FormField>
 
-        <FormField label="Company Name">
+        <FormField label={t("Company Name")}>
           <input
             className="input-field"
             value={v.company_name}
             onChange={(e) => set("company_name", e.target.value)}
-            placeholder="e.g. ABC Holdings (Pvt) Ltd"
+            placeholder={t("e.g. ABC Holdings (Pvt) Ltd")}
           />
         </FormField>
 
-        <FormField label="Contact Number" error={errors.contact_number} required>
+        <FormField label={t("Contact Number")} error={errors.contact_number} required>
           <input
             className={cls("contact_number")}
             value={v.contact_number}
@@ -241,20 +242,20 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
           />
         </FormField>
 
-        <FormField label="Email" error={errors.email}>
+        <FormField label={t("Email")} error={errors.email}>
           <input
             className={cls("email")}
             type="email"
             value={v.email}
             onChange={(e) => set("email", e.target.value)}
-            placeholder="supplier@example.com"
+            placeholder={t("supplier@example.com")}
           />
         </FormField>
 
         <FormField
-          label="Delivery Cost (LKR)"
+          label={t("Delivery Cost (LKR)")}
           error={errors.delivery_cost}
-          hint="Fixed delivery fee per shipment"
+          hint={t("Fixed delivery fee per shipment")}
         >
           <input
             className={cls("delivery_cost")}
@@ -269,9 +270,9 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
 
         {/* Lead time, used for the safety-stock reorder point */}
         <FormField
-          label="Delivery Lead Time (Days)"
+          label={t("Delivery Lead Time (Days)")}
           error={errors.lead_time_days}
-          hint="Days needed to deliver items (For AI Reorder Buffer)"
+          hint={t("Days needed to deliver items (For AI Reorder Buffer)")}
         >
           <input
             className={cls("lead_time_days")}
@@ -280,7 +281,7 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
             step="1"
             value={v.lead_time_days}
             onChange={(e) => set("lead_time_days", e.target.value)}
-            placeholder="e.g. 2"
+            placeholder={t("e.g. 2")}
           />
         </FormField>
       </div>
@@ -288,11 +289,11 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
       {/* Items supplied with an available quantity per item (same "Add Item" pattern as the Procurement form) */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
         <div className="bg-blue-50 px-5 py-4 text-base font-semibold text-blue-700 dark:bg-slate-800 dark:text-blue-300">
-          Items Supplied
+          {t("Items Supplied")}
         </div>
         <div className="space-y-4 p-5">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_100px_100px_130px_auto] sm:items-end">
-            <FormField label="Item Name" error={supplyItemErrors.item_name}>
+            <FormField label={t("Item Name")} error={supplyItemErrors.item_name}>
               <input
                 className={
                   supplyItemErrors.item_name
@@ -301,10 +302,10 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
                 }
                 value={supplyItem.item_name}
                 onChange={(e) => setSupplyItemField("item_name", e.target.value)}
-                placeholder="e.g. Rice 5kg"
+                placeholder={t("e.g. Rice 5kg")}
               />
             </FormField>
-            <FormField label="Quantity" error={supplyItemErrors.quantity}>
+            <FormField label={t("Quantity")} error={supplyItemErrors.quantity}>
               <input
                 className={
                   supplyItemErrors.quantity ? "input-field border-red-400 ring-2 ring-red-100" : "input-field"
@@ -317,7 +318,7 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
                 placeholder="0"
               />
             </FormField>
-            <FormField label="Unit">
+            <FormField label={t("Unit")}>
               <select
                 className="select-field"
                 value={supplyItem.unit}
@@ -330,7 +331,7 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
                 ))}
               </select>
             </FormField>
-            <FormField label="Unit Price (LKR)" error={supplyItemErrors.unit_price}>
+            <FormField label={t("Unit Price (LKR)")} error={supplyItemErrors.unit_price}>
               <input
                 className={
                   supplyItemErrors.unit_price
@@ -346,7 +347,7 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
               />
             </FormField>
             <Button type="button" variant="secondary" onClick={addSuppliedItem}>
-              + Add Item
+              {t("+ Add Item")}
             </Button>
           </div>
 
@@ -355,10 +356,10 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
               <thead>
                 <tr className="bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                   <th className="px-3 py-3 text-left font-semibold">#</th>
-                  <th className="px-3 py-3 text-left font-semibold">Item</th>
-                  <th className="px-3 py-3 text-right font-semibold">Quantity</th>
-                  <th className="px-3 py-3 text-left font-semibold">Unit</th>
-                  <th className="px-3 py-3 text-right font-semibold">Unit Price (LKR)</th>
+                  <th className="px-3 py-3 text-left font-semibold">{t("Item")}</th>
+                  <th className="px-3 py-3 text-right font-semibold">{t("Quantity")}</th>
+                  <th className="px-3 py-3 text-left font-semibold">{t("Unit")}</th>
+                  <th className="px-3 py-3 text-right font-semibold">{t("Unit Price (LKR)")}</th>
                   <th className="px-3 py-3 text-center font-semibold">✕</th>
                 </tr>
               </thead>
@@ -366,7 +367,7 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
                 {suppliedItems.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
-                      No items added yet.
+                      {t("No items added yet.")}
                     </td>
                   </tr>
                 ) : (
@@ -384,7 +385,7 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
                           type="button"
                           onClick={() => removeSuppliedItem(i)}
                           className="text-red-500 hover:text-red-700"
-                          aria-label="Remove"
+                          aria-label={t("Remove")}
                         >
                           ✕
                         </button>
@@ -397,7 +398,7 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
           </div>
 
           <div className="text-right text-sm font-bold text-blue-700 dark:text-blue-300">
-            Total Available Quantity: {totalAvailableQuantity}
+            {t("Total Available Quantity:")} {totalAvailableQuantity}
           </div>
         </div>
       </div>
@@ -407,7 +408,7 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
       <div className="space-y-3 border-t border-slate-100 pt-5 dark:border-slate-800">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
-            <FormField label="Location" error={errors.location}>
+            <FormField label={t("Location")} error={errors.location}>
               <input
                 className={cls("location")}
                 value={location}
@@ -415,15 +416,17 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
                   setLocation(e.target.value);
                   setErrors((p) => ({ ...p, location: undefined }));
                 }}
-                placeholder="e.g. Panguwa, Thambana, Monaragala District"
+                placeholder={t("e.g. Panguwa, Thambana, Monaragala District")}
               />
             </FormField>
           </div>
           <Button type="button" onClick={handleLocate}>
-            📍 Use My Location
+            {t("📍 Use My Location")}
           </Button>
         </div>
-        <p className="text-xs text-slate-400">Tip: You can click on the map and pick the exact location</p>
+        <p className="text-xs text-slate-400">
+          {t("Tip: You can click on the map and pick the exact location")}
+        </p>
         <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
           <LocationPickerMap coords={coords} onPick={handleMapPick} />
         </div>
@@ -432,11 +435,11 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
       <div className="flex justify-end gap-3 border-t border-slate-100 pt-5 dark:border-slate-800">
         <Link href="/dashboard/suppliers">
           <Button variant="secondary" type="button">
-            Cancel
+            {t("Cancel")}
           </Button>
         </Link>
         <Button type="submit" disabled={saving}>
-          {saving ? "Saving..." : isEdit ? "Update Supplier" : "Add Supplier"}
+          {saving ? t("Saving...") : isEdit ? t("Update Supplier") : t("Add Supplier")}
         </Button>
       </div>
     </form>

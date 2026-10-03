@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
+import '../core/i18n.dart';
 
 /// A square-ish tile in the dashboard's module grid (Transactions,
 /// Inventory, Predictions, etc). Set [highlight] for a tinted "featured"
@@ -50,7 +51,7 @@ class ModuleTile extends StatelessWidget {
                 child: Icon(icon, size: 20, color: teal),
               ),
               const Spacer(),
-              Text(title, style: Theme.of(context).textTheme.titleSmall),
+              Text(tr(title), style: Theme.of(context).textTheme.titleSmall),
             ],
           ),
         ),

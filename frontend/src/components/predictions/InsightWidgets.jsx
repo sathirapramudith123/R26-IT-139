@@ -14,6 +14,7 @@ import {
   CartesianGrid,
 } from "recharts";
 
+import { t } from "@/lib/i18n";
 export const FEATURE_LABELS = {
   months_active: "Time in business",
   avg_daily_txns: "Daily sales count",
@@ -30,10 +31,12 @@ export const FEATURE_LABELS = {
 };
 
 export const humanize = (f) =>
-  FEATURE_LABELS[f] ||
-  String(f)
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  t(
+    FEATURE_LABELS[f] ||
+      String(f)
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase()),
+  );
 
 export function LoanReadinessGauge({ score }) {
   const pct = Math.min(100, Math.max(0, Number(score) || 0));
@@ -69,7 +72,9 @@ export function LoanReadinessGauge({ score }) {
       </svg>
       <div className="absolute flex flex-col items-center justify-center text-center">
         <span className={`font-outfit text-2xl font-black ${colorClass}`}>{pct.toFixed(0)}</span>
-        <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Score</span>
+        <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+          {t("Score")}
+        </span>
       </div>
     </div>
   );
@@ -81,7 +86,7 @@ export function InfluenceTooltip({ active, payload }) {
   return (
     <div className="rounded-lg bg-slate-900 px-3 py-2 text-xs text-white shadow-lg dark:bg-slate-100 dark:text-slate-900">
       <p className="font-semibold">{payload[0].payload.name}</p>
-      <p className="text-[11px] opacity-90">{v >= 0 ? "Helping the result ↑" : "Holding it back ↓"}</p>
+      <p className="text-[11px] opacity-90">{v >= 0 ? t("Helping the result ↑") : t("Holding it back ↓")}</p>
     </div>
   );
 }
@@ -99,13 +104,15 @@ export function InfluenceChart({ explanation }) {
   return (
     <div className="mt-4 border-t border-slate-100 pt-3 dark:border-slate-800">
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">What&apos;s affecting this</p>
+        <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+          {t("What's affecting this")}
+        </p>
         <div className="flex items-center gap-3 text-[10px] font-medium text-slate-400">
           <span className="flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" /> Helping
+            <span className="h-2 w-2 rounded-full bg-emerald-500" /> {t("Helping")}
           </span>
           <span className="flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-rose-500" /> Holding back
+            <span className="h-2 w-2 rounded-full bg-rose-500" /> {t("Holding back")}
           </span>
         </div>
       </div>
@@ -139,7 +146,13 @@ export function DemandTrend({ history, prediction }) {
 
   const data = [
     ...history.map((h) => ({ label: h.label, units: Number(h.units) })),
-    { label: "Next week", units: Number(prediction), forecast: true },
+    {
+      get label() {
+        return t("Next week");
+      },
+      units: Number(prediction),
+      forecast: true,
+    },
   ];
 
   return (
@@ -156,7 +169,7 @@ export function DemandTrend({ history, prediction }) {
               border: "none",
               boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
             }}
-            formatter={(v) => [`${v} units`, "Sales"]}
+            formatter={(v) => [`${v} ${t("units")}`, t("Sales")]}
           />
           <Line
             type="monotone"
@@ -178,7 +191,7 @@ export function ConfidenceBar({ score }) {
   return (
     <div>
       <div className="mb-1 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-        <span>How confident we are</span>
+        <span>{t("How confident we are")}</span>
         <span className="font-semibold">{pct.toFixed(0)}%</span>
       </div>
       <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
@@ -194,7 +207,7 @@ export function ConfidenceBar({ score }) {
 export const NoData = ({ reason }) => (
   <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-8 text-center dark:border-slate-700 dark:bg-slate-800/40">
     <p className="text-sm text-slate-500 dark:text-slate-400">
-      {reason || "Not enough data yet to show this."}
+      {reason || t("Not enough data yet to show this.")}
     </p>
   </div>
 );

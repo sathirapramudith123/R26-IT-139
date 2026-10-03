@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/api.dart';
 import '../../core/theme.dart';
 import '../../core/report_pdf.dart';
+import '../../core/i18n.dart';
 
 class IncomeStatementScreen extends StatefulWidget {
   const IncomeStatementScreen({super.key});
@@ -62,19 +63,19 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "Income & Expense Statement",
+        title: Text(
+          tr("Income & Expense Statement"),
           style: TextStyle(fontFamily: "Nunito", fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.picture_as_pdf),
-            tooltip: "Download PDF",
+            tooltip: tr("Download PDF"),
             onPressed: (loading || data == null || data!.isEmpty)
                 ? null
                 : () => shareIncomeStatementPdf(data!),
           ),
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchStatement, tooltip: "Refresh"),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchStatement, tooltip: tr("Refresh")),
         ],
       ),
       body: loading
@@ -89,12 +90,12 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
                     const Icon(Icons.error_outline, color: KadeColors.terra, size: 48),
                     const SizedBox(height: 12),
                     Text(
-                      error!,
+                      tr(error!),
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: KadeColors.terra, fontFamily: "Nunito"),
                     ),
                     const SizedBox(height: 16),
-                    ElevatedButton(onPressed: _fetchStatement, child: const Text("Try Again")),
+                    ElevatedButton(onPressed: _fetchStatement, child: Text(tr("Try Again"))),
                   ],
                 ),
               ),
@@ -117,7 +118,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
                     child: Column(
                       children: [
                         Text(
-                          netProfit >= 0 ? "NET PROFIT" : "NET LOSS",
+                          netProfit >= 0 ? tr("NET PROFIT") : tr("NET LOSS"),
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w800,
@@ -161,22 +162,22 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            "Financial Summary",
+                          Text(
+                            tr("Financial Summary"),
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: "Nunito"),
                           ),
                           const Divider(height: 24),
 
-                          _buildSummaryRow("Total Revenue / Sales", rev, Colors.green),
+                          _buildSummaryRow(tr("Total Revenue / Sales"), rev, Colors.green),
                           const SizedBox(height: 12),
-                          _buildSummaryRow("Cost of Goods Sold", -cogs, Colors.orange),
+                          _buildSummaryRow(tr("Cost of Goods Sold"), -cogs, Colors.orange),
                           const Divider(height: 24),
-                          _buildSummaryRow("Gross Profit", grossProfit, Colors.blue, isBold: true),
+                          _buildSummaryRow(tr("Gross Profit"), grossProfit, Colors.blue, isBold: true),
                           const SizedBox(height: 12),
-                          _buildSummaryRow("Operating Expenses", -opex, KadeColors.terra),
+                          _buildSummaryRow(tr("Operating Expenses"), -opex, KadeColors.terra),
                           const Divider(height: 24),
                           _buildSummaryRow(
-                            "Net Income / Profit",
+                            tr("Net Income / Profit"),
                             netProfit,
                             netProfit >= 0 ? tealColor : KadeColors.terra,
                             isBold: true,
@@ -208,7 +209,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
       children: [
         Expanded(
           child: Text(
-            title,
+            tr(title),
             style: TextStyle(
               fontSize: isLarge ? 15 : 14,
               fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
@@ -217,7 +218,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
           ),
         ),
         Text(
-          amountText,
+          tr(amountText),
           style: TextStyle(
             fontSize: isLarge ? 16 : 14,
             fontWeight: isBold ? FontWeight.w800 : FontWeight.w700,

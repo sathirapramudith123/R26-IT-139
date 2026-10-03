@@ -7,6 +7,7 @@ import Button from "@/components/ui/Button";
 import { isValidEmail, isRequired } from "@/lib/validators";
 import { User, Mail, Lock, AlertCircle } from "lucide-react";
 
+import { t } from "@/lib/i18n";
 export default function AuthForm({ mode = "login", onSubmit, loading, error }) {
   const isLogin = mode === "login";
   const isRegister = mode === "register";
@@ -55,20 +56,20 @@ export default function AuthForm({ mode = "login", onSubmit, loading, error }) {
       )}
 
       {isRegister && (
-        <FormField label="Full Name" error={fieldErrors.full_name} required>
+        <FormField label={t("Full Name")} error={fieldErrors.full_name} required>
           <div className="relative">
             <User className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             <input
               className={getInputClass("full_name")}
               value={values.full_name}
               onChange={(e) => set("full_name", e.target.value)}
-              placeholder="Your full name"
+              placeholder={t("Your full name")}
             />
           </div>
         </FormField>
       )}
 
-      <FormField label="Email Address" error={fieldErrors.email} required>
+      <FormField label={t("Email Address")} error={fieldErrors.email} required>
         <div className="relative">
           <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
           <input
@@ -76,15 +77,15 @@ export default function AuthForm({ mode = "login", onSubmit, loading, error }) {
             type="email"
             value={values.email}
             onChange={(e) => set("email", e.target.value)}
-            placeholder="you@example.com"
+            placeholder={t("you@example.com")}
           />
         </div>
       </FormField>
 
       <FormField
-        label="Password"
+        label={t("Password")}
         error={fieldErrors.password}
-        hint={isRegister ? "Minimum 6 characters." : undefined}
+        hint={isRegister ? t("Minimum 6 characters.") : undefined}
         required
       >
         <div className="relative">
@@ -94,7 +95,7 @@ export default function AuthForm({ mode = "login", onSubmit, loading, error }) {
             type="password"
             value={values.password}
             onChange={(e) => set("password", e.target.value)}
-            placeholder={isRegister ? "Create a password" : "Your password"}
+            placeholder={isRegister ? t("Create a password") : t("Your password")}
           />
         </div>
       </FormField>
@@ -105,7 +106,7 @@ export default function AuthForm({ mode = "login", onSubmit, loading, error }) {
             href="/auth/forgot-password"
             className="text-xs text-teal-400 hover:text-teal-300 transition-colors"
           >
-            Forgot password?
+            {t("Forgot password?")}
           </Link>
         </div>
       )}
@@ -115,28 +116,34 @@ export default function AuthForm({ mode = "login", onSubmit, loading, error }) {
         disabled={loading}
         className="w-full justify-center bg-teal-600 hover:bg-teal-500 text-white font-semibold py-2.5 rounded-xl transition-all shadow-lg shadow-teal-600/20 disabled:opacity-50"
       >
-        {loading ? (isLogin ? "Signing in…" : "Creating account…") : isLogin ? "Sign In" : "Create Account"}
+        {loading
+          ? isLogin
+            ? t("Signing in…")
+            : t("Creating account…")
+          : isLogin
+            ? t("Sign In")
+            : t("Create Account")}
       </Button>
 
       <p className="text-center text-sm text-slate-400">
         {isLogin ? (
           <>
-            New here?{" "}
+            {t("New here?")}{" "}
             <Link
               href="/auth/register"
               className="font-medium text-teal-400 hover:text-teal-300 hover:underline transition-colors"
             >
-              Create account
+              {t("Create account")}
             </Link>
           </>
         ) : (
           <>
-            Already have an account?{" "}
+            {t("Already have an account?")}{" "}
             <Link
               href="/auth/login"
               className="font-medium text-teal-400 hover:text-teal-300 hover:underline transition-colors"
             >
-              Sign in
+              {t("Sign in")}
             </Link>
           </>
         )}

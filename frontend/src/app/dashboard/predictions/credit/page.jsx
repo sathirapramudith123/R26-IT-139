@@ -8,24 +8,118 @@ import PredictionForm from "@/components/predictions/PredictionForm";
 import PredictionResult from "@/components/predictions/PredictionResult";
 import usePrediction from "@/hooks/usePrediction";
 
+import { t } from "@/lib/i18n";
 // Inputs expected by the credit model
 const CREDIT_FIELDS = [
-  { name: "months_active", label: "Months Active in Business", type: "number", default: 24 },
-  { name: "monthly_revenue_rs", label: "Monthly Revenue (LKR)", type: "number", default: 450000 },
-  { name: "monthly_expenses_rs", label: "Monthly Expenses (LKR)", type: "number", default: 280000 },
-  { name: "monthly_profit_rs", label: "Monthly Profit (LKR)", type: "number", default: 170000 },
-  { name: "profit_margin_pct", label: "Profit Margin (%)", type: "number", default: 37.7 },
-  { name: "avg_daily_txns", label: "Average Daily Transactions", type: "number", default: 45 },
-  { name: "sales_volatility", label: "Sales Volatility Index", type: "number", default: 0.15 },
-  { name: "credit_sales_ratio", label: "Credit Sales Ratio (0 - 1)", type: "number", default: 0.25 },
-  { name: "digital_payment_ratio", label: "Digital Payment Ratio (0 - 1)", type: "number", default: 0.6 },
-  { name: "stockout_rate", label: "Stockout Rate (0 - 1)", type: "number", default: 0.05 },
-  { name: "net_cash_flow", label: "Net Cash Flow (LKR)", type: "number", default: 120000 },
-  { name: "debt_to_income_ratio", label: "Debt-to-Income Ratio", type: "number", default: 0.2 },
-  { name: "digital_revenue_volume", label: "Digital Revenue Volume (LKR)", type: "number", default: 270000 },
+  {
+    name: "months_active",
+    get label() {
+      return t("Months Active in Business");
+    },
+    type: "number",
+    default: 24,
+  },
+  {
+    name: "monthly_revenue_rs",
+    get label() {
+      return t("Monthly Revenue (LKR)");
+    },
+    type: "number",
+    default: 450000,
+  },
+  {
+    name: "monthly_expenses_rs",
+    get label() {
+      return t("Monthly Expenses (LKR)");
+    },
+    type: "number",
+    default: 280000,
+  },
+  {
+    name: "monthly_profit_rs",
+    get label() {
+      return t("Monthly Profit (LKR)");
+    },
+    type: "number",
+    default: 170000,
+  },
+  {
+    name: "profit_margin_pct",
+    get label() {
+      return t("Profit Margin (%)");
+    },
+    type: "number",
+    default: 37.7,
+  },
+  {
+    name: "avg_daily_txns",
+    get label() {
+      return t("Average Daily Transactions");
+    },
+    type: "number",
+    default: 45,
+  },
+  {
+    name: "sales_volatility",
+    get label() {
+      return t("Sales Volatility Index");
+    },
+    type: "number",
+    default: 0.15,
+  },
+  {
+    name: "credit_sales_ratio",
+    get label() {
+      return t("Credit Sales Ratio (0 - 1)");
+    },
+    type: "number",
+    default: 0.25,
+  },
+  {
+    name: "digital_payment_ratio",
+    get label() {
+      return t("Digital Payment Ratio (0 - 1)");
+    },
+    type: "number",
+    default: 0.6,
+  },
+  {
+    name: "stockout_rate",
+    get label() {
+      return t("Stockout Rate (0 - 1)");
+    },
+    type: "number",
+    default: 0.05,
+  },
+  {
+    name: "net_cash_flow",
+    get label() {
+      return t("Net Cash Flow (LKR)");
+    },
+    type: "number",
+    default: 120000,
+  },
+  {
+    name: "debt_to_income_ratio",
+    get label() {
+      return t("Debt-to-Income Ratio");
+    },
+    type: "number",
+    default: 0.2,
+  },
+  {
+    name: "digital_revenue_volume",
+    get label() {
+      return t("Digital Revenue Volume (LKR)");
+    },
+    type: "number",
+    default: 270000,
+  },
   {
     name: "revenue_per_active_month",
-    label: "Revenue per Active Month (LKR)",
+    get label() {
+      return t("Revenue per Active Month (LKR)");
+    },
     type: "number",
     default: 18750,
   },
@@ -47,11 +141,11 @@ export default function CreditReadinessPage() {
   return (
     <div className="page-container space-y-6">
       <PageHeader
-        title="Credit Readiness Assessment"
-        description="Check loan eligibility and financial risk profile."
+        title={t("Credit Readiness Assessment")}
+        description={t("Check loan eligibility and financial risk profile.")}
         action={
           <Link href="/dashboard/predictions">
-            <Button variant="secondary">← All Models</Button>
+            <Button variant="secondary">{t("← All Models")}</Button>
           </Link>
         }
       />

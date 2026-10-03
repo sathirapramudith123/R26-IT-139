@@ -9,6 +9,7 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import TransactionForm from "@/components/forms/TransactionForm";
 import { transactionApi } from "@/services/api/transaction";
 
+import { t } from "@/lib/i18n";
 function normalize(tx) {
   if (!tx) return tx;
   return {
@@ -50,7 +51,7 @@ export default function EditTransactionPage() {
         if (active) setItem(normalize(data));
       })
       .catch((e) => {
-        if (active) setError(e?.message || "Failed to load transaction.");
+        if (active) setError(e?.message || t("Failed to load transaction."));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -63,11 +64,11 @@ export default function EditTransactionPage() {
   return (
     <div className="page-container">
       <PageHeader
-        title="Edit Transaction"
-        description="Update transaction details."
+        title={t("Edit Transaction")}
+        description={t("Update transaction details.")}
         action={
           <Link href="/dashboard/transactions">
-            <Button variant="secondary">← Back</Button>
+            <Button variant="secondary">{t("← Back")}</Button>
           </Link>
         }
       />
@@ -76,7 +77,7 @@ export default function EditTransactionPage() {
       ) : error ? (
         <p className="text-sm text-red-600">{error}</p>
       ) : !item ? (
-        <p className="text-sm text-slate-500">Not found.</p>
+        <p className="text-sm text-slate-500">{t("Not found.")}</p>
       ) : (
         <TransactionForm initialData={item} txId={id} />
       )}

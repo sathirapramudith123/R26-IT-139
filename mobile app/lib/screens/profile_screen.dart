@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../services/auth_service.dart';
 import 'auth/login_screen.dart';
+import '../core/i18n.dart';
 
 /// User profile tab. Wire the TODOs below to your real user/session data
 /// (e.g. whatever AuthService exposes for the logged-in user) once you
@@ -82,7 +83,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    name,
+                    tr(name),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -100,7 +101,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
-                      role,
+                      tr(role),
                       style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -114,7 +115,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
               child: Text(
-                "Account Details",
+                tr("Account Details"),
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
@@ -124,18 +125,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.person_outline),
-              title: const Text("Name"),
-              subtitle: Text(name),
+              title: Text(tr("Name")),
+              subtitle: Text(tr(name)),
             ),
             ListTile(
               leading: const Icon(Icons.email_outlined),
-              title: const Text("Email"),
+              title: Text(tr("Email")),
               subtitle: Text(email),
             ),
             ListTile(
               leading: const Icon(Icons.badge_outlined),
-              title: const Text("Role"),
-              subtitle: Text(role),
+              title: Text(tr("Role")),
+              subtitle: Text(tr(role)),
             ),
 
             const SizedBox(height: 12),
@@ -147,7 +148,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
                 icon: const Icon(Icons.edit_outlined),
-                label: const Text("Edit Profile"),
+                label: Text(tr("Edit Profile")),
                 onPressed: () {
                   // TODO: navigate to an edit-profile form once you have one.
                 },
@@ -164,7 +165,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
                 icon: const Icon(Icons.logout),
-                label: const Text("Log Out"),
+                label: Text(tr("Log Out")),
                 onPressed: () async {
                   await AuthService.logout();
                   if (!context.mounted) return;

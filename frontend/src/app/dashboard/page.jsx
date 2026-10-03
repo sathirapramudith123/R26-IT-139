@@ -23,45 +23,96 @@ import {
   BookOpen,
 } from "lucide-react";
 
+import { t } from "@/lib/i18n";
 const MODULES = [
   {
     href: "/dashboard/transactions",
-    label: "Transactions",
-    desc: "Sales, purchases & expenses",
+    get label() {
+      return t("Transactions");
+    },
+    get desc() {
+      return t("Sales, purchases & expenses");
+    },
     icon: CreditCard,
     tint: "teal",
   },
   {
     href: "/dashboard/journal",
-    label: "Journal",
-    desc: "Double-entry ledger",
+    get label() {
+      return t("Journal");
+    },
+    get desc() {
+      return t("Double-entry ledger");
+    },
     icon: BookOpen,
     tint: "indigo",
   },
-  { href: "/dashboard/inventory", label: "Inventory", desc: "Stock & batches", icon: Package, tint: "amber" },
+  {
+    href: "/dashboard/inventory",
+    get label() {
+      return t("Inventory");
+    },
+    get desc() {
+      return t("Stock & batches");
+    },
+    icon: Package,
+    tint: "amber",
+  },
   {
     href: "/dashboard/procurement",
-    label: "Procurement",
-    desc: "Purchase orders",
+    get label() {
+      return t("Procurement");
+    },
+    get desc() {
+      return t("Purchase orders");
+    },
     icon: ShoppingCart,
     tint: "rose",
   },
   {
     href: "/dashboard/suppliers",
-    label: "Suppliers",
-    desc: "Your vendors",
+    get label() {
+      return t("Suppliers");
+    },
+    get desc() {
+      return t("Your vendors");
+    },
     icon: Handshake,
     tint: "emerald",
   },
   {
     href: "/dashboard/agency-banking",
-    label: "Agency Banking",
-    desc: "Deposits & withdrawals",
+    get label() {
+      return t("Agency Banking");
+    },
+    get desc() {
+      return t("Deposits & withdrawals");
+    },
     icon: Landmark,
     tint: "sky",
   },
-  { href: "/dashboard/my-banks", label: "My Banks", desc: "Float accounts", icon: Building2, tint: "violet" },
-  { href: "/dashboard/predictions", label: "Predictions", desc: "AI insights", icon: Bot, tint: "fuchsia" },
+  {
+    href: "/dashboard/my-banks",
+    get label() {
+      return t("My Banks");
+    },
+    get desc() {
+      return t("Float accounts");
+    },
+    icon: Building2,
+    tint: "violet",
+  },
+  {
+    href: "/dashboard/predictions",
+    get label() {
+      return t("Predictions");
+    },
+    get desc() {
+      return t("AI insights");
+    },
+    icon: Bot,
+    tint: "fuchsia",
+  },
 ];
 
 const TINT = {
@@ -140,28 +191,36 @@ export default function DashboardPage() {
   const stats = [
     {
       key: "income",
-      label: "Total Income",
+      get label() {
+        return t("Total Income");
+      },
       value: formatCurrency(Math.round(aIncome)),
       icon: TrendingUp,
       grad: STAT.income,
     },
     {
       key: "expense",
-      label: "Total Expense",
+      get label() {
+        return t("Total Expense");
+      },
       value: formatCurrency(Math.round(aExpense)),
       icon: TrendingDown,
       grad: STAT.expense,
     },
     {
       key: "profit",
-      label: "Net Profit",
+      get label() {
+        return t("Net Profit");
+      },
       value: formatCurrency(Math.round(aProfit)),
       icon: Wallet,
       grad: STAT.profit,
     },
     {
       key: "stock",
-      label: "Low Stock Items",
+      get label() {
+        return t("Low Stock Items");
+      },
       value: `${Math.round(aStock)}`,
       icon: PackageX,
       grad: STAT.stock,
@@ -171,7 +230,7 @@ export default function DashboardPage() {
   if (tl || il)
     return (
       <div className="page-container">
-        <LoadingSpinner label="Loading dashboard..." />
+        <LoadingSpinner label={t("Loading dashboard...")} />
       </div>
     );
 
@@ -181,12 +240,14 @@ export default function DashboardPage() {
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-800 p-6 text-white shadow-lg sm:p-8">
         <div className="absolute -right-8 -top-10 h-40 w-40 rounded-full bg-white/10" />
         <div className="absolute -bottom-12 right-24 h-32 w-32 rounded-full bg-white/5" />
-        <p className="relative text-sm font-medium text-white/80">Ayubowan 👋</p>
+        <p className="relative text-sm font-medium text-white/80">{t("Ayubowan 👋")}</p>
         <h1 className="relative mt-1 font-outfit text-2xl font-bold sm:text-3xl">
-          Here&apos;s your Lanka-Link today
+          {t("Here's your Lanka-Link today")}
         </h1>
         <p className="relative mt-2 max-w-lg text-sm text-white/70">
-          A quick snapshot of your income, expenses and stock — plus fast access to everything you manage.
+          {t(
+            "A quick snapshot of your income, expenses and stock — plus fast access to everything you manage.",
+          )}
         </p>
       </div>
 
@@ -218,7 +279,9 @@ export default function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Modules */}
         <div className="lg:col-span-2">
-          <h2 className="mb-3 font-outfit text-lg font-bold text-slate-900 dark:text-slate-100">Modules</h2>
+          <h2 className="mb-3 font-outfit text-lg font-bold text-slate-900 dark:text-slate-100">
+            {t("Modules")}
+          </h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {MODULES.map((mod) => {
               const Icon = mod.icon;
@@ -242,11 +305,11 @@ export default function DashboardPage() {
         {/* Recent activity */}
         <div>
           <h2 className="mb-3 font-outfit text-lg font-bold text-slate-900 dark:text-slate-100">
-            Recent activity
+            {t("Recent activity")}
           </h2>
           <div className="rounded-2xl border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900">
             {recent.length === 0 ? (
-              <p className="p-6 text-center text-sm text-slate-400">No transactions yet.</p>
+              <p className="p-6 text-center text-sm text-slate-400">{t("No transactions yet.")}</p>
             ) : (
               <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                 {recent.map((t, i) => {
@@ -291,7 +354,7 @@ export default function DashboardPage() {
               href="/dashboard/transactions"
               className="block border-t border-slate-100 p-3 text-center text-xs font-semibold text-teal-600 hover:bg-slate-50 dark:border-slate-800 dark:text-teal-400 dark:hover:bg-slate-800"
             >
-              View all transactions →
+              {t("View all transactions →")}
             </Link>
           </div>
         </div>

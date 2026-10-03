@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_ITEMS, NAV_GROUPS } from "@/lib/constants";
+import { t } from "@/lib/i18n";
 import {
   LayoutDashboard,
   CreditCard,
@@ -44,7 +45,7 @@ export default function Sidebar() {
           return (
             <div key={group}>
               <div className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                {NAV_GROUPS[group]}
+                {t(NAV_GROUPS[group])}
               </div>
               <div className="space-y-0.5">
                 {items.map((item) => {

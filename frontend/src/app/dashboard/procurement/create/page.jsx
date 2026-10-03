@@ -5,16 +5,17 @@ import PageHeader from "@/components/common/PageHeader";
 import Button from "@/components/ui/Button";
 import ProcurementForm from "@/components/forms/ProcurementForm";
 
+import { t } from "@/lib/i18n";
 export default function CreateProcurementPage() {
   useAuthGuard();
   return (
     <div className="page-container">
       <PageHeader
-        title="New Procurement Decision"
-        description="Record a procurement decision."
+        title={t("New Procurement Decision")}
+        description={t("Record a procurement decision.")}
         action={
           <Link href="/dashboard/procurement">
-            <Button variant="secondary">← Back</Button>
+            <Button variant="secondary">{t("← Back")}</Button>
           </Link>
         }
       />

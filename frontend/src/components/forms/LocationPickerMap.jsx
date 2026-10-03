@@ -9,6 +9,7 @@ import {
   useJsApiLoader,
 } from "@react-google-maps/api";
 
+import { t } from "@/lib/i18n";
 const LIBRARIES = ["places"];
 
 const DEFAULT_CENTER = { lat: 6.9147, lng: 79.9727 }; // Malabe default
@@ -121,7 +122,7 @@ export default function LocationPickerMap({ coords, onPick, extraMarkers = [], r
   if (loadError) {
     return (
       <div className="flex h-72 w-full items-center justify-center rounded-xl border border-red-200 bg-red-50 text-sm text-red-500 dark:border-red-900 dark:bg-red-950/40">
-        Couldn&apos;t load Google Maps. Check the API key.
+        {t("Couldn't load Google Maps. Check the API key.")}
       </div>
     );
   }
@@ -129,7 +130,7 @@ export default function LocationPickerMap({ coords, onPick, extraMarkers = [], r
   if (!isLoaded) {
     return (
       <div className="flex h-72 w-full items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-400 dark:border-slate-800 dark:bg-slate-800/40">
-        Loading map…
+        {t("Loading map…")}
       </div>
     );
   }
@@ -141,7 +142,7 @@ export default function LocationPickerMap({ coords, onPick, extraMarkers = [], r
         <Autocomplete onLoad={onAutocompleteLoad} onPlaceChanged={onPlaceChanged}>
           <input
             type="text"
-            placeholder="Search a place or address…"
+            placeholder={t("Search a place or address…")}
             className="w-full rounded-lg border border-slate-200 bg-white/95 px-3 py-2 text-sm shadow-sm outline-none placeholder:text-slate-400 focus:border-teal-500 dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-100"
           />
         </Autocomplete>
@@ -151,7 +152,7 @@ export default function LocationPickerMap({ coords, onPick, extraMarkers = [], r
         <div className="absolute right-3 top-3 z-10 rounded-lg border border-slate-200 bg-white/95 px-3 py-1.5 text-xs font-medium shadow-sm dark:border-slate-700 dark:bg-slate-900/95">
           {routeDistanceKm ? (
             <span className="text-teal-700 dark:text-teal-400">
-              🚗 {routeDistanceKm} km · ⏱ {formatDuration(routeDurationMin)}
+              🚗 {routeDistanceKm} {t("km · ⏱")} {formatDuration(routeDurationMin)}
             </span>
           ) : (
             <span className="text-slate-500 dark:text-slate-400">{routeError}</span>

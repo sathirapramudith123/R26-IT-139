@@ -9,6 +9,7 @@ import 'crud/list_screen.dart';
 import 'notifications_screen.dart';
 import 'predictions/predictions_hub_screen.dart';
 import 'reports/income_statement_screen.dart';
+import '../core/i18n.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -121,7 +122,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           const SizedBox(width: 10),
                           Text(
-                            "Lanka-Link",
+                            tr("Lanka-Link"),
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white),
                           ),
                           const Spacer(),
@@ -132,7 +133,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             children: [
                               IconButton(
                                 icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-                                tooltip: "Notifications",
+                                tooltip: tr("Notifications"),
                                 onPressed: () async {
                                   await Navigator.push(
                                     context,
@@ -192,12 +193,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       const SizedBox(height: 18),
                       Text(
-                        "Ayubowan 👋",
+                        tr("Ayubowan 👋"),
                         style: Theme.of(context).textTheme.headlineLarge?.copyWith(color: Colors.white),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        "Here's your Lanka-Link today.",
+                        tr("Here's your Lanka-Link today."),
                         style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 14),
                       ),
                     ],
@@ -217,26 +218,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   delegate: SliverChildListDelegate([
                     _AnimatedStatCard(
-                      label: "Total Income",
+                      label: tr("Total Income"),
                       value: income,
                       loading: loading,
                       gradient: const [Color(0xFF14335E), Color(0xFF1E4785)],
                     ),
                     _AnimatedStatCard(
-                      label: "Total Expense",
+                      label: tr("Total Expense"),
                       value: expense,
                       loading: loading,
                       gradient: const [Color(0xFF8A2E2E), Color(0xFF5C1E1E)],
                     ),
                     _AnimatedStatCard(
-                      label: "Net Profit",
+                      label: tr("Net Profit"),
                       value: income - expense,
                       loading: loading,
                       gradient: const [Color(0xFF1E7A46), Color(0xFF14522F)],
                       onTap: _openIncomeStatement,
                     ),
                     _AnimatedStatCard(
-                      label: "Low Stock Items",
+                      label: tr("Low Stock Items"),
                       value: lowStock.toDouble(),
                       loading: loading,
                       isCount: true,
@@ -250,7 +251,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
-                  child: Text("Modules", style: Theme.of(context).textTheme.titleMedium),
+                  child: Text(tr("Modules"), style: Theme.of(context).textTheme.titleMedium),
                 ),
               ),
 
@@ -275,12 +276,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     ModuleTile(
                       icon: Icons.bar_chart_outlined,
-                      title: "Financial Statement",
+                      title: tr("Financial Statement"),
                       onTap: _openIncomeStatement,
                     ),
                     ModuleTile(
                       icon: Icons.insights_outlined,
-                      title: "Predictions",
+                      title: tr("Predictions"),
                       highlight: true,
                       onTap: () => Navigator.push(
                         context,
@@ -341,7 +342,7 @@ class _AnimatedStatCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              label,
+              tr(label),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -364,7 +365,7 @@ class _AnimatedStatCard extends StatelessWidget {
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        _fmt(v),
+                        tr(_fmt(v)),
                         maxLines: 1,
                         style: const TextStyle(
                           fontSize: 22,

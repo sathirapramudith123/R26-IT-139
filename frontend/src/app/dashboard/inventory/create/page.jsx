@@ -5,16 +5,17 @@ import PageHeader from "@/components/common/PageHeader";
 import Button from "@/components/ui/Button";
 import InventoryForm from "@/components/forms/InventoryForm";
 
+import { t } from "@/lib/i18n";
 export default function CreateInventoryPage() {
   useAuthGuard();
   return (
     <div className="page-container">
       <PageHeader
-        title="Add Inventory Item"
-        description="Add a new stock item."
+        title={t("Add Inventory Item")}
+        description={t("Add a new stock item.")}
         action={
           <Link href="/dashboard/inventory">
-            <Button variant="secondary">← Back</Button>
+            <Button variant="secondary">{t("← Back")}</Button>
           </Link>
         }
       />

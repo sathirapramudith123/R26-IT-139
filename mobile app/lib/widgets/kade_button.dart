@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
+import '../core/i18n.dart';
 
 enum KadeButtonVariant { primary, secondary, danger, text }
 
@@ -77,10 +78,10 @@ class KadeButton extends StatelessWidget {
         children: [
           Icon(icon, size: 18),
           const SizedBox(width: KadeSpacing.sm),
-          Text(label),
+          Text(tr(label)),
         ],
       );
     }
-    return Text(label);
+    return Text(tr(label));
   }
 }

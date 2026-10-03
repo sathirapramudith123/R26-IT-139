@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
+import '../core/i18n.dart';
 
 class EmptyState extends StatelessWidget {
   final String icon;
@@ -28,14 +29,14 @@ class EmptyState extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
-              child: Text(icon, style: const TextStyle(fontSize: 32)),
+              child: Text(tr(icon), style: const TextStyle(fontSize: 32)),
             ),
             const SizedBox(height: KadeSpacing.md),
-            Text(title, style: theme.textTheme.titleLarge, textAlign: TextAlign.center),
+            Text(tr(title), style: theme.textTheme.titleLarge, textAlign: TextAlign.center),
             if (description.isNotEmpty) ...[
               const SizedBox(height: KadeSpacing.xs),
               Text(
-                description,
+                tr(description),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: isDark ? KadeColors.textSoftDark : KadeColors.textSoftLight,
                 ),

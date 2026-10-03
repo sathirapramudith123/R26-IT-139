@@ -6,6 +6,7 @@ import 'services/auth_service.dart';
 import 'screens/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'widgets/main_navigation.dart';
+import 'core/i18n.dart';
 
 /// Lets non-widget code (the Api 401 handler) navigate.
 final navigatorKey = GlobalKey<NavigatorState>();
@@ -19,6 +20,7 @@ Future<void> main() async {
     );
   }
   await AuthService.restoreSession(); // stay logged in across app restarts
+  await LanguageController.load(); // Sinhala / English choice saved on this phone
   Api.onUnauthorized = _goToLogin; // expired token → back to login
   runApp(const MyApp());
 }
@@ -45,7 +47,7 @@ class MyApp extends StatelessWidget {
       valueListenable: ThemeController.mode,
       builder: (context, mode, _) {
         return MaterialApp(
-          title: 'Kade',
+          title: tr('Kade'),
           navigatorKey: navigatorKey,
           debugShowCheckedModeBanner: false,
           theme: buildLightTheme(),

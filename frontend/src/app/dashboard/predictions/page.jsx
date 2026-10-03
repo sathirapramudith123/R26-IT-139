@@ -14,6 +14,7 @@ import {
 } from "@/components/predictions/InsightWidgets";
 import { SalesSummaryModal, ProcurementSummaryModal } from "@/components/predictions/SummaryModals";
 
+import { t } from "@/lib/i18n";
 export default function PredictionsDashboard() {
   useAuthGuard();
   const [data, setData] = useState(null);
@@ -29,11 +30,11 @@ export default function PredictionsDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <LoadingSpinner label="Crunching your numbers..." />;
+  if (loading) return <LoadingSpinner label={t("Crunching your numbers...")} />;
   if (!data)
     return (
       <div className="p-6 text-center font-medium text-rose-600">
-        We couldn&apos;t load your forecasts. Please try again in a moment.
+        {t("We couldn't load your forecasts. Please try again in a moment.")}
       </div>
     );
 
@@ -45,28 +46,30 @@ export default function PredictionsDashboard() {
   return (
     <div className="page-container space-y-6">
       <PageHeader
-        title="Your Business Forecasts"
-        description="Simple predictions based on your recent activity, updated automatically. Green means something is helping you; red means it's holding you back."
+        title={t("Your Business Forecasts")}
+        description={t(
+          "Simple predictions based on your recent activity, updated automatically. Green means something is helping you; red means it's holding you back.",
+        )}
       />
 
       {/* At-a-glance strip */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-xs font-medium text-slate-500">Credit Score</p>
+          <p className="text-xs font-medium text-slate-500">{t("Credit Score")}</p>
           <p className="mt-1 text-lg font-bold text-slate-800 dark:text-slate-100">
-            {creditApproved ? "✅ Ready" : "⚠️ Needs work"}
+            {creditApproved ? t("✅ Ready") : t("⚠️ Needs work")}
           </p>
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-xs font-medium text-slate-500">Sales next week</p>
+          <p className="text-xs font-medium text-slate-500">{t("Sales next week")}</p>
           <p className="mt-1 text-lg font-bold text-amber-600 dark:text-amber-400">
             {demand.available && demand.items?.length
-              ? `${demand.items.reduce((s, it) => s + Number(it.forecast_units || 0), 0).toFixed(0)} units`
-              : "N/A"}
+              ? `${demand.items.reduce((s, it) => s + Number(it.forecast_units || 0), 0).toFixed(0)} ${t("units")}`
+              : t("N/A")}
           </p>
           {demand.available && demand.items?.some((it) => it.forecast_revenue != null) && (
             <p className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-              ≈ Rs{" "}
+              {t("≈ Rs")}{" "}
               {demand.items
                 .reduce((s, it) => s + Number(it.forecast_revenue || 0), 0)
                 .toLocaleString("en-LK")}
@@ -74,17 +77,17 @@ export default function PredictionsDashboard() {
           )}
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-xs font-medium text-slate-500">To restock</p>
+          <p className="text-xs font-medium text-slate-500">{t("To restock")}</p>
           <p className="mt-1 text-lg font-bold text-slate-800 dark:text-slate-100">
             {procurement.available && procurement.items?.length
-              ? `🛒 ${procurement.items.filter((it) => it.action === "BUY").length} items`
+              ? `🛒 ${procurement.items.filter((it) => it.action === "BUY").length} ${t("items")}`
               : "—"}
           </p>
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-xs font-medium text-slate-500">Account safety</p>
+          <p className="text-xs font-medium text-slate-500">{t("Account safety")}</p>
           <p className="mt-1 text-lg font-bold text-slate-800 dark:text-slate-100">
-            {anomaly.prediction === 1 ? "🚨 Check needed" : "🛡️ All clear"}
+            {anomaly.prediction === 1 ? t("🚨 Check needed") : t("🛡️ All clear")}
           </p>
         </div>
       </div>
@@ -95,9 +98,9 @@ export default function PredictionsDashboard() {
           <div>
             <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <CategoryChip label="Money" tone="teal" />
+                <CategoryChip label={t("Money")} tone="teal" />
                 <h3 className="font-outfit text-lg font-semibold text-slate-900 dark:text-slate-100">
-                  Credit Score
+                  {t("Credit Score")}
                 </h3>
               </div>
               <span className="text-2xl">💳</span>
@@ -120,18 +123,16 @@ export default function PredictionsDashboard() {
                             : "bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-400"
                         }`}
                       >
-                        {creditApproved ? "✓ Ready to Apply" : "⚠️ Needs Improvement"}
+                        {creditApproved ? t("✓ Ready to Apply") : t("⚠️ Needs Improvement")}
                       </span>
                     </div>
 
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       {creditApproved
-                        ? `Your business health meets key lending criteria${
-                            credit.max_loan_limit_lkr
-                              ? ` — up to ${formatCurrency(credit.max_loan_limit_lkr)}.`
-                              : " for loan approvals."
-                          }`
-                        : "Boost daily sales or profit margin to increase your eligibility score."}
+                        ? credit.max_loan_limit_lkr
+                          ? `${t("Your business health meets key lending criteria — up to")} ${formatCurrency(credit.max_loan_limit_lkr)}.`
+                          : t("Your business health meets key lending criteria for loan approvals.")
+                        : t("Boost daily sales or profit margin to increase your eligibility score.")}
                     </p>
                   </div>
                 </div>
@@ -139,21 +140,21 @@ export default function PredictionsDashboard() {
                 {/* Structured Key Metrics */}
                 <div className="grid grid-cols-3 gap-2 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/30">
                   <div className="text-center sm:text-left px-2">
-                    <p className="text-[11px] font-medium text-slate-400">In Business</p>
+                    <p className="text-[11px] font-medium text-slate-400">{t("In Business")}</p>
                     <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
                       {credit.features?.months_active ?? 0}{" "}
-                      <span className="text-xs font-normal text-slate-400">mos</span>
+                      <span className="text-xs font-normal text-slate-400">{t("mos")}</span>
                     </p>
                   </div>
                   <div className="border-x border-slate-200 text-center sm:text-left px-2 dark:border-slate-700/50">
-                    <p className="text-[11px] font-medium text-slate-400">Daily Sales</p>
+                    <p className="text-[11px] font-medium text-slate-400">{t("Daily Sales")}</p>
                     <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
                       {credit.features?.avg_daily_txns ?? 0}{" "}
-                      <span className="text-xs font-normal text-slate-400">/day</span>
+                      <span className="text-xs font-normal text-slate-400">{t("/day")}</span>
                     </p>
                   </div>
                   <div className="text-center sm:text-left px-2">
-                    <p className="text-[11px] font-medium text-slate-400">Profit Margin</p>
+                    <p className="text-[11px] font-medium text-slate-400">{t("Profit Margin")}</p>
                     <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
                       {credit.features?.profit_margin_pct ?? 0}%
                     </p>
@@ -173,9 +174,9 @@ export default function PredictionsDashboard() {
           <div>
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <CategoryChip label="Inventory" tone="amber" />
+                <CategoryChip label={t("Inventory")} tone="amber" />
                 <h3 className="font-outfit text-lg font-semibold text-slate-900 dark:text-slate-100">
-                  Sales Forecast
+                  {t("Sales Forecast")}
                 </h3>
               </div>
               <div className="flex items-center gap-3">
@@ -183,7 +184,7 @@ export default function PredictionsDashboard() {
                   onClick={() => setShowAllItems(true)}
                   className="text-xs font-semibold text-amber-600 hover:underline dark:text-amber-400"
                 >
-                  View all items →
+                  {t("View all items →")}
                 </button>
                 <span className="text-2xl">📈</span>
               </div>
@@ -206,7 +207,7 @@ export default function PredictionsDashboard() {
                       <div>
                         <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{it.item}</p>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                          Stock: {it.quantity} · Reorder: {it.reorder_level}
+                          {t("Stock:")} {it.quantity} {t("· Reorder:")} {it.reorder_level}
                         </p>
                         <span
                           className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${
@@ -215,23 +216,23 @@ export default function PredictionsDashboard() {
                               : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
                           }`}
                         >
-                          {needsReorder ? "🚩 Reorder now" : "✓ Adequate"}
+                          {needsReorder ? t("🚩 Reorder now") : t("✓ Adequate")}
                         </span>
                       </div>
                       <div className="text-right">
                         {noHistory ? (
-                          <span className="text-xs italic text-slate-400">No sales data yet</span>
+                          <span className="text-xs italic text-slate-400">{t("No sales data yet")}</span>
                         ) : (
                           <>
                             <span className="font-outfit text-2xl font-extrabold text-amber-600 dark:text-amber-400">
                               ≈ {it.forecast_units != null ? Number(it.forecast_units).toFixed(0) : "—"}
                             </span>
                             <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                              units / next week
+                              {t("units / next week")}
                             </p>
                             {it.forecast_revenue != null && (
                               <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                                ≈ Rs {Number(it.forecast_revenue).toLocaleString("en-LK")}
+                                {t("≈ Rs")} {Number(it.forecast_revenue).toLocaleString("en-LK")}
                               </p>
                             )}
                           </>
@@ -252,9 +253,9 @@ export default function PredictionsDashboard() {
           <div>
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <CategoryChip label="Purchasing" tone="orange" />
+                <CategoryChip label={t("Purchasing")} tone="orange" />
                 <h3 className="font-outfit text-lg font-semibold text-slate-900 dark:text-slate-100">
-                  Should I Buy?
+                  {t("Should I Buy?")}
                 </h3>
               </div>
               <div className="flex items-center gap-3">
@@ -262,7 +263,7 @@ export default function PredictionsDashboard() {
                   onClick={() => setShowAllProcurement(true)}
                   className="text-xs font-semibold text-orange-600 hover:underline dark:text-orange-400"
                 >
-                  View all items →
+                  {t("View all items →")}
                 </button>
                 <span className="text-2xl">🛒</span>
               </div>
@@ -280,9 +281,10 @@ export default function PredictionsDashboard() {
                         <div>
                           <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{it.item}</p>
                           <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                            Stock: {it.quantity} · Reorder: {it.forecast_reorder_level ?? it.reorder_level}
+                            {t("Stock:")} {it.quantity} {t("· Reorder:")}{" "}
+                            {it.forecast_reorder_level ?? it.reorder_level}
                             {it.decision_basis === "forecast" &&
-                              ` (≈${Math.round(it.forecast_units)}/week forecast)`}
+                              ` (≈${Math.round(it.forecast_units)}${t("/week forecast")})`}
                           </p>
                         </div>
                         <span
@@ -292,13 +294,13 @@ export default function PredictionsDashboard() {
                               : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
                           }`}
                         >
-                          {buy ? "🛒 Buy" : "⏳ Wait"}
+                          {buy ? t("🛒 Buy") : t("⏳ Wait")}
                         </span>
                       </div>
                       {it.price_context && (
                         <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
-                          {buy ? "Stock low — restock needed. " : "Enough stock. "}
-                          <span className="italic">{it.price_context}</span>
+                          {buy ? t("Stock low — restock needed.") : t("Enough stock.")}
+                          <span className="italic">{t(it.price_context)}</span>
                         </p>
                       )}
                     </div>
@@ -316,9 +318,9 @@ export default function PredictionsDashboard() {
           <div>
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <CategoryChip label="Security" tone="blue" />
+                <CategoryChip label={t("Security")} tone="blue" />
                 <h3 className="font-outfit text-lg font-semibold text-slate-900 dark:text-slate-100">
-                  Account Activity
+                  {t("Account Activity")}
                 </h3>
               </div>
               <span className="text-2xl">🛡️</span>
@@ -330,7 +332,9 @@ export default function PredictionsDashboard() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between rounded-xl bg-slate-50 p-4 dark:bg-slate-800/50">
                   <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Most recent transaction</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {t("Most recent transaction")}
+                    </p>
                     <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
                       {anomaly.customer} · {formatCurrency(anomaly.amount)}
                     </p>
@@ -342,12 +346,12 @@ export default function PredictionsDashboard() {
                         : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
                     }`}
                   >
-                    {anomaly.prediction === 1 ? "⚠ Looks unusual" : "✓ Normal"}
+                    {anomaly.prediction === 1 ? t("⚠ Looks unusual") : t("✓ Normal")}
                   </span>
                 </div>
                 {anomaly.prediction === 1 && (
                   <p className="text-xs text-rose-600 dark:text-rose-400">
-                    This transaction looks different from your usual pattern — worth a quick check.
+                    {t("This transaction looks different from your usual pattern — worth a quick check.")}
                   </p>
                 )}
                 <InfluenceChart explanation={anomaly.explanation} />

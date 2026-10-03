@@ -14,12 +14,38 @@ import { agencyBankingApi } from "@/services/api/agencyBanking";
 import { formatCurrency, titleCase } from "@/lib/formatters";
 import DetailDialog from "@/components/common/DetailDialog";
 
+import { t } from "@/lib/i18n";
 const COLS = [
-  { key: "customer_name", label: "Customer" },
-  { key: "transaction_type", label: "Type" },
-  { key: "amount", label: "Amount" },
-  { key: "commission", label: "Commission" },
-  { key: "status", label: "Status" },
+  {
+    key: "customer_name",
+    get label() {
+      return t("Customer");
+    },
+  },
+  {
+    key: "transaction_type",
+    get label() {
+      return t("Type");
+    },
+  },
+  {
+    key: "amount",
+    get label() {
+      return t("Amount");
+    },
+  },
+  {
+    key: "commission",
+    get label() {
+      return t("Commission");
+    },
+  },
+  {
+    key: "status",
+    get label() {
+      return t("Status");
+    },
+  },
   { key: "actions", label: "" },
 ];
 
@@ -69,7 +95,7 @@ export default function AgencyBankingPage() {
       await agencyBankingApi.remove(id);
       await fetchAll();
     } catch (e) {
-      alert(e.message || "Failed");
+      alert(e.message || t("Failed"));
     }
   }
 
@@ -84,22 +110,22 @@ export default function AgencyBankingPage() {
 
   const rows = filtered.map((item) => ({
     ...item,
-    transaction_type: titleCase(item.transaction_type || ""),
+    transaction_type: t(titleCase(item.transaction_type || "")),
     amount: formatCurrency(item.amount),
     commission: formatCurrency(item.commission),
     status: <StatusBadge status={item.status} />,
     actions: (
       <div className="flex gap-2">
         <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => setViewItem(item)}>
-          View
+          {t("View")}
         </Button>
         <Link href={`/dashboard/agency-banking/${item.id}/edit`}>
           <Button variant="secondary" size="sm">
-            Edit
+            {t("Edit")}
           </Button>
         </Link>
         <Button variant="danger" size="sm" onClick={() => handleDelete(item.id)}>
-          Delete
+          {t("Delete")}
         </Button>
       </div>
     ),
@@ -108,21 +134,21 @@ export default function AgencyBankingPage() {
   return (
     <div className="page-container">
       <PageHeader
-        title="Agency Banking"
-        description="Customer banking transactions and commission."
+        title={t("Agency Banking")}
+        description={t("Customer banking transactions and commission.")}
         action={
           <Link href="/dashboard/agency-banking/create">
-            <Button>+ New Transaction</Button>
+            <Button>{t("+ New Transaction")}</Button>
           </Link>
         }
       />
       {summary && (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {[
-            ["Transactions", summary.total_transactions, "text-slate-800 dark:text-slate-100", false],
-            ["Volume", summary.total_amount, "text-slate-800 dark:text-slate-100", true],
-            ["Service Fees", summary.total_service_fees, "text-blue-600 dark:text-blue-400", true],
-            ["Commission", summary.total_commission, "text-emerald-600 dark:text-emerald-400", true],
+            [t("Transactions"), summary.total_transactions, "text-slate-800 dark:text-slate-100", false],
+            [t("Volume"), summary.total_amount, "text-slate-800 dark:text-slate-100", true],
+            [t("Service Fees"), summary.total_service_fees, "text-blue-600 dark:text-blue-400", true],
+            [t("Commission"), summary.total_commission, "text-emerald-600 dark:text-emerald-400", true],
           ].map(([l, v, c, money]) => (
             <Card key={l}>
               <p className="text-xs font-medium text-slate-400">{l}</p>
@@ -136,14 +162,14 @@ export default function AgencyBankingPage() {
       <Card className="mb-4">
         <input
           type="text"
-          placeholder="Search by customer, phone, type..."
+          placeholder={t("Search by customer, phone, type...")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="input-field"
         />
       </Card>
       {loading ? (
-        <LoadingSpinner label="Loading transactions..." />
+        <LoadingSpinner label={t("Loading transactions...")} />
       ) : error ? (
         <Card>
           <p className="text-sm text-red-600">{error}</p>
@@ -151,11 +177,11 @@ export default function AgencyBankingPage() {
       ) : items.length === 0 ? (
         <EmptyState
           icon="🏦"
-          title="No transactions"
-          description="Record a banking transaction."
+          title={t("No transactions")}
+          description={t("Record a banking transaction.")}
           action={
             <Link href="/dashboard/agency-banking/create">
-              <Button>New Transaction</Button>
+              <Button>{t("New Transaction")}</Button>
             </Link>
           }
         />
@@ -165,7 +191,7 @@ export default function AgencyBankingPage() {
 
       <DetailDialog
         open={!!viewItem}
-        title={viewItem?.name || "Agency Banking"}
+        title={viewItem?.name || t("Agency Banking")}
         data={viewItem}
         onClose={() => setViewItem(null)}
       />

@@ -10,6 +10,7 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import InventoryForm from "@/components/forms/InventoryForm";
 import { inventoryApi } from "@/services/api/inventory";
 
+import { t } from "@/lib/i18n";
 export default function EditInventoryPage() {
   useAuthGuard();
   const { Id } = useParams(); // ← capital Id, matches [Id] folder
@@ -22,18 +23,18 @@ export default function EditInventoryPage() {
     inventoryApi
       .getById(Id)
       .then(setItem)
-      .catch((e) => setError(e.message || "Failed to load"))
+      .catch((e) => setError(e.message || t("Failed to load")))
       .finally(() => setLoading(false));
   }, [Id]);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Edit Inventory Item"
-        description="Update the details."
+        title={t("Edit Inventory Item")}
+        description={t("Update the details.")}
         action={
           <Link href="/dashboard/inventory">
-            <Button variant="outline">← Back</Button>
+            <Button variant="outline">{t("← Back")}</Button>
           </Link>
         }
       />
@@ -42,7 +43,7 @@ export default function EditInventoryPage() {
       ) : error ? (
         <p className="text-red-500">{error}</p>
       ) : !item ? (
-        <p className="text-soft">Not found.</p>
+        <p className="text-soft">{t("Not found.")}</p>
       ) : (
         <InventoryForm initialData={item} itemId={Id} />
       )}

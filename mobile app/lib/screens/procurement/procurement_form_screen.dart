@@ -5,6 +5,7 @@ import '../../core/api.dart';
 import '../../services/crud_service.dart';
 import '../inventory/inventory_form_screen.dart' show fieldLabel, errorBox, saveButton;
 import '../common/location_picker_map.dart';
+import '../../core/i18n.dart';
 
 const List<String> _units = ["kg", "g", "l", "ml", "unit", "box", "carton"];
 const List<Map<String, String>> _statuses = [
@@ -157,15 +158,15 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
     final cost = double.tryParse(costCtrl.text.trim()) ?? 0;
 
     if (name == null || name.isEmpty) {
-      setState(() => error = "Select an item.");
+      setState(() => error = tr("Select an item."));
       return;
     }
     if (qty <= 0) {
-      setState(() => error = "Enter a valid quantity.");
+      setState(() => error = tr("Enter a valid quantity."));
       return;
     }
     if (cost <= 0) {
-      setState(() => error = "Enter the unit cost.");
+      setState(() => error = tr("Enter the unit cost."));
       return;
     }
 
@@ -195,15 +196,15 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
     FocusScope.of(context).unfocus();
 
     if (items.isEmpty) {
-      setState(() => error = "Add at least one item.");
+      setState(() => error = tr("Add at least one item."));
       return;
     }
     if (deliveryLocationCtrl.text.trim().isEmpty) {
-      setState(() => error = "Pick a delivery location on the map.");
+      setState(() => error = tr("Pick a delivery location on the map."));
       return;
     }
     if (arrivalDate == null) {
-      setState(() => error = "Select the arrival date.");
+      setState(() => error = tr("Select the arrival date."));
       return;
     }
 
@@ -252,14 +253,14 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(prNo, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                Text(tr(prNo), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                 InkWell(
                   onTap: saving ? null : () => _pickDate(false),
                   child: Row(
                     children: [
                       const Icon(Icons.event, size: 16),
                       const SizedBox(width: 6),
-                      Text(dateStr(orderDate)),
+                      Text(tr(dateStr(orderDate))),
                     ],
                   ),
                 ),
@@ -268,11 +269,13 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
             const Divider(height: 28),
 
             // ── Add item ──
-            fieldLabel("Item *"),
+            fieldLabel(tr("Item *")),
             DropdownButtonFormField<String>(
               value: names.contains(pickItem) ? pickItem : null,
               hint: Text(
-                loadingInventory ? "Loading..." : (names.isEmpty ? "No inventory items" : "Select an item…"),
+                loadingInventory
+                    ? tr("Loading...")
+                    : (names.isEmpty ? "No inventory items" : tr("Select an item…")),
               ),
               items: names.map((o) {
                 final inv = _findItem(o);
@@ -288,7 +291,7 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      fieldLabel("Quantity *"),
+                      fieldLabel(tr("Quantity *")),
                       TextField(
                         controller: qtyCtrl,
                         enabled: !saving,
@@ -305,10 +308,10 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      fieldLabel("Unit"),
+                      fieldLabel(tr("Unit")),
                       DropdownButtonFormField<String>(
                         value: _units.contains(unit) ? unit : "unit",
-                        items: _units.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
+                        items: _units.map((o) => DropdownMenuItem(value: o, child: Text(tr(o)))).toList(),
                         onChanged: saving ? null : (v) => setState(() => unit = v ?? "unit"),
                       ),
                     ],
@@ -318,16 +321,16 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
             ),
             const SizedBox(height: 10),
 
-            fieldLabel("Unit Cost (LKR) *"),
+            fieldLabel(tr("Unit Cost (LKR) *")),
             TextField(
               controller: costCtrl,
               enabled: !saving,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: "0.00",
-                prefixText: "LKR ",
-                helperText: "Auto-filled from inventory cost — editable",
+                prefixText: tr("LKR "),
+                helperText: tr("Auto-filled from inventory cost — editable"),
               ),
             ),
             const SizedBox(height: 10),
@@ -336,7 +339,7 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
               alignment: Alignment.centerRight,
               child: FilledButton.tonal(
                 onPressed: (pickItem == null || saving) ? null : _addItem,
-                child: const Text("+ Add item"),
+                child: Text(tr("+ Add item")),
               ),
             ),
             const SizedBox(height: 14),
@@ -351,12 +354,15 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text("Added items", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                  Text(tr("Added items"), style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
                   const SizedBox(height: 6),
                   if (items.isEmpty)
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.symmetric(vertical: 6),
-                      child: Text("No items added yet.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      child: Text(
+                        tr("No items added yet."),
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
                     )
                   else
                     ...items.asMap().entries.map((e) {
@@ -412,7 +418,7 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
             const SizedBox(height: 16),
 
             // ── Delivery location (map pin, with search + auto-filled address) ──
-            fieldLabel("Delivery Location *"),
+            fieldLabel(tr("Delivery Location *")),
             LocationPickerMap(
               initialLat: _lat,
               initialLng: _lng,
@@ -428,13 +434,13 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
               enabled: !saving,
               maxLines: 2,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                hintText: "Address (auto-filled from the map — edit if needed)",
+              decoration: InputDecoration(
+                hintText: tr("Address (auto-filled from the map — edit if needed)"),
               ),
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Arrival Date *"),
+            fieldLabel(tr("Arrival Date *")),
             InkWell(
               onTap: saving ? null : () => _pickDate(true),
               child: InputDecorator(
@@ -443,14 +449,14 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
                   children: [
                     const Icon(Icons.event, size: 18),
                     const SizedBox(width: 8),
-                    Text(dateStr(arrivalDate)),
+                    Text(tr(dateStr(arrivalDate))),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Status"),
+            fieldLabel(tr("Status")),
             DropdownButtonFormField<String>(
               value: status,
               items: _statuses
@@ -461,19 +467,19 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
             Padding(
               padding: const EdgeInsets.only(top: 6, left: 2),
               child: Text(
-                "Setting 'Received' adds all items to inventory as batches",
+                tr("Setting 'Received' adds all items to inventory as batches"),
                 style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
               ),
             ),
             const SizedBox(height: 16),
 
-            fieldLabel("Special Note"),
+            fieldLabel(tr("Special Note")),
             TextField(
               controller: noteCtrl,
               enabled: !saving,
               maxLines: 2,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(hintText: "Optional note…"),
+              decoration: InputDecoration(hintText: tr("Optional note…")),
             ),
             const SizedBox(height: 28),
 

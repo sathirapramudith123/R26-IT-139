@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../services/notification_service.dart';
+import '../core/i18n.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -64,13 +65,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Notifications"),
-        actions: [TextButton(onPressed: _readAll, child: const Text("Mark all read"))],
+        title: Text(tr("Notifications")),
+        actions: [TextButton(onPressed: _readAll, child: Text(tr("Mark all read")))],
       ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : items.isEmpty
-          ? const Center(child: Text("No notifications yet"))
+          ? Center(child: Text(tr("No notifications yet")))
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView.builder(
@@ -99,7 +100,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           Text("${n["message"]}"),
                           const SizedBox(height: 4),
                           Text(
-                            _ago(n["created_at"]),
+                            tr(_ago(n["created_at"])),
                             style: TextStyle(
                               fontSize: 11,
                               color: Theme.of(context).textTheme.bodySmall?.color,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../services/journal_service.dart';
+import '../../core/i18n.dart';
 
 /// General Journal — double-entry (Debit / Credit) view with month → day drill-down.
 class JournalScreen extends StatefulWidget {
@@ -104,7 +105,7 @@ class _JournalScreenState extends State<JournalScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(title),
+        title: Text(tr(title)),
         leading: canBack ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: _back) : null,
       ),
       body: loading
@@ -119,12 +120,12 @@ class _JournalScreenState extends State<JournalScreen> {
 
   /* ---------- Level 1: months ---------- */
   Widget _monthsView() {
-    if (months.isEmpty) return _empty("No transactions recorded yet.");
+    if (months.isEmpty) return _empty(tr("No transactions recorded yet."));
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         Text(
-          "Double-entry records (Debit / Credit) for every transaction.",
+          tr("Double-entry records (Debit / Credit) for every transaction."),
           style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
         ),
         const SizedBox(height: 14),
@@ -134,7 +135,7 @@ class _JournalScreenState extends State<JournalScreen> {
             clipBehavior: Clip.antiAlias,
             child: ListTile(
               leading: const Icon(Icons.calendar_month, color: KadeColors.teal),
-              title: Text(_pretty(m["month"]), style: const TextStyle(fontWeight: FontWeight.bold)),
+              title: Text(tr(_pretty(m["month"])), style: const TextStyle(fontWeight: FontWeight.bold)),
               subtitle: Text("${m["count"]} transaction${m["count"] > 1 ? "s" : ""}"),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => _openMonth(m["month"]),
@@ -153,7 +154,7 @@ class _JournalScreenState extends State<JournalScreen> {
         if (monthTotals != null) _balanceBanner(monthTotals!, "${_pretty(selMonth!)} total"),
         const SizedBox(height: 12),
         if (days.isEmpty)
-          _empty("No entries this month.")
+          _empty(tr("No entries this month."))
         else
           ...days.map((d) {
             final txnCount = ((d["entries"] as List).length / 2).round();
@@ -205,15 +206,18 @@ class _JournalScreenState extends State<JournalScreen> {
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                 ),
                 child: Row(
-                  children: const [
+                  children: [
                     Expanded(
                       flex: 5,
-                      child: Text("Particulars", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      child: Text(
+                        tr("Particulars"),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
                     ),
                     Expanded(
                       flex: 3,
                       child: Text(
-                        "Debit",
+                        tr("Debit"),
                         textAlign: TextAlign.right,
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                       ),
@@ -221,7 +225,7 @@ class _JournalScreenState extends State<JournalScreen> {
                     Expanded(
                       flex: 3,
                       child: Text(
-                        "Credit",
+                        tr("Credit"),
                         textAlign: TextAlign.right,
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                       ),
@@ -310,10 +314,10 @@ class _JournalScreenState extends State<JournalScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       flex: 5,
                       child: Text(
-                        "Total",
+                        tr("Total"),
                         textAlign: TextAlign.right,
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
@@ -321,7 +325,7 @@ class _JournalScreenState extends State<JournalScreen> {
                     Expanded(
                       flex: 3,
                       child: Text(
-                        _money(totalDr),
+                        tr(_money(totalDr)),
                         textAlign: TextAlign.right,
                         style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: "monospace"),
                       ),
@@ -329,7 +333,7 @@ class _JournalScreenState extends State<JournalScreen> {
                     Expanded(
                       flex: 3,
                       child: Text(
-                        _money(totalCr),
+                        tr(_money(totalCr)),
                         textAlign: TextAlign.right,
                         style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: "monospace"),
                       ),
@@ -361,10 +365,10 @@ class _JournalScreenState extends State<JournalScreen> {
             children: [
               Icon(ok ? Icons.check_circle : Icons.warning_amber, size: 16, color: color),
               const SizedBox(width: 6),
-              Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+              Text(tr(label), style: const TextStyle(fontWeight: FontWeight.w600)),
               const Spacer(),
               Text(
-                ok ? "Balanced ✓" : "Not balanced",
+                ok ? tr("Balanced ✓") : tr("Not balanced"),
                 style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12),
               ),
             ],
@@ -385,7 +389,7 @@ class _JournalScreenState extends State<JournalScreen> {
   Widget _empty(String text) => Center(
     child: Padding(
       padding: const EdgeInsets.all(40),
-      child: Text(text, style: const TextStyle(color: Colors.grey)),
+      child: Text(tr(text), style: const TextStyle(color: Colors.grey)),
     ),
   );
 }

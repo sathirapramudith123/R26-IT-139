@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/main_navigation.dart';
+import '../../core/i18n.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -80,8 +81,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      "Create account",
+                    Text(
+                      tr("Create account"),
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 30,
@@ -91,7 +92,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      "Join Lanka-Link and manage your kade.",
+                      tr("Join Lanka-Link and manage your kade."),
                       style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 15),
                     ),
                   ],
@@ -132,7 +133,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  error!,
+                                  tr(error!),
                                   style: const TextStyle(color: KadeColors.terra, fontSize: 13),
                                 ),
                               ),
@@ -140,37 +141,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ),
 
-                      const Text(
-                        "Full Name",
+                      Text(
+                        tr("Full Name"),
                         style: TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito"),
                       ),
                       const SizedBox(height: 6),
                       TextField(
                         controller: fullName,
-                        decoration: const InputDecoration(
-                          hintText: "Nimal Perera",
+                        decoration: InputDecoration(
+                          hintText: tr("Nimal Perera"),
                           prefixIcon: Icon(Icons.person_outline),
                         ),
                       ),
                       const SizedBox(height: 16),
 
-                      const Text(
-                        "Email",
+                      Text(
+                        tr("Email"),
                         style: TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito"),
                       ),
                       const SizedBox(height: 6),
                       TextField(
                         controller: email,
                         keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(
-                          hintText: "name@example.com",
+                        decoration: InputDecoration(
+                          hintText: tr("name@example.com"),
                           prefixIcon: Icon(Icons.mail_outline),
                         ),
                       ),
                       const SizedBox(height: 16),
 
-                      const Text(
-                        "Password",
+                      Text(
+                        tr("Password"),
                         style: TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito"),
                       ),
                       const SizedBox(height: 6),
@@ -178,7 +179,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         controller: password,
                         obscureText: obscure,
                         decoration: InputDecoration(
-                          hintText: "At least 6 characters",
+                          hintText: tr("At least 6 characters"),
                           prefixIcon: const Icon(Icons.lock_outline),
                           suffixIcon: IconButton(
                             icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
@@ -202,8 +203,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   width: 22,
                                   child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
                                 )
-                              : const Text(
-                                  "Create Account",
+                              : Text(
+                                  tr("Create Account"),
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w800,
@@ -223,13 +224,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      "Have an account? ",
+                      tr("Have an account? "),
                       style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
                     ),
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
                       child: Text(
-                        "Sign in",
+                        tr("Sign in"),
                         style: TextStyle(color: teal, fontWeight: FontWeight.w800, fontFamily: "Nunito"),
                       ),
                     ),

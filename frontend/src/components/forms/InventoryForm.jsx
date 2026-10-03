@@ -8,6 +8,7 @@ import { inventoryApi } from "@/services/api/inventory";
 import { supplierApi } from "@/services/api/supplier";
 import { INVENTORY_UNITS } from "@/lib/constants";
 
+import { t } from "@/lib/i18n";
 const ITEM_CATEGORIES = [
   "Rice & Grains",
   "Beverages",
@@ -113,7 +114,7 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
       else await inventoryApi.create(payload);
       router.push("/dashboard/inventory");
     } catch (err) {
-      setServerError(err.message || "Save failed.");
+      setServerError(err.message || t("Save failed."));
     } finally {
       setSaving(false);
     }
@@ -131,11 +132,11 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <FormField
-          label="Supplier"
+          label={t("Supplier")}
           hint={
             supplierOptions.length === 0
-              ? "No suppliers yet — add one first, or type a name."
-              : "Choose from your suppliers"
+              ? t("No suppliers yet — add one first, or type a name.")
+              : t("Choose from your suppliers")
           }
         >
           {supplierOptions.length > 0 ? (
@@ -144,7 +145,7 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
               value={v.supplier_name}
               onChange={(e) => set("supplier_name", e.target.value)}
             >
-              <option value="">Select a supplier</option>
+              <option value="">{t("Select a supplier")}</option>
               {supplierOptions.map((name) => (
                 <option key={name} value={name}>
                   {name}
@@ -156,18 +157,18 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
               className="input-field"
               value={v.supplier_name}
               onChange={(e) => set("supplier_name", e.target.value)}
-              placeholder="e.g. ABC Traders"
+              placeholder={t("e.g. ABC Traders")}
             />
           )}
         </FormField>
 
         <FormField
-          label="Item Name"
+          label={t("Item Name")}
           error={errors.name}
           required
           hint={
             supplierItems.length > 0
-              ? `Suggested from ${v.supplier_name}: pick one to auto-fill cost & unit`
+              ? `${t("Suggested from")} ${v.supplier_name}: ${t("pick one to auto-fill cost & unit")}`
               : undefined
           }
         >
@@ -176,7 +177,7 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
             list="supplier-item-suggestions"
             value={v.name}
             onChange={(e) => setItemName(e.target.value)}
-            placeholder="e.g. Rice 5kg"
+            placeholder={t("e.g. Rice 5kg")}
           />
           {supplierItems.length > 0 && (
             <datalist id="supplier-item-suggestions">
@@ -188,26 +189,26 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
         </FormField>
 
         <FormField
-          label="Category"
+          label={t("Category")}
           error={errors.category}
           required
-          hint="Required for AI Demand Forecasting"
+          hint={t("Required for AI Demand Forecasting")}
         >
           <select
             className="select-field"
             value={v.category}
             onChange={(e) => set("category", e.target.value)}
           >
-            <option value="">Select Category...</option>
+            <option value="">{t("Select Category...")}</option>
             {categoryOptions.map((cat) => (
               <option key={cat} value={cat}>
-                {cat}
+                {t(cat)}
               </option>
             ))}
           </select>
         </FormField>
 
-        <FormField label="Unit">
+        <FormField label={t("Unit")}>
           <select className="select-field" value={v.unit} onChange={(e) => set("unit", e.target.value)}>
             {INVENTORY_UNITS.map((u) => (
               <option key={u.value} value={u.value}>
@@ -217,7 +218,7 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
           </select>
         </FormField>
 
-        <FormField label="Initial Quantity" error={errors.quantity} required>
+        <FormField label={t("Initial Quantity")} error={errors.quantity} required>
           <input
             className={cls("quantity")}
             type="number"
@@ -228,7 +229,7 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
           />
         </FormField>
 
-        <FormField label="Reorder Level" hint="Alert threshold (Auto-calculated by AI if empty)">
+        <FormField label={t("Reorder Level")} hint={t("Alert threshold (Auto-calculated by AI if empty)")}>
           <input
             className="input-field"
             type="number"
@@ -236,11 +237,15 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
             step="0.01"
             value={v.reorder_level}
             onChange={(e) => set("reorder_level", e.target.value)}
-            placeholder="Default: Auto AI"
+            placeholder={t("Default: Auto AI")}
           />
         </FormField>
 
-        <FormField label="Unit Cost per Unit (LKR)" error={errors.cost_price} hint="Buying price per unit">
+        <FormField
+          label={t("Unit Cost per Unit (LKR)")}
+          error={errors.cost_price}
+          hint={t("Buying price per unit")}
+        >
           <input
             className={cls("cost_price")}
             type="number"
@@ -248,12 +253,15 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
             step="0.01"
             value={v.cost_price}
             onChange={(e) => set("cost_price", e.target.value)}
-            placeholder="e.g. 1100.00"
+            placeholder={t("e.g. 1100.00")}
           />
         </FormField>
 
         {/* >>> Selling Price ain kala. Ee wenuwata Total Cost (read-only) */}
-        <FormField label="Total Cost (LKR)" hint={`Unit Cost × Quantity  =  ${unitCost.toFixed(2)} × ${qty}`}>
+        <FormField
+          label={t("Total Cost (LKR)")}
+          hint={`${t("Unit Cost × Quantity")}  =  ${unitCost.toFixed(2)} × ${qty}`}
+        >
           <input
             className="input-field bg-slate-100 font-semibold text-slate-700 cursor-not-allowed dark:bg-slate-800"
             type="text"
@@ -264,9 +272,9 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
         </FormField>
 
         <FormField
-          label="Item Delivery Lead Time (Days)"
+          label={t("Item Delivery Lead Time (Days)")}
           error={errors.lead_time_days}
-          hint="Expected delivery time (Used for Dynamic Safety Stock)"
+          hint={t("Expected delivery time (Used for Dynamic Safety Stock)")}
         >
           <input
             className={cls("lead_time_days")}
@@ -275,7 +283,7 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
             step="1"
             value={v.lead_time_days}
             onChange={(e) => set("lead_time_days", e.target.value)}
-            placeholder="e.g. 1"
+            placeholder={t("e.g. 1")}
           />
         </FormField>
       </div>
@@ -283,11 +291,11 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
       <div className="flex justify-end gap-3 border-t border-slate-100 pt-5 dark:border-slate-800">
         <Link href="/dashboard/inventory">
           <Button variant="secondary" type="button">
-            Cancel
+            {t("Cancel")}
           </Button>
         </Link>
         <Button type="submit" disabled={saving}>
-          {saving ? "Saving..." : isEdit ? "Update Item" : "Add Item"}
+          {saving ? t("Saving...") : isEdit ? t("Update Item") : t("Add Item")}
         </Button>
       </div>
     </form>

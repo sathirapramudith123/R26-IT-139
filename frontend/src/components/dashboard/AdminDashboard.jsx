@@ -13,6 +13,7 @@ import useNotifications from "@/hooks/usePrediction";
 import { apiClient } from "@/services/api/client";
 import { formatCurrency, formatDate } from "@/lib/formatters/index";
 
+import { t } from "@/lib/i18n";
 const ROLE_COLORS = {
   admin: "bg-purple-50 text-purple-700 border-purple-200",
   bank_agent: "bg-blue-50   text-blue-700   border-blue-200",
@@ -22,37 +23,49 @@ const ROLE_COLORS = {
 const QUICK_LINKS = [
   {
     href: "/dashboard/admin/users",
-    label: "User Management",
+    get label() {
+      return t("User Management");
+    },
     icon: "👥",
     color: "border-purple-200 hover:bg-purple-50 hover:text-purple-700",
   },
   {
     href: "/dashboard/agency-banking/summary",
-    label: "Agency Summary",
+    get label() {
+      return t("Agency Summary");
+    },
     icon: "📊",
     color: "border-blue-200   hover:bg-blue-50   hover:text-blue-700",
   },
   {
     href: "/dashboard/ledger/reports",
-    label: "Financial Reports",
+    get label() {
+      return t("Financial Reports");
+    },
     icon: "📈",
     color: "border-teal-200  hover:bg-teal-50   hover:text-teal-700",
   },
   {
     href: "/dashboard/inventory/alerts",
-    label: "Stock Alerts",
+    get label() {
+      return t("Stock Alerts");
+    },
     icon: "⚠️",
     color: "border-amber-200 hover:bg-amber-50  hover:text-amber-700",
   },
   {
     href: "/dashboard/procurement/create",
-    label: "Procurement DSS",
+    get label() {
+      return t("Procurement DSS");
+    },
     icon: "🛒",
     color: "border-slate-200 hover:bg-slate-50  hover:text-slate-700",
   },
   {
     href: "/dashboard/ledger/journal",
-    label: "Trial Balance",
+    get label() {
+      return t("Trial Balance");
+    },
     icon: "📒",
     color: "border-slate-200 hover:bg-slate-50  hover:text-slate-700",
   },
@@ -106,27 +119,54 @@ export default function AdminDashboard() {
   const unreadNotifs = notifs.filter((n) => !n.is_read).length;
 
   const systemMetrics = [
-    { label: "Total Users", value: userStats.total, icon: "👥", gradient: "gradient-navy" },
-    { label: "Bank Agents", value: userStats.agents, icon: "🏦", gradient: "gradient-teal" },
     {
-      label: "System Revenue",
+      get label() {
+        return t("Total Users");
+      },
+      value: userStats.total,
+      icon: "👥",
+      gradient: "gradient-navy",
+    },
+    {
+      get label() {
+        return t("Bank Agents");
+      },
+      value: userStats.agents,
+      icon: "🏦",
+      gradient: "gradient-teal",
+    },
+    {
+      get label() {
+        return t("System Revenue");
+      },
       value: formatCurrency(summary?.income),
       icon: "💰",
       gradient: "gradient-emerald",
     },
     {
-      label: "Agency Commission",
+      get label() {
+        return t("Agency Commission");
+      },
       value: formatCurrency(agSum?.total_commission),
       icon: "🏧",
       gradient: "gradient-amber",
     },
     {
-      label: "Low Stock Alerts",
+      get label() {
+        return t("Low Stock Alerts");
+      },
       value: `${lowStockItems.length} Items`,
       icon: "⚠️",
       gradient: "gradient-amber",
     },
-    { label: "Unread Notifications", value: unreadNotifs, icon: "🔔", gradient: "gradient-navy" },
+    {
+      get label() {
+        return t("Unread Notifications");
+      },
+      value: unreadNotifs,
+      icon: "🔔",
+      gradient: "gradient-navy",
+    },
   ];
 
   const recentUsers = [...users].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5);
@@ -134,12 +174,12 @@ export default function AdminDashboard() {
   return (
     <div className="page-container">
       <PageHeader
-        title="Admin Dashboard"
-        description="System-wide overview — users, financials, agency banking, and alerts."
+        title={t("Admin Dashboard")}
+        description={t("System-wide overview — users, financials, agency banking, and alerts.")}
         action={
           <div className="flex gap-2">
             <Link href="/dashboard/admin/users" className="btn-primary text-sm px-4 py-2">
-              👥 Manage Users
+              {t("👥 Manage Users")}
             </Link>
             <button
               onClick={() => {
@@ -151,18 +191,18 @@ export default function AdminDashboard() {
               }}
               className="btn-secondary px-4 py-2 text-sm"
             >
-              Refresh
+              {t("Refresh")}
             </button>
           </div>
         }
       />
 
       <div className="inline-flex items-center gap-2 rounded-full border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-medium text-purple-700 shadow-sm">
-        <span>🔑</span> Signed in as <span className="font-semibold">Admin</span>
+        <span>🔑</span> {t("Signed in as")} <span className="font-semibold">{t("Admin")}</span>
       </div>
 
       {loading && !summary ? (
-        <LoadingSpinner label="Loading admin dashboard..." />
+        <LoadingSpinner label={t("Loading admin dashboard...")} />
       ) : (
         <>
           {/* System metrics */}
@@ -183,7 +223,7 @@ export default function AdminDashboard() {
           {/* Quick actions + user breakdown + financial summary */}
           <div className="grid gap-6 lg:grid-cols-3">
             <Card>
-              <h3 className="mb-4 font-outfit font-semibold text-slate-900">Admin Actions</h3>
+              <h3 className="mb-4 font-outfit font-semibold text-slate-900">{t("Admin Actions")}</h3>
               <div className="grid grid-cols-2 gap-3">
                 {QUICK_LINKS.map((q) => (
                   <Link
@@ -199,7 +239,7 @@ export default function AdminDashboard() {
             </Card>
 
             <Card>
-              <h3 className="mb-4 font-outfit font-semibold text-slate-900">User Breakdown</h3>
+              <h3 className="mb-4 font-outfit font-semibold text-slate-900">{t("User Breakdown")}</h3>
               <div className="space-y-3 mb-4">
                 {[
                   ["Admins", userStats.admins, "bg-purple-500"],
@@ -226,12 +266,12 @@ export default function AdminDashboard() {
                 href="/dashboard/admin/users"
                 className="text-center block text-sm font-medium text-teal-700 hover:underline"
               >
-                Manage all users →
+                {t("Manage all users →")}
               </Link>
             </Card>
 
             <Card>
-              <h3 className="mb-4 font-outfit font-semibold text-slate-900">Financial Summary</h3>
+              <h3 className="mb-4 font-outfit font-semibold text-slate-900">{t("Financial Summary")}</h3>
               <div className="space-y-2 mb-4">
                 {[
                   ["Total Income", summary?.income, "text-green-600"],
@@ -250,7 +290,7 @@ export default function AdminDashboard() {
                 href="/dashboard/ledger/reports"
                 className="text-center block text-sm font-medium text-teal-700 hover:underline"
               >
-                Full reports →
+                {t("Full reports →")}
               </Link>
             </Card>
           </div>
@@ -266,28 +306,28 @@ export default function AdminDashboard() {
           {/* Recent registrations */}
           <Card>
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-outfit font-semibold text-slate-900">Recent Registrations</h3>
+              <h3 className="font-outfit font-semibold text-slate-900">{t("Recent Registrations")}</h3>
               <Link
                 href="/dashboard/admin/users"
                 className="text-sm font-medium text-teal-700 hover:underline"
               >
-                View all →
+                {t("View all →")}
               </Link>
             </div>
             {usersLoading ? (
-              <LoadingSpinner label="Loading users..." />
+              <LoadingSpinner label={t("Loading users...")} />
             ) : recentUsers.length === 0 ? (
-              <p className="text-sm text-slate-400">No users yet.</p>
+              <p className="text-sm text-slate-400">{t("No users yet.")}</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 text-left text-xs text-slate-400">
-                      <th className="pb-2 font-medium">Name</th>
-                      <th className="pb-2 font-medium">Email</th>
-                      <th className="pb-2 font-medium">Role</th>
-                      <th className="pb-2 font-medium">Joined</th>
-                      <th className="pb-2 font-medium">Action</th>
+                      <th className="pb-2 font-medium">{t("Name")}</th>
+                      <th className="pb-2 font-medium">{t("Email")}</th>
+                      <th className="pb-2 font-medium">{t("Role")}</th>
+                      <th className="pb-2 font-medium">{t("Joined")}</th>
+                      <th className="pb-2 font-medium">{t("Action")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
@@ -309,7 +349,7 @@ export default function AdminDashboard() {
                               href="/dashboard/admin/users"
                               className="text-xs font-medium text-blue-600 hover:underline"
                             >
-                              Promote
+                              {t("Promote")}
                             </Link>
                           )}
                         </td>
@@ -326,7 +366,7 @@ export default function AdminDashboard() {
             <Card>
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="font-outfit font-semibold text-slate-900">
-                  ⚠️ Low Stock Alerts
+                  {t("⚠️ Low Stock Alerts")}
                   <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">
                     {lowStockItems.length}
                   </span>
@@ -335,7 +375,7 @@ export default function AdminDashboard() {
                   href="/dashboard/inventory/alerts"
                   className="text-sm font-medium text-teal-700 hover:underline"
                 >
-                  View all →
+                  {t("View all →")}
                 </Link>
               </div>
               <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">

@@ -1,5 +1,7 @@
 "use client";
 
+import { t } from "@/lib/i18n";
+
 const HIDDEN = [
   "id",
   "user_id",
@@ -64,7 +66,7 @@ function display(k, v) {
   if (v === null || v === undefined || v === "") return "—";
   if (DATE_FIELDS.includes(k)) return formatDate(v);
   if (MONEY_FIELDS.includes(k)) return formatMoney(v);
-  if (typeof v === "boolean") return v ? "Yes" : "No";
+  if (typeof v === "boolean") return v ? t("Yes") : t("No");
   if (typeof v === "string" && /^[a-z_]+$/.test(v)) {
     return v.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   }
@@ -100,15 +102,15 @@ function ProcurementDetail({ data }) {
     <div className="space-y-5">
       {items.length > 0 && (
         <div>
-          <p className="mb-2 text-sm font-medium text-slate-500 dark:text-slate-400">Items</p>
+          <p className="mb-2 text-sm font-medium text-slate-500 dark:text-slate-400">{t("Items")}</p>
           <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                  <th className="px-3 py-2 text-left font-semibold">Item</th>
-                  <th className="px-3 py-2 text-right font-semibold">Qty</th>
-                  <th className="px-3 py-2 text-left font-semibold">Unit</th>
-                  <th className="px-3 py-2 text-right font-semibold">Unit Cost</th>
+                  <th className="px-3 py-2 text-left font-semibold">{t("Item")}</th>
+                  <th className="px-3 py-2 text-right font-semibold">{t("Qty")}</th>
+                  <th className="px-3 py-2 text-left font-semibold">{t("Unit")}</th>
+                  <th className="px-3 py-2 text-right font-semibold">{t("Unit Cost")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -129,16 +131,21 @@ function ProcurementDetail({ data }) {
       )}
 
       <div className="space-y-2">
-        <Row label="Total Quantity" value={totalQuantity} />
-        <Row label="Delivery Location" value={data.delivery_location || "—"} />
-        <Row label="Total Cost" value={formatMoney(data.total_cost)} />
-        <Row label="Order Date" value={data.order_date ? formatDateOnly(data.order_date) : "—"} />
-        <Row label="Expected Arrival" value={data.arrival_date ? formatDateOnly(data.arrival_date) : "—"} />
+        <Row label={t("Total Quantity")} value={totalQuantity} />
+        <Row label={t("Delivery Location")} value={data.delivery_location || "—"} />
+        <Row label={t("Total Cost")} value={formatMoney(data.total_cost)} />
+        <Row label={t("Order Date")} value={data.order_date ? formatDateOnly(data.order_date) : "—"} />
+        <Row
+          label={t("Expected Arrival")}
+          value={data.arrival_date ? formatDateOnly(data.arrival_date) : "—"}
+        />
       </div>
 
       {recommendedSuppliers.length > 0 && (
         <div>
-          <p className="mb-2 text-sm font-medium text-slate-500 dark:text-slate-400">Recommended Suppliers</p>
+          <p className="mb-2 text-sm font-medium text-slate-500 dark:text-slate-400">
+            {t("Recommended Suppliers")}
+          </p>
           <div className="space-y-2">
             {recommendedSuppliers.map((s, i) => (
               <div
@@ -150,12 +157,12 @@ function ProcurementDetail({ data }) {
                     {s.name}
                     {i === 0 && (
                       <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900 dark:text-green-300">
-                        Best match
+                        {t("Best match")}
                       </span>
                     )}
                     {s.id === cheapestId && (
                       <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900 dark:text-amber-300">
-                        💰 Cheapest
+                        {t("💰 Cheapest")}
                       </span>
                     )}
                   </span>
@@ -168,10 +175,14 @@ function ProcurementDetail({ data }) {
                   <p className="mt-1 text-xs text-slate-500">{formatMoney(s.totalPrice)}</p>
                 )}
                 {Array.isArray(s.matchedItems) && s.matchedItems.length > 0 && (
-                  <p className="mt-1 text-xs text-slate-500">Carries: {s.matchedItems.join(", ")}</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {t("Carries:")} {s.matchedItems.join(", ")}
+                  </p>
                 )}
                 {Array.isArray(s.missing) && s.missing.length > 0 && (
-                  <p className="mt-0.5 text-xs text-slate-400">Missing: {s.missing.join(", ")}</p>
+                  <p className="mt-0.5 text-xs text-slate-400">
+                    {t("Missing:")} {s.missing.join(", ")}
+                  </p>
                 )}
                 {s.delivery_location && (
                   <p className="mt-0.5 text-xs text-slate-400">📍 {s.delivery_location}</p>
@@ -210,7 +221,7 @@ function TransactionDetail({ data }) {
               : "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300"
           }`}
         >
-          {isCredit ? "Credit (money in)" : "Debit (money out)"}
+          {isCredit ? t("Credit (money in)") : t("Debit (money out)")}
         </span>
         <p
           className={`mt-2 font-outfit text-3xl font-extrabold ${
@@ -227,14 +238,14 @@ function TransactionDetail({ data }) {
       {/* Items (sale/purchase with line items) */}
       {items.length > 0 && (
         <div>
-          <p className="mb-2 text-sm font-medium text-slate-500 dark:text-slate-400">Items</p>
+          <p className="mb-2 text-sm font-medium text-slate-500 dark:text-slate-400">{t("Items")}</p>
           <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                  <th className="px-3 py-2 text-left font-semibold">Item</th>
-                  <th className="px-3 py-2 text-right font-semibold">Qty</th>
-                  <th className="px-3 py-2 text-right font-semibold">Unit Price</th>
+                  <th className="px-3 py-2 text-left font-semibold">{t("Item")}</th>
+                  <th className="px-3 py-2 text-right font-semibold">{t("Qty")}</th>
+                  <th className="px-3 py-2 text-right font-semibold">{t("Unit Price")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -255,16 +266,16 @@ function TransactionDetail({ data }) {
 
       {/* Details */}
       <div className="space-y-2">
-        <Row label="Payment Method" value={display("payment_method", data.payment_method)} />
-        {data.category && <Row label="Category" value={display("category", data.category)} />}
+        <Row label={t("Payment Method")} value={display("payment_method", data.payment_method)} />
+        {data.category && <Row label={t("Category")} value={display("category", data.category)} />}
         {data.service_fee != null && Number(data.service_fee) > 0 && (
-          <Row label="Service Fee" value={formatMoney(data.service_fee)} />
+          <Row label={t("Service Fee")} value={formatMoney(data.service_fee)} />
         )}
         {data.commission != null && Number(data.commission) > 0 && (
-          <Row label="Commission" value={formatMoney(data.commission)} />
+          <Row label={t("Commission")} value={formatMoney(data.commission)} />
         )}
-        {data.description && <Row label="Note" value={data.description} />}
-        <Row label="Date" value={data.created_at ? formatDate(data.created_at) : "—"} />
+        {data.description && <Row label={t("Note")} value={data.description} />}
+        <Row label={t("Date")} value={data.created_at ? formatDate(data.created_at) : "—"} />
       </div>
     </div>
   );
@@ -304,25 +315,27 @@ function InventoryDetail({ data }) {
               : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
           }`}
         >
-          {low ? "⚠ Running low — reorder needed" : "✓ In stock"}
+          {low ? t("⚠ Running low — reorder needed") : t("✓ In stock")}
         </span>
       </div>
 
       {/* Details */}
       <div className="space-y-2">
-        {data.category && <Row label="Category" value={display("category", data.category)} />}
-        <Row label="Supplier" value={data.supplier_name || "—"} />
-        <Row label="Reorder Level" value={`${reorder} ${data.unit || "units"}`} />
-        <Row label="Avg. Unit Cost" value={formatMoney(data.cost_price)} />
+        {data.category && <Row label={t("Category")} value={display("category", data.category)} />}
+        <Row label={t("Supplier")} value={data.supplier_name || "—"} />
+        <Row label={t("Reorder Level")} value={`${reorder} ${data.unit || "units"}`} />
+        <Row label={t("Avg. Unit Cost")} value={formatMoney(data.cost_price)} />
         {hasRange && (
           <Row
-            label="Cost Range"
+            label={t("Cost Range")}
             value={`${formatMoney(data.cost_min)} – ${formatMoney(data.cost_max)} · ${batchCount} batches`}
           />
         )}
-        <Row label="Total Stock Value" value={formatMoney(totalValue)} />
-        {data.lead_time_days != null && <Row label="Lead Time" value={`${data.lead_time_days} day(s)`} />}
-        {data.received_at && <Row label="Last Received" value={formatDate(data.received_at)} />}
+        <Row label={t("Total Stock Value")} value={formatMoney(totalValue)} />
+        {data.lead_time_days != null && (
+          <Row label={t("Lead Time")} value={`${data.lead_time_days} day(s)`} />
+        )}
+        {data.received_at && <Row label={t("Last Received")} value={formatDate(data.received_at)} />}
       </div>
     </div>
   );
@@ -395,15 +408,17 @@ export default function DetailDialog({ open, title, data, onClose }) {
 
             {suppliedItems.length > 0 && (
               <div className="mt-4">
-                <p className="mb-2 text-sm font-medium text-slate-500 dark:text-slate-400">Items Supplied</p>
+                <p className="mb-2 text-sm font-medium text-slate-500 dark:text-slate-400">
+                  {t("Items Supplied")}
+                </p>
                 <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                        <th className="px-3 py-2 text-left font-semibold">Item</th>
-                        <th className="px-3 py-2 text-right font-semibold">Qty</th>
-                        <th className="px-3 py-2 text-left font-semibold">Unit</th>
-                        <th className="px-3 py-2 text-right font-semibold">Unit Price</th>
+                        <th className="px-3 py-2 text-left font-semibold">{t("Item")}</th>
+                        <th className="px-3 py-2 text-right font-semibold">{t("Qty")}</th>
+                        <th className="px-3 py-2 text-left font-semibold">{t("Unit")}</th>
+                        <th className="px-3 py-2 text-right font-semibold">{t("Unit Price")}</th>
                       </tr>
                     </thead>
                     <tbody>

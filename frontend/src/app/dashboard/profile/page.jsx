@@ -5,6 +5,7 @@ import useAuthGuard from "@/hooks/useAuthGuard";
 import { tokenService } from "@/services/auth/tokenService";
 import { User, Mail, Hash, LogOut, Sun, Moon, Shield, Store, ChevronRight } from "lucide-react";
 
+import { t } from "@/lib/i18n";
 export default function ProfilePage() {
   useAuthGuard();
   const router = useRouter();
@@ -60,7 +61,7 @@ export default function ProfilePage() {
               <Mail className="h-4 w-4" /> {email}
             </p>
             <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold">
-              <Store className="h-3.5 w-3.5" /> Merchant Account
+              <Store className="h-3.5 w-3.5" /> {t("Merchant Account")}
             </span>
           </div>
         </div>
@@ -70,18 +71,20 @@ export default function ProfilePage() {
         {/* ===== Account details ===== */}
         <div className="lg:col-span-2">
           <h2 className="mb-3 font-outfit text-lg font-bold text-slate-900 dark:text-slate-100">
-            Account Details
+            {t("Account Details")}
           </h2>
           <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <DetailRow icon={User} label="Full Name" value={name} />
-            <DetailRow icon={Mail} label="Email" value={email} />
-            <DetailRow icon={Hash} label="Account ID" value={user?.id ?? "—"} mono />
+            <DetailRow icon={User} label={t("Full Name")} value={name} />
+            <DetailRow icon={Mail} label={t("Email")} value={email} />
+            <DetailRow icon={Hash} label={t("Account ID")} value={user?.id ?? "—"} mono />
           </div>
         </div>
 
         {/* ===== Settings / actions ===== */}
         <div>
-          <h2 className="mb-3 font-outfit text-lg font-bold text-slate-900 dark:text-slate-100">Settings</h2>
+          <h2 className="mb-3 font-outfit text-lg font-bold text-slate-900 dark:text-slate-100">
+            {t("Settings")}
+          </h2>
           <div className="space-y-3">
             {/* Theme toggle */}
             <button
@@ -94,9 +97,11 @@ export default function ProfilePage() {
                 </span>
                 <span className="text-left">
                   <span className="block text-sm font-semibold text-slate-800 dark:text-slate-200">
-                    Appearance
+                    {t("Appearance")}
                   </span>
-                  <span className="block text-xs text-slate-500">{dark ? "Dark mode" : "Light mode"}</span>
+                  <span className="block text-xs text-slate-500">
+                    {dark ? t("Dark mode") : t("Light mode")}
+                  </span>
                 </span>
               </span>
               {/* toggle pill */}
@@ -117,9 +122,9 @@ export default function ProfilePage() {
                 </span>
                 <span className="text-left">
                   <span className="block text-sm font-semibold text-slate-800 dark:text-slate-200">
-                    Security
+                    {t("Security")}
                   </span>
-                  <span className="block text-xs text-slate-500">Your session is protected</span>
+                  <span className="block text-xs text-slate-500">{t("Your session is protected")}</span>
                 </span>
               </span>
               <ChevronRight className="h-4 w-4 text-slate-400" />
@@ -130,7 +135,7 @@ export default function ProfilePage() {
               onClick={logout}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700"
             >
-              <LogOut className="h-4 w-4" /> Sign Out
+              <LogOut className="h-4 w-4" /> {t("Sign Out")}
             </button>
           </div>
         </div>

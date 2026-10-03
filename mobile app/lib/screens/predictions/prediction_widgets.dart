@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
+import '../../core/i18n.dart';
 
 /// Shared visual building blocks for the prediction screens.
 ///
@@ -64,7 +65,7 @@ class RingGauge extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                pct.toStringAsFixed(0),
+                tr(pct.toStringAsFixed(0)),
                 style: TextStyle(
                   fontSize: size * 0.26,
                   fontWeight: FontWeight.w800,
@@ -72,7 +73,7 @@ class RingGauge extends StatelessWidget {
                   color: color,
                 ),
               ),
-              const Text("out of 100", style: TextStyle(fontSize: 9, color: Colors.grey)),
+              Text(tr("out of 100"), style: TextStyle(fontSize: 9, color: Colors.grey)),
             ],
           ),
         ],
@@ -143,7 +144,7 @@ class InfluenceBars extends StatelessWidget {
           Row(
             children: [
               Text(
-                "What's affecting this",
+                tr("What's affecting this"),
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: sub),
               ),
               const Spacer(),
@@ -163,7 +164,7 @@ class InfluenceBars extends StatelessWidget {
                   SizedBox(
                     width: 104,
                     child: Text(
-                      f.label,
+                      tr(f.label),
                       style: const TextStyle(fontSize: 12),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -216,7 +217,7 @@ class InfluenceBars extends StatelessWidget {
       ),
       const SizedBox(width: 4),
       Text(
-        t,
+        tr(t),
         style: TextStyle(fontSize: 10, color: c, fontWeight: FontWeight.w600),
       ),
     ],
@@ -267,7 +268,7 @@ class MiniTrendChart extends StatelessWidget {
               .map(
                 (l) => Expanded(
                   child: Text(
-                    l,
+                    tr(l),
                     style: const TextStyle(fontSize: 9, color: Colors.grey),
                     textAlign: TextAlign.center,
                     maxLines: 1,

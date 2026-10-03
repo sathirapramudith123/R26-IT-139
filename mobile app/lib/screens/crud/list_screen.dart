@@ -8,6 +8,7 @@ import '../inventory/inventory_form_screen.dart';
 import '../suppliers/supplier_form_screen.dart';
 import '../procurement/procurement_form_screen.dart';
 import '../agency_banking/agency_banking_form_screen.dart';
+import '../../core/i18n.dart';
 
 class ListScreen extends StatefulWidget {
   final ModuleConfig module;
@@ -56,14 +57,14 @@ class _ListScreenState extends State<ListScreen> {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(KadeRadius.lg)),
-        title: const Text("Delete?"),
-        content: const Text("This cannot be undone."),
+        title: Text(tr("Delete?")),
+        content: Text(tr("This cannot be undone.")),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr("Cancel"))),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: KadeColors.terra),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text("Delete"),
+            child: Text(tr("Delete")),
           ),
         ],
       ),
@@ -77,7 +78,7 @@ class _ListScreenState extends State<ListScreen> {
     }
   }
 
-  void _snack(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
+  void _snack(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr(m))));
 
   // Searches across every column shown in the list (title + subtitle
   // fields) — case-insensitive substring match, purely client-side since
@@ -193,7 +194,7 @@ class _ListScreenState extends State<ListScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Details", style: Theme.of(context).textTheme.titleLarge),
+                  Text(tr("Details"), style: Theme.of(context).textTheme.titleLarge),
                   IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
                 ],
               ),
@@ -215,7 +216,7 @@ class _ListScreenState extends State<ListScreen> {
                             Expanded(
                               flex: 2,
                               child: Text(
-                                _titleCase(e.key),
+                                tr(_titleCase(e.key)),
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: Theme.of(context).textTheme.bodySmall?.color,
@@ -225,7 +226,7 @@ class _ListScreenState extends State<ListScreen> {
                             Expanded(
                               flex: 3,
                               child: Text(
-                                _display(e.key, e.value),
+                                tr(_display(e.key, e.value)),
                                 textAlign: TextAlign.right,
                                 style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
                               ),
@@ -253,13 +254,13 @@ class _ListScreenState extends State<ListScreen> {
     final cols = widget.module.listColumns;
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.module.title)),
+      appBar: AppBar(title: Text(tr(widget.module.title))),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: teal,
         foregroundColor: Colors.white,
         onPressed: () => _openForm(),
         icon: const Icon(Icons.add),
-        label: const Text("Add", style: TextStyle(fontWeight: FontWeight.w600)),
+        label: Text(tr("Add"), style: TextStyle(fontWeight: FontWeight.w600)),
       ),
       body: Column(
         children: [
@@ -291,7 +292,7 @@ class _ListScreenState extends State<ListScreen> {
                 ? Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24),
-                      child: Text(error!, style: const TextStyle(color: KadeColors.terra)),
+                      child: Text(tr(error!), style: const TextStyle(color: KadeColors.terra)),
                     ),
                   )
                 : _filteredItems.isEmpty
@@ -326,9 +327,9 @@ class _ListScreenState extends State<ListScreen> {
                               ),
                               child: Icon(widget.module.icon, size: 20, color: teal),
                             ),
-                            title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                            title: Text(tr(title), style: const TextStyle(fontWeight: FontWeight.w600)),
                             subtitle: Text(
-                              subtitle,
+                              tr(subtitle),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Theme.of(context).textTheme.bodySmall?.color,
@@ -375,12 +376,12 @@ class _ListScreenState extends State<ListScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            searching ? "No matches found" : "No ${widget.module.title.toLowerCase()} yet",
+            searching ? tr("No matches found") : "No ${widget.module.title.toLowerCase()} yet",
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 6),
           Text(
-            searching ? "Try a different search term." : "Tap + to add one.",
+            searching ? tr("Try a different search term.") : tr("Tap + to add one."),
             style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
           ),
         ],

@@ -1,11 +1,13 @@
-// src/components/reports/IncomeStatement.jsx
 "use client";
+
+// src/components/reports/IncomeStatement.jsx
 
 import { useState, useEffect } from "react";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import Card from "@/components/ui/Card";
 import { formatCurrency } from "@/lib/formatters";
 
+import { t } from "@/lib/i18n";
 const num = (v) => Number(v || 0);
 
 /* Count-up: eases a number 0 -> target over `duration` ms (easeOutCubic). */
@@ -56,28 +58,30 @@ export default function IncomeStatement({ data }) {
     <div className="space-y-6">
       {/* Summary tiles */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Tile label="Total Revenue" amount={revenue} />
-        <Tile label="Gross Profit" amount={grossProfit} />
+        <Tile label={t("Total Revenue")} amount={revenue} />
+        <Tile label={t("Gross Profit")} amount={grossProfit} />
         <Tile
-          label={isProfit ? "Net Profit" : "Net Loss"}
+          label={isProfit ? t("Net Profit") : t("Net Loss")}
           amount={netProfit}
-          sub={`Margin: ${margin.toFixed(1)}%`}
+          sub={`${t("Margin:")} ${margin.toFixed(1)}%`}
           valueClass={posNeg}
         />
       </div>
 
       {/* Statement */}
       <Card>
-        <h3 className="mb-2 font-semibold">Financial Summary</h3>
+        <h3 className="mb-2 font-semibold">{t("Financial Summary")}</h3>
         <table className="w-full text-sm">
           <tbody>
-            <Row label="Total Revenue / Sales" value={formatCurrency(revenue)} />
-            <Row label="Cost of Goods Sold" value={`(${formatCurrency(cogs)})`} muted />
-            <Row label="Gross Profit" value={formatCurrency(grossProfit)} strong divider />
-            <Row label="Operating Expenses" value={`(${formatCurrency(opex)})`} muted />
+            <Row label={t("Total Revenue / Sales")} value={formatCurrency(revenue)} />
+            <Row label={t("Cost of Goods Sold")} value={`(${formatCurrency(cogs)})`} muted />
+            <Row label={t("Gross Profit")} value={formatCurrency(grossProfit)} strong divider />
+            <Row label={t("Operating Expenses")} value={`(${formatCurrency(opex)})`} muted />
 
             <tr className="border-t-2 border-gray-900 dark:border-gray-100">
-              <td className="px-4 py-4 font-semibold">{isProfit ? "Net Income / Profit" : "Net Loss"}</td>
+              <td className="px-4 py-4 font-semibold">
+                {isProfit ? t("Net Income / Profit") : t("Net Loss")}
+              </td>
               <td className={`px-4 py-4 text-right font-bold ${posNeg}`}>
                 <span className="inline-flex items-center gap-1.5">
                   {isProfit ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}

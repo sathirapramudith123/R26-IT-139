@@ -14,16 +14,47 @@ import { transactionApi } from "@/services/api/transaction";
 import { formatCurrency, formatDate, titleCase } from "@/lib/formatters";
 import DetailDialog from "@/components/common/DetailDialog";
 
+import { t } from "@/lib/i18n";
 // Credit = money coming in, Debit = money going out
 const CREDIT_TYPES = new Set(["sale", "deposit"]);
 
 const COLS = [
-  { key: "transaction_type", label: "Type" },
-  { key: "flow", label: "Credit/Debit" },
-  { key: "amount", label: "Amount" },
-  { key: "payment_method", label: "Payment" },
-  { key: "category", label: "Category" },
-  { key: "created_at", label: "Date" },
+  {
+    key: "transaction_type",
+    get label() {
+      return t("Type");
+    },
+  },
+  {
+    key: "flow",
+    get label() {
+      return t("Credit/Debit");
+    },
+  },
+  {
+    key: "amount",
+    get label() {
+      return t("Amount");
+    },
+  },
+  {
+    key: "payment_method",
+    get label() {
+      return t("Payment");
+    },
+  },
+  {
+    key: "category",
+    get label() {
+      return t("Category");
+    },
+  },
+  {
+    key: "created_at",
+    get label() {
+      return t("Date");
+    },
+  },
   { key: "actions", label: "" },
 ];
 
@@ -42,7 +73,7 @@ export default function TransactionsPage() {
       await transactionApi.remove(id);
       await fetchAll();
     } catch (e) {
-      alert(e.message || "Failed");
+      alert(e.message || t("Failed"));
     }
   }
 
@@ -62,7 +93,7 @@ export default function TransactionsPage() {
     const isCredit = CREDIT_TYPES.has(item.transaction_type);
     return {
       ...item,
-      transaction_type: titleCase(item.transaction_type || ""),
+      transaction_type: t(titleCase(item.transaction_type || "")),
       flow: (
         <span
           className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
@@ -71,7 +102,7 @@ export default function TransactionsPage() {
               : "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300"
           }`}
         >
-          {isCredit ? "Credit" : "Debit"}
+          {isCredit ? t("Credit") : t("Debit")}
         </span>
       ),
       amount: (
@@ -81,21 +112,21 @@ export default function TransactionsPage() {
           {isCredit ? "+" : "-"} {formatCurrency(item.amount)}
         </span>
       ),
-      payment_method: titleCase(item.payment_method || ""),
+      payment_method: t(titleCase(item.payment_method || "")),
       category: item.category ? item.category : <span className="text-slate-400">—</span>,
       created_at: <span className="text-slate-500 dark:text-slate-400">{formatDate(item.created_at)}</span>,
       actions: (
         <div className="flex gap-2">
           <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => setViewItem(item)}>
-            View
+            {t("View")}
           </Button>
           <Link href={`/dashboard/transactions/${item.id}/edit`}>
             <Button variant="secondary" size="sm">
-              Edit
+              {t("Edit")}
             </Button>
           </Link>
           <Button variant="danger" size="sm" onClick={() => handleDelete(item.id)}>
-            Delete
+            {t("Delete")}
           </Button>
         </div>
       ),
@@ -105,15 +136,15 @@ export default function TransactionsPage() {
   return (
     <div className="page-container">
       <PageHeader
-        title="Transactions"
-        description="All financial transactions."
+        title={t("Transactions")}
+        description={t("All financial transactions.")}
         action={
           <div className="flex gap-2">
             <Link href="/dashboard/reports">
-              <Button variant="secondary">📊 Income Statement</Button>
+              <Button variant="secondary">{t("📊 Income Statement")}</Button>
             </Link>
             <Link href="/dashboard/transactions/create">
-              <Button>+ New Transaction</Button>
+              <Button>{t("+ New Transaction")}</Button>
             </Link>
           </div>
         }
@@ -121,14 +152,14 @@ export default function TransactionsPage() {
       <Card className="mb-4">
         <input
           type="text"
-          placeholder="Search by type, category, payment..."
+          placeholder={t("Search by type, category, payment...")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="input-field"
         />
       </Card>
       {loading ? (
-        <LoadingSpinner label="Loading transactions..." />
+        <LoadingSpinner label={t("Loading transactions...")} />
       ) : error ? (
         <Card>
           <p className="text-sm text-red-600">{error}</p>
@@ -136,11 +167,11 @@ export default function TransactionsPage() {
       ) : items.length === 0 ? (
         <EmptyState
           icon="💳"
-          title="No transactions"
-          description="Add your first transaction."
+          title={t("No transactions")}
+          description={t("Add your first transaction.")}
           action={
             <Link href="/dashboard/transactions/create">
-              <Button>New Transaction</Button>
+              <Button>{t("New Transaction")}</Button>
             </Link>
           }
         />
@@ -150,7 +181,7 @@ export default function TransactionsPage() {
 
       <DetailDialog
         open={!!viewItem}
-        title={viewItem?.name || "Transaction"}
+        title={viewItem?.name || t("Transaction")}
         data={viewItem}
         onClose={() => setViewItem(null)}
       />

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../core/theme.dart';
 import '../../services/agent_bank_service.dart';
 import '../inventory/inventory_form_screen.dart' show fieldLabel, errorBox;
+import '../../core/i18n.dart';
 
 class MyBanksScreen extends StatefulWidget {
   const MyBanksScreen({super.key});
@@ -63,11 +64,11 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
   Widget build(BuildContext context) {
     final teal = Theme.of(context).brightness == Brightness.dark ? KadeColors.tealDark : KadeColors.teal;
     return Scaffold(
-      appBar: AppBar(title: const Text("My Banks")),
+      appBar: AppBar(title: Text(tr("My Banks"))),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: teal,
         icon: const Icon(Icons.add),
-        label: const Text("Add Bank"),
+        label: Text(tr("Add Bank")),
         onPressed: () async {
           final ok = await showModalBottomSheet<bool>(
             context: context,
@@ -87,17 +88,17 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
                   if (banks.isNotEmpty) ...[
                     Row(
                       children: [
-                        Expanded(child: _statCard("Total Float", "LKR ${_money(_totalFloat())}", teal)),
+                        Expanded(child: _statCard(tr("Total Float"), "LKR ${_money(_totalFloat())}", teal)),
                         const SizedBox(width: 12),
-                        Expanded(child: _statCard("Total Cash", "LKR ${_money(_totalCash())}", null)),
+                        Expanded(child: _statCard(tr("Total Cash"), "LKR ${_money(_totalCash())}", null)),
                       ],
                     ),
                     const SizedBox(height: 16),
                   ],
                   if (banks.isEmpty)
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.only(top: 80),
-                      child: Center(child: Text("No banks yet. Add your first float account.")),
+                      child: Center(child: Text(tr("No banks yet. Add your first float account."))),
                     )
                   else
                     ...banks.map(_bankCard),
@@ -119,7 +120,7 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label,
+          tr(label),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
@@ -164,7 +165,7 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      b["bank_name"]?.toString() ?? "Bank",
+                      b["bank_name"]?.toString() ?? tr("Bank"),
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     Text(
@@ -192,14 +193,14 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
             children: [
               Expanded(
                 child: _miniStat(
-                  "Float balance",
+                  tr("Float balance"),
                   "LKR ${_money((b["float_balance"] as num?) ?? 0)}",
                   KadeColors.teal,
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _miniStat("Cash on hand", "LKR ${_money((b["cash_on_hand"] as num?) ?? 0)}", null),
+                child: _miniStat(tr("Cash on hand"), "LKR ${_money((b["cash_on_hand"] as num?) ?? 0)}", null),
               ),
             ],
           ),
@@ -212,7 +213,7 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
                 style: TextStyle(fontSize: 11, color: Theme.of(context).textTheme.bodySmall?.color),
               ),
               Text(
-                util >= 100 ? "Above floor ✓" : "Below floor",
+                util >= 100 ? tr("Above floor ✓") : tr("Below floor"),
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
@@ -255,7 +256,7 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
               Expanded(
                 child: OutlinedButton.icon(
                   icon: const Icon(Icons.history, size: 18),
-                  label: const Text("History"),
+                  label: Text(tr("History")),
                   onPressed: () => showModalBottomSheet(
                     context: context,
                     isScrollControlled: true,
@@ -267,7 +268,7 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
               Expanded(
                 child: OutlinedButton.icon(
                   icon: const Icon(Icons.add_circle_outline, size: 18),
-                  label: const Text("Top up"),
+                  label: Text(tr("Top up")),
                   onPressed: () async {
                     final ok = await showModalBottomSheet<bool>(
                       context: context,
@@ -293,7 +294,7 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label,
+          tr(label),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontSize: 10, color: Colors.grey),
@@ -343,7 +344,7 @@ class _AddBankSheetState extends State<_AddBankSheet> {
 
   Future<void> _save() async {
     if (nameCtrl.text.trim().isEmpty) {
-      setState(() => error = "Bank name is required.");
+      setState(() => error = tr("Bank name is required."));
       return;
     }
     setState(() {
@@ -384,19 +385,19 @@ class _AddBankSheetState extends State<_AddBankSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Add Bank", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(tr("Add Bank"), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             if (error != null) ...[errorBox(error!), const SizedBox(height: 12)],
-            fieldLabel("Bank Name *"),
+            fieldLabel(tr("Bank Name *")),
             TextField(
               controller: nameCtrl,
-              decoration: const InputDecoration(hintText: "e.g. Bank of Ceylon"),
+              decoration: InputDecoration(hintText: tr("e.g. Bank of Ceylon")),
             ),
             const SizedBox(height: 14),
-            fieldLabel("Risk Tier"),
+            fieldLabel(tr("Risk Tier")),
             DropdownButtonFormField<String>(
               value: riskTier,
-              items: tiers.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+              items: tiers.map((t) => DropdownMenuItem(value: t, child: Text(tr(t)))).toList(),
               onChanged: (v) => setState(() => riskTier = v ?? "LOW"),
             ),
             const SizedBox(height: 14),
@@ -406,12 +407,12 @@ class _AddBankSheetState extends State<_AddBankSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      fieldLabel("Opening Float"),
+                      fieldLabel(tr("Opening Float")),
                       TextField(
                         controller: floatCtrl,
                         keyboardType: TextInputType.number,
                         inputFormatters: digits,
-                        decoration: const InputDecoration(prefixText: "LKR ", hintText: "100000"),
+                        decoration: InputDecoration(prefixText: tr("LKR "), hintText: "100000"),
                       ),
                     ],
                   ),
@@ -421,12 +422,12 @@ class _AddBankSheetState extends State<_AddBankSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      fieldLabel("Cash on Hand"),
+                      fieldLabel(tr("Cash on Hand")),
                       TextField(
                         controller: cashCtrl,
                         keyboardType: TextInputType.number,
                         inputFormatters: digits,
-                        decoration: const InputDecoration(prefixText: "LKR ", hintText: "50000"),
+                        decoration: InputDecoration(prefixText: tr("LKR "), hintText: "50000"),
                       ),
                     ],
                   ),
@@ -440,12 +441,12 @@ class _AddBankSheetState extends State<_AddBankSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      fieldLabel("Float Floor"),
+                      fieldLabel(tr("Float Floor")),
                       TextField(
                         controller: floorCtrl,
                         keyboardType: TextInputType.number,
                         inputFormatters: digits,
-                        decoration: const InputDecoration(prefixText: "LKR "),
+                        decoration: InputDecoration(prefixText: tr("LKR ")),
                       ),
                     ],
                   ),
@@ -455,12 +456,12 @@ class _AddBankSheetState extends State<_AddBankSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      fieldLabel("Float Ceiling"),
+                      fieldLabel(tr("Float Ceiling")),
                       TextField(
                         controller: ceilingCtrl,
                         keyboardType: TextInputType.number,
                         inputFormatters: digits,
-                        decoration: const InputDecoration(prefixText: "LKR "),
+                        decoration: InputDecoration(prefixText: tr("LKR ")),
                       ),
                     ],
                   ),
@@ -482,8 +483,8 @@ class _AddBankSheetState extends State<_AddBankSheet> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                       )
-                    : const Text(
-                        "Add Bank",
+                    : Text(
+                        tr("Add Bank"),
                         style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                       ),
               ),
@@ -524,7 +525,7 @@ class _TopupSheetState extends State<_TopupSheet> {
   Future<void> _save() async {
     final amt = num.tryParse(amountCtrl.text.trim()) ?? 0;
     if (amt <= 0) {
-      setState(() => error = "Enter an amount greater than 0.");
+      setState(() => error = tr("Enter an amount greater than 0."));
       return;
     }
     setState(() {
@@ -563,7 +564,7 @@ class _TopupSheetState extends State<_TopupSheet> {
           ),
           const SizedBox(height: 8),
           Text(
-            "Move physical cash into this float account.",
+            tr("Move physical cash into this float account."),
             style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodySmall?.color),
           ),
           const SizedBox(height: 14),
@@ -579,7 +580,7 @@ class _TopupSheetState extends State<_TopupSheet> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text("Current float"),
+                    Text(tr("Current float")),
                     Text("LKR ${_money(bal)}", style: const TextStyle(fontWeight: FontWeight.bold)),
                   ],
                 ),
@@ -588,7 +589,7 @@ class _TopupSheetState extends State<_TopupSheet> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("After top-up"),
+                      Text(tr("After top-up")),
                       Text(
                         "LKR ${_money(bal + amt)}",
                         style: TextStyle(fontWeight: FontWeight.bold, color: teal),
@@ -600,13 +601,13 @@ class _TopupSheetState extends State<_TopupSheet> {
             ),
           ),
           const SizedBox(height: 14),
-          fieldLabel("Top-up Amount (LKR)"),
+          fieldLabel(tr("Top-up Amount (LKR)")),
           TextField(
             controller: amountCtrl,
             autofocus: true,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-            decoration: const InputDecoration(prefixText: "LKR ", hintText: "50000"),
+            decoration: InputDecoration(prefixText: tr("LKR "), hintText: "50000"),
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 20),
@@ -624,8 +625,8 @@ class _TopupSheetState extends State<_TopupSheet> {
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
-                  : const Text(
-                      "Top up",
+                  : Text(
+                      tr("Top up"),
                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
             ),
@@ -716,7 +717,7 @@ class _LedgerSheetState extends State<_LedgerSheet> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("Current float"),
+                Text(tr("Current float")),
                 Text(
                   "LKR ${_money((widget.bank["float_balance"] as num?) ?? 0)}",
                   style: const TextStyle(fontWeight: FontWeight.bold),
@@ -731,9 +732,9 @@ class _LedgerSheetState extends State<_LedgerSheet> {
               child: Center(child: CircularProgressIndicator()),
             )
           else if (entries.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 30),
-              child: Center(child: Text("No float movements yet.")),
+              child: Center(child: Text(tr("No float movements yet."))),
             )
           else
             ConstrainedBox(

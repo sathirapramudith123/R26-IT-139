@@ -14,6 +14,7 @@ import ProcurementSavedSummary from "@/components/procurement/ProcurementSavedSu
 import ItemSupplierList from "@/components/procurement/ItemSupplierList";
 import OrderSupplierList from "@/components/procurement/OrderSupplierList";
 
+import { t } from "@/lib/i18n";
 const LocationPickerMap = dynamic(() => import("./LocationPickerMap"), { ssr: false });
 
 export default function ProcurementForm({ initialData = {}, procurementId = null }) {
@@ -393,7 +394,7 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
       setSavedSuppliers(orderSupplierCandidates);
       setSaved(true);
     } catch (err) {
-      setServerError(err.message || "Save failed.");
+      setServerError(err.message || t("Save failed."));
     } finally {
       setSaving(false);
     }
@@ -423,10 +424,10 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
 
       {/* Header */}
       <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <h1 className="text-3xl font-extrabold text-blue-700 dark:text-blue-400">New Procurement</h1>
+        <h1 className="text-3xl font-extrabold text-blue-700 dark:text-blue-400">{t("New Procurement")}</h1>
         <div className="flex items-end gap-4">
           <div>
-            <label className="mb-1 block text-sm text-slate-500">Date:</label>
+            <label className="mb-1 block text-sm text-slate-500">{t("Date:")}</label>
             <input
               className="input-field w-40"
               type="date"
@@ -439,16 +440,16 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
 
       {/* Item Details */}
       <div className="card-elevated space-y-5">
-        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Item Details</h2>
+        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t("Item Details")}</h2>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Item entry */}
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="bg-blue-50 px-5 py-4 text-base font-semibold text-blue-700 dark:bg-slate-800 dark:text-blue-300">
-              Item Information
+              {t("Item Information")}
             </div>
             <div className="space-y-4 p-5">
-              <FormField label="Item Name" error={itemErrors.item_name} required>
+              <FormField label={t("Item Name")} error={itemErrors.item_name} required>
                 <select
                   className={
                     itemErrors.item_name ? "select-field border-red-400 ring-2 ring-red-100" : "select-field"
@@ -456,7 +457,7 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
                   value={item.item_name}
                   onChange={(e) => pickItemName(e.target.value)}
                 >
-                  <option value="">Select item</option>
+                  <option value="">{t("Select item")}</option>
                   {itemNameOptions.map((name) => (
                     <option key={name} value={name}>
                       {name}
@@ -479,7 +480,7 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
                 />
               )}
 
-              <FormField label="Quantity" error={itemErrors.quantity} required>
+              <FormField label={t("Quantity")} error={itemErrors.quantity} required>
                 <input
                   className={
                     itemErrors.quantity ? "input-field border-red-400 ring-2 ring-red-100" : "input-field"
@@ -489,16 +490,16 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
                   step="0.01"
                   value={item.quantity}
                   onChange={(e) => setItemField("quantity", e.target.value)}
-                  placeholder="Enter quantity"
+                  placeholder={t("Enter quantity")}
                 />
               </FormField>
 
               {/* NEW: Unit Cost per item */}
               <FormField
-                label="Unit Cost (LKR)"
+                label={t("Unit Cost (LKR)")}
                 error={itemErrors.unit_cost}
                 required
-                hint="Buying price per unit (goes to the batch cost)"
+                hint={t("Buying price per unit (goes to the batch cost)")}
               >
                 <input
                   className={
@@ -513,7 +514,7 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
                 />
               </FormField>
 
-              <FormField label="Unit" error={itemErrors.unit} required>
+              <FormField label={t("Unit")} error={itemErrors.unit} required>
                 <select
                   className={
                     itemErrors.unit ? "select-field border-red-400 ring-2 ring-red-100" : "select-field"
@@ -521,7 +522,7 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
                   value={item.unit}
                   onChange={(e) => setItemField("unit", e.target.value)}
                 >
-                  <option value="">Select unit</option>
+                  <option value="">{t("Select unit")}</option>
                   {INVENTORY_UNITS.map((u) => (
                     <option key={u.value} value={u.value}>
                       {u.label}
@@ -531,7 +532,7 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
               </FormField>
 
               <Button type="button" variant="secondary" onClick={addItem}>
-                + Add Item
+                {t("+ Add Item")}
               </Button>
             </div>
           </div>
@@ -539,7 +540,7 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
           {/* Added items */}
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="bg-blue-50 px-5 py-4 text-base font-semibold text-blue-700 dark:bg-slate-800 dark:text-blue-300">
-              Added items
+              {t("Added items")}
             </div>
             <div className="p-5">
               {topErrors.items && <p className="mb-3 text-sm text-red-600">{topErrors.items}</p>}
@@ -549,10 +550,10 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
                   <thead>
                     <tr className="bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                       <th className="px-3 py-3 text-left font-semibold">#</th>
-                      <th className="px-3 py-3 text-left font-semibold">Item</th>
-                      <th className="px-3 py-3 text-right font-semibold">Qty</th>
-                      <th className="px-3 py-3 text-right font-semibold">Unit Cost</th>
-                      <th className="px-3 py-3 text-right font-semibold">Line Total</th>
+                      <th className="px-3 py-3 text-left font-semibold">{t("Item")}</th>
+                      <th className="px-3 py-3 text-right font-semibold">{t("Qty")}</th>
+                      <th className="px-3 py-3 text-right font-semibold">{t("Unit Cost")}</th>
+                      <th className="px-3 py-3 text-right font-semibold">{t("Line Total")}</th>
                       <th className="px-3 py-3 text-center font-semibold">✕</th>
                     </tr>
                   </thead>
@@ -560,7 +561,7 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
                     {items.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
-                          No items added yet.
+                          {t("No items added yet.")}
                         </td>
                       </tr>
                     ) : (
@@ -581,7 +582,7 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
                               type="button"
                               onClick={() => removeItem(i)}
                               className="text-red-500 hover:text-red-700"
-                              aria-label="Remove"
+                              aria-label={t("Remove")}
                             >
                               ✕
                             </button>
@@ -595,11 +596,15 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
 
               <div className="mt-4 space-y-1 text-sm font-bold text-blue-700 dark:text-blue-300">
                 <div className="flex items-center justify-between">
-                  <span>Total Items: {totalItems}</span>
-                  <span>Total Quantity: {totalQuantity}</span>
+                  <span>
+                    {t("Total Items:")} {totalItems}
+                  </span>
+                  <span>
+                    {t("Total Quantity:")} {totalQuantity}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between border-t border-slate-200 pt-2 dark:border-slate-800">
-                  <span>Total Cost</span>
+                  <span>{t("Total Cost")}</span>
                   <span>LKR {fmt(totalCost)}</span>
                 </div>
               </div>
@@ -623,7 +628,7 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
       <div className="card-elevated space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
-            <FormField label="Location" error={topErrors.location} required>
+            <FormField label={t("Location")} error={topErrors.location} required>
               <input
                 className={
                   topErrors.location ? "input-field border-red-400 ring-2 ring-red-100" : "input-field"
@@ -633,23 +638,26 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
                   setLocation(e.target.value);
                   setTopErrors((p) => ({ ...p, location: undefined }));
                 }}
-                placeholder="e.g. SLIIT, New Kandy Rd, Malabe"
+                placeholder={t("e.g. SLIIT, New Kandy Rd, Malabe")}
               />
             </FormField>
           </div>
           <Button type="button" onClick={handleLocate}>
-            📍 Use My Location
+            {t("📍 Use My Location")}
           </Button>
         </div>
-        <p className="text-xs text-slate-400">Tip: You can click on the map and pick the exact location</p>
+        <p className="text-xs text-slate-400">
+          {t("Tip: You can click on the map and pick the exact location")}
+        </p>
         {supplierMapMarkers.length > 0 && (
           <p className="text-xs text-slate-400">
             {orderItemNames.length > 0 ? (
-              <>🟢 Best match &nbsp; 🟡 Cheapest &nbsp; 🔴 Other suppliers &nbsp; 🔵 Delivery location</>
+              <>{t("🟢 Best match 🟡 Cheapest 🔴 Other suppliers 🔵 Delivery location")}</>
             ) : (
               <>
-                🟢 Best overall for &quot;{item.item_name}&quot; &nbsp; 🟡 Cheapest &nbsp; 🔴 Other suppliers
-                &nbsp; 🔵 Delivery location
+                {t('🟢 Best overall for "')}
+                {item.item_name}
+                {t('" 🟡 Cheapest 🔴 Other suppliers 🔵 Delivery location')}
               </>
             )}
           </p>
@@ -661,12 +669,12 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
 
       {/* Note */}
       <div className="card-elevated">
-        <FormField label="Special Note">
+        <FormField label={t("Special Note")}>
           <textarea
             className="input-field min-h-[110px] resize-y"
             value={specialNote}
             onChange={(e) => setSpecialNote(e.target.value)}
-            placeholder="Enter special note here..."
+            placeholder={t("Enter special note here...")}
           />
         </FormField>
       </div>
@@ -674,14 +682,14 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
       {/* Footer */}
       <div className="flex justify-center gap-3 pt-2">
         <Button type="submit" disabled={saving}>
-          {saving ? "Saving..." : isEdit ? "Update" : "Save"}
+          {saving ? t("Saving...") : isEdit ? t("Update") : t("Save")}
         </Button>
         <Button type="button" variant="secondary" onClick={handleClear}>
-          Clear
+          {t("Clear")}
         </Button>
         <Link href="/dashboard/procurement">
           <Button type="button" variant="secondary">
-            Cancel
+            {t("Cancel")}
           </Button>
         </Link>
       </div>

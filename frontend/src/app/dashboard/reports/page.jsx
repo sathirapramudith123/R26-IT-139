@@ -1,5 +1,6 @@
-// src/app/dashboard/reports/page.jsx
 "use client";
+
+// src/app/dashboard/reports/page.jsx
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -13,6 +14,7 @@ import IncomeStatement from "@/components/reports/IncomeStatement";
 import { reportApi } from "@/services/api/reports";
 import { downloadIncomeStatementPdf } from "@/lib/reportPdf";
 
+import { t } from "@/lib/i18n";
 export default function ReportsPage() {
   useAuthGuard();
   const router = useRouter();
@@ -27,7 +29,7 @@ export default function ReportsPage() {
       const res = await reportApi.getIncomeStatement();
       setData(res);
     } catch (e) {
-      setError(e.message || "Failed to load report");
+      setError(e.message || t("Failed to load report"));
     } finally {
       setLoading(false);
     }
@@ -43,34 +45,38 @@ export default function ReportsPage() {
     <div className="page-container">
       {/* Original layout — with a Back button on the right of the action group */}
       <PageHeader
-        title="Income & Expense Statement"
-        description="Revenue, costs, and net profit."
+        title={t("Income & Expense Statement")}
+        description={t("Revenue, costs, and net profit.")}
         action={
           <div className="flex gap-2">
             <Button variant="secondary" disabled={!hasData} onClick={() => downloadIncomeStatementPdf(data)}>
-              ⬇ PDF
+              {t("⬇ PDF")}
             </Button>
             <Button variant="secondary" onClick={load}>
-              ↻ Refresh
+              {t("↻ Refresh")}
             </Button>
             <Button variant="secondary" onClick={() => router.back()}>
-              ← Back
+              {t("← Back")}
             </Button>
           </div>
         }
       />
 
       {loading ? (
-        <LoadingSpinner label="Loading report..." />
+        <LoadingSpinner label={t("Loading report...")} />
       ) : error ? (
         <Card>
           <p className="text-sm text-red-600">{error}</p>
           <div className="mt-3">
-            <Button onClick={load}>Try Again</Button>
+            <Button onClick={load}>{t("Try Again")}</Button>
           </div>
         </Card>
       ) : !hasData ? (
-        <EmptyState icon="📊" title="No data yet" description="No financial records for this period." />
+        <EmptyState
+          icon="📊"
+          title={t("No data yet")}
+          description={t("No financial records for this period.")}
+        />
       ) : (
         <IncomeStatement data={data} />
       )}

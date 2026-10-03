@@ -13,12 +13,38 @@ import { inventoryApi } from "@/services/api/inventory";
 import { formatCurrency } from "@/lib/formatters";
 import DetailDialog from "@/components/common/DetailDialog";
 
+import { t } from "@/lib/i18n";
 const COLS = [
-  { key: "name", label: "Item" },
-  { key: "supplier_name", label: "Supplier" },
-  { key: "quantity", label: "Qty" },
-  { key: "reorder_level", label: "Reorder" },
-  { key: "cost_price", label: "Unit Cost" }, // cost only (no separate selling price)
+  {
+    key: "name",
+    get label() {
+      return t("Item");
+    },
+  },
+  {
+    key: "supplier_name",
+    get label() {
+      return t("Supplier");
+    },
+  },
+  {
+    key: "quantity",
+    get label() {
+      return t("Qty");
+    },
+  },
+  {
+    key: "reorder_level",
+    get label() {
+      return t("Reorder");
+    },
+  },
+  {
+    key: "cost_price",
+    get label() {
+      return t("Unit Cost");
+    },
+  }, // cost only (no separate selling price)
   { key: "actions", label: "" },
 ];
 
@@ -37,7 +63,7 @@ export default function InventoryPage() {
       await inventoryApi.remove(id);
       await fetchAll();
     } catch (e) {
-      alert(e.message || "Failed");
+      alert(e.message || t("Failed"));
     }
   }
 
@@ -75,15 +101,15 @@ export default function InventoryPage() {
     actions: (
       <div className="flex gap-2">
         <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => setViewItem(item)}>
-          View
+          {t("View")}
         </Button>
         <Link href={`/dashboard/inventory/${item.id}/edit`}>
           <Button variant="secondary" size="sm">
-            Edit
+            {t("Edit")}
           </Button>
         </Link>
         <Button variant="danger" size="sm" onClick={() => handleDelete(item.id)}>
-          Delete
+          {t("Delete")}
         </Button>
       </div>
     ),
@@ -92,22 +118,22 @@ export default function InventoryPage() {
   return (
     <div className="page-container">
       <PageHeader
-        title="Inventory"
-        description="Track stock levels and items."
+        title={t("Inventory")}
+        description={t("Track stock levels and items.")}
         action={
           <Link href="/dashboard/inventory/create">
-            <Button>+ Add Item</Button>
+            <Button>{t("+ Add Item")}</Button>
           </Link>
         }
       />
       {lowCount > 0 && (
         <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <span>
-            ⚠ {lowCount} item{lowCount > 1 ? "s" : ""} running low.
+            ⚠ {lowCount} item{lowCount > 1 ? "s" : ""} {t("running low.")}
           </span>
           <Link href="/dashboard/inventory/alerts">
             <Button variant="secondary" size="sm">
-              View Alerts
+              {t("View Alerts")}
             </Button>
           </Link>
         </div>
@@ -115,14 +141,14 @@ export default function InventoryPage() {
       <Card className="mb-4">
         <input
           type="text"
-          placeholder="Search by name or supplier..."
+          placeholder={t("Search by name or supplier...")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="input-field"
         />
       </Card>
       {loading ? (
-        <LoadingSpinner label="Loading inventory..." />
+        <LoadingSpinner label={t("Loading inventory...")} />
       ) : error ? (
         <Card>
           <p className="text-sm text-red-600">{error}</p>
@@ -130,11 +156,11 @@ export default function InventoryPage() {
       ) : items.length === 0 ? (
         <EmptyState
           icon="📦"
-          title="No inventory items"
-          description="Add your first stock item."
+          title={t("No inventory items")}
+          description={t("Add your first stock item.")}
           action={
             <Link href="/dashboard/inventory/create">
-              <Button>Add Item</Button>
+              <Button>{t("Add Item")}</Button>
             </Link>
           }
         />
@@ -144,7 +170,7 @@ export default function InventoryPage() {
 
       <DetailDialog
         open={!!viewItem}
-        title={viewItem?.name || "Inventory Item"}
+        title={viewItem?.name || t("Inventory Item")}
         data={viewItem}
         onClose={() => setViewItem(null)}
       />

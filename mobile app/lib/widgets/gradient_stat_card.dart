@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../core/i18n.dart';
 
 /// A colourful gradient "at a glance" metric card — used on the dashboard
 /// for Total Income, Total Expense, Net Profit, Low Stock Items, etc.
@@ -47,7 +48,7 @@ class GradientStatCard extends StatelessWidget {
                 children: [
                   Flexible(
                     child: Text(
-                      label,
+                      tr(label),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(

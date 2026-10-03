@@ -1,3 +1,6 @@
+"use client";
+
+import { t } from "@/lib/i18n";
 export default function Table({ columns = [], rows = [] }) {
   return (
     <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -21,7 +24,7 @@ export default function Table({ columns = [], rows = [] }) {
                 colSpan={columns.length}
                 className="px-5 py-10 text-center text-sm text-slate-400 dark:text-slate-500"
               >
-                No records found
+                {t("No records found")}
               </td>
             </tr>
           ) : (

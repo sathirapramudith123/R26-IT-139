@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/formatters/index";
 import { procurementApi } from "@/services/api/procurement";
 
+import { t } from "@/lib/i18n";
 function scoreBarColor(pct) {
   if (pct >= 70) return "bg-emerald-400";
   if (pct >= 40) return "bg-amber-400";
@@ -41,7 +42,7 @@ export default function SupplierRecommendationTable({ results = [], requestData 
       if (onSave) onSave(saved);
       else router.push(`/dashboard/procurement/${saved.id}`);
     } catch (err) {
-      setError(err.message || "Failed to save decision.");
+      setError(err.message || t("Failed to save decision."));
     } finally {
       setSavingId(null);
     }
@@ -69,18 +70,20 @@ export default function SupplierRecommendationTable({ results = [], requestData 
         <div className="flex items-center gap-2">
           {hasMarketData && (
             <span className="rounded-full bg-teal-50 border border-teal-200 px-2 py-0.5 text-xs font-medium text-teal-700">
-              🏛 Using HKARTI market prices
+              {t("🏛 Using HKARTI market prices")}
             </span>
           )}
-          <p className="text-xs text-slate-400">Ranked best first</p>
+          <p className="text-xs text-slate-400">{t("Ranked best first")}</p>
         </div>
       </div>
 
       {/* Market price info banner */}
       {hasMarketData && results[0]?.market_avg_price && (
         <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-          <strong>Government market average for {requestData.item_name}:</strong> LKR{" "}
-          {results[0].market_avg_price?.toLocaleString()}/unit — prices compared against the Hector
+          <strong>
+            {t("Government market average for")} {requestData.item_name}:
+          </strong>{" "}
+          LKR {results[0].market_avg_price?.toLocaleString()}/unit — prices compared against the Hector
           Kobbekaduwa Agrarian Research and Training Institute wholesale benchmark.
         </div>
       )}
@@ -103,7 +106,7 @@ export default function SupplierRecommendationTable({ results = [], requestData 
                 <h3 className="font-outfit text-base font-bold text-slate-900">{s.supplier_name}</h3>
                 {s.rank === 1 && (
                   <span className="mt-0.5 inline-block rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                    Best match
+                    {t("Best match")}
                   </span>
                 )}
                 {/* Market comparison badge */}
@@ -124,7 +127,7 @@ export default function SupplierRecommendationTable({ results = [], requestData 
               </div>
             </div>
             <div className="text-right shrink-0">
-              <p className="text-xs text-slate-400">Final score</p>
+              <p className="text-xs text-slate-400">{t("Final score")}</p>
               <p className="text-xl font-bold text-slate-800">
                 {Number(s.final_score ?? 0).toFixed(1)}
                 <span className="text-sm font-normal text-slate-400">/100</span>
@@ -170,11 +173,14 @@ export default function SupplierRecommendationTable({ results = [], requestData 
 
           {/* Score explanation */}
           <div className="mb-4 rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-500 leading-relaxed">
-            <strong className="text-slate-700">Why ranked #{s.rank}:</strong> Price score based on{" "}
-            {s.score_breakdown?.price_basis ?? "supplier comparison"}.
+            <strong className="text-slate-700">
+              {t("Why ranked #")}
+              {s.rank}:
+            </strong>{" "}
+            {t("Price score based on")} {s.score_breakdown?.price_basis ?? t("supplier comparison")}.
             {s.vs_market_pct != null &&
               ` Supplier quotes ${Math.abs(s.vs_market_pct)}% ${s.vs_market_pct < 0 ? "below" : "above"} the government wholesale average.`}{" "}
-            Reliability{" "}
+            {t("Reliability")}{" "}
             {s.reliability_score >= 80 ? "excellent" : s.reliability_score >= 60 ? "good" : "building"} (
             {s.reliability_score?.toFixed(0)}/100). Delivers in {s.days_to_deliver} day
             {s.days_to_deliver !== 1 ? "s" : ""}.
@@ -186,7 +192,7 @@ export default function SupplierRecommendationTable({ results = [], requestData 
               disabled={savingId === s.supplier_id}
               className="rounded-xl bg-teal-700 px-5 py-2 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:opacity-60"
             >
-              {savingId === s.supplier_id ? "Saving..." : "Save this decision"}
+              {savingId === s.supplier_id ? t("Saving...") : t("Save this decision")}
             </button>
           </div>
         </div>

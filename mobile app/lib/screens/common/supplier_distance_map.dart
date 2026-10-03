@@ -6,6 +6,7 @@ import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../core/config.dart';
 import '../../core/theme.dart';
+import '../../core/i18n.dart';
 
 // Web-service key for the Directions REST call — see location_picker_map.dart.
 String get _kGoogleApiKey => AppConfig.googleMapsApiKey;
@@ -66,7 +67,7 @@ class _SupplierDistanceMapState extends State<SupplierDistanceMap> {
       if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
         setState(() {
           _loading = false;
-          _error = "Location permission denied.";
+          _error = tr("Location permission denied.");
         });
         return;
       }
@@ -76,7 +77,7 @@ class _SupplierDistanceMapState extends State<SupplierDistanceMap> {
     } catch (_) {
       setState(() {
         _loading = false;
-        _error = "Couldn't get your location.";
+        _error = tr("Couldn't get your location.");
       });
     }
   }
@@ -114,13 +115,13 @@ class _SupplierDistanceMapState extends State<SupplierDistanceMap> {
       } else {
         setState(() {
           _loading = false;
-          _error = "No route found";
+          _error = tr("No route found");
         });
       }
     } catch (_) {
       setState(() {
         _loading = false;
-        _error = "Couldn't fetch route";
+        _error = tr("Couldn't fetch route");
       });
     }
   }
@@ -174,7 +175,7 @@ class _SupplierDistanceMapState extends State<SupplierDistanceMap> {
                     markerId: const MarkerId("me"),
                     position: _userLocation!,
                     icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-                    infoWindow: const InfoWindow(title: "You"),
+                    infoWindow: InfoWindow(title: tr("You")),
                   ),
               },
               polylines: _polylines,

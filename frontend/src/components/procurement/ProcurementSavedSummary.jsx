@@ -3,6 +3,7 @@
 import Button from "@/components/ui/Button";
 import { addDays, formatLkr as fmt } from "@/lib/procurement";
 
+import { t } from "@/lib/i18n";
 // Shown after saving: the ranked suppliers for the order (best match first), so the merchant
 // knows whom to contact before leaving the page.
 export default function ProcurementSavedSummary({
@@ -18,26 +19,28 @@ export default function ProcurementSavedSummary({
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="card-elevated space-y-1 text-center">
         <div className="text-3xl">✅</div>
-        <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Procurement Saved</h1>
+        <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{t("Procurement Saved")}</h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          {prNo} · {items.length} item{items.length > 1 ? "s" : ""} · LKR {fmt(totalCost)}
+          {prNo} · {items.length} item{items.length > 1 ? "s" : ""} {t("· LKR")} {fmt(totalCost)}
         </p>
         {savedSuppliers[0] && (
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Expected arrival: {addDays(date, savedSuppliers[0].lead_time_days)} (based on{" "}
-            {savedSuppliers[0].name}&apos;s {savedSuppliers[0].lead_time_days ?? 0}-day lead time)
+            {t("Expected arrival:")} {addDays(date, savedSuppliers[0].lead_time_days)} {t("(based on")}{" "}
+            {savedSuppliers[0].name}
+            {t("'s")} {savedSuppliers[0].lead_time_days ?? 0}
+            {t("-day lead time)")}
           </p>
         )}
       </div>
 
       <div className="card-elevated space-y-4">
-        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Recommended Suppliers</h2>
+        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t("Recommended Suppliers")}</h2>
         <p className="text-sm text-slate-400">
-          Best match first, then the next-nearest suppliers for this order.
+          {t("Best match first, then the next-nearest suppliers for this order.")}
         </p>
 
         {savedSuppliers.length === 0 ? (
-          <p className="text-sm text-slate-400">No known supplier carries any of these items yet.</p>
+          <p className="text-sm text-slate-400">{t("No known supplier carries any of these items yet.")}</p>
         ) : (
           <div className="space-y-3">
             {savedSuppliers.map((s, i) => (
@@ -47,12 +50,12 @@ export default function ProcurementSavedSummary({
                     #{i + 1} {s.name}
                     {i === 0 && (
                       <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-900 dark:text-green-300">
-                        Best match
+                        {t("Best match")}
                       </span>
                     )}
                     {s.id === cheapestSupplierId && (
                       <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-900 dark:text-amber-300">
-                        💰 Cheapest
+                        {t("💰 Cheapest")}
                       </span>
                     )}
                   </span>
@@ -62,14 +65,16 @@ export default function ProcurementSavedSummary({
                   </span>
                 </div>
                 <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                  <span className="font-medium">Items they carry:</span> {s.matchedItems.join(", ")}
+                  <span className="font-medium">{t("Items they carry:")}</span> {s.matchedItems.join(", ")}
                 </p>
                 <p className="mt-1 text-sm text-slate-500">
                   LKR {s.totalPrice.toLocaleString("en-LK", { minimumFractionDigits: 2 })}
-                  {!s.fullMatch ? " (for items they carry)" : ""}
+                  {!s.fullMatch ? t("(for items they carry)") : ""}
                 </p>
                 {s.missing.length > 0 && (
-                  <p className="mt-1 text-xs text-slate-400">Missing: {s.missing.join(", ")}</p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {t("Missing:")} {s.missing.join(", ")}
+                  </p>
                 )}
                 {s.delivery_location && (
                   <p className="mt-1 text-xs text-slate-400">📍 {s.delivery_location}</p>
@@ -82,7 +87,7 @@ export default function ProcurementSavedSummary({
 
       <div className="flex justify-center gap-3">
         <Button type="button" onClick={onContinue}>
-          Continue
+          {t("Continue")}
         </Button>
       </div>
     </div>

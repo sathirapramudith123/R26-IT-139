@@ -13,12 +13,38 @@ import useSuppliers from "@/hooks/useSuppliers";
 import { supplierApi } from "@/services/api/supplier";
 import DetailDialog from "@/components/common/DetailDialog";
 
+import { t } from "@/lib/i18n";
 const COLS = [
-  { key: "name", label: "Supplier" },
-  { key: "company_name", label: "Company" },
-  { key: "contact_number", label: "Contact" },
-  { key: "items_summary", label: "Items" },
-  { key: "status", label: "Status" },
+  {
+    key: "name",
+    get label() {
+      return t("Supplier");
+    },
+  },
+  {
+    key: "company_name",
+    get label() {
+      return t("Company");
+    },
+  },
+  {
+    key: "contact_number",
+    get label() {
+      return t("Contact");
+    },
+  },
+  {
+    key: "items_summary",
+    get label() {
+      return t("Items");
+    },
+  },
+  {
+    key: "status",
+    get label() {
+      return t("Status");
+    },
+  },
   { key: "actions", label: "" },
 ];
 
@@ -37,7 +63,7 @@ export default function SuppliersPage() {
       await supplierApi.remove(id);
       await fetchAll();
     } catch (e) {
-      alert(e.message || "Failed");
+      alert(e.message || t("Failed"));
     }
   }
 
@@ -60,15 +86,15 @@ export default function SuppliersPage() {
       actions: (
         <div className="flex gap-2">
           <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => setViewItem(item)}>
-            View
+            {t("View")}
           </Button>
           <Link href={`/dashboard/suppliers/${item.id}/edit`}>
             <Button variant="secondary" size="sm">
-              Edit
+              {t("Edit")}
             </Button>
           </Link>
           <Button variant="danger" size="sm" onClick={() => handleDelete(item.id)}>
-            Delete
+            {t("Delete")}
           </Button>
         </div>
       ),
@@ -78,25 +104,25 @@ export default function SuppliersPage() {
   return (
     <div className="page-container">
       <PageHeader
-        title="Suppliers"
-        description="Manage supplier details."
+        title={t("Suppliers")}
+        description={t("Manage supplier details.")}
         action={
           <Link href="/dashboard/suppliers/create">
-            <Button>+ Add Supplier</Button>
+            <Button>{t("+ Add Supplier")}</Button>
           </Link>
         }
       />
       <Card className="mb-4">
         <input
           type="text"
-          placeholder="Search by name, company, contact..."
+          placeholder={t("Search by name, company, contact...")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="input-field"
         />
       </Card>
       {loading ? (
-        <LoadingSpinner label="Loading suppliers..." />
+        <LoadingSpinner label={t("Loading suppliers...")} />
       ) : error ? (
         <Card>
           <p className="text-sm text-red-600">{error}</p>
@@ -104,11 +130,11 @@ export default function SuppliersPage() {
       ) : items.length === 0 ? (
         <EmptyState
           icon="🤝"
-          title="No suppliers"
-          description="Add your first supplier."
+          title={t("No suppliers")}
+          description={t("Add your first supplier.")}
           action={
             <Link href="/dashboard/suppliers/create">
-              <Button>Add Supplier</Button>
+              <Button>{t("Add Supplier")}</Button>
             </Link>
           }
         />
@@ -117,7 +143,7 @@ export default function SuppliersPage() {
       )}
       <DetailDialog
         open={!!viewItem}
-        title={viewItem?.name || "Procument"}
+        title={viewItem?.name || t("Procument")}
         data={viewItem}
         onClose={() => setViewItem(null)}
       />

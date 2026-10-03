@@ -9,6 +9,7 @@ import EmptyState from "@/components/common/EmptyState";
 import NotificationList from "@/components/notifications/NotificationList";
 import useNotifications from "@/hooks/useNotifications";
 
+import { t } from "@/lib/i18n";
 export default function NotificationsPage() {
   const { items, loading, error, fetchAll, markRead, deleteNotification } = useNotifications();
 
@@ -33,12 +34,12 @@ export default function NotificationsPage() {
   }, [items, filter]);
 
   async function handleDelete(id) {
-    if (!confirm("Delete this notification?")) return;
+    if (!confirm(t("Delete this notification?"))) return;
 
     try {
       await deleteNotification(id);
     } catch (err) {
-      alert(err.message || "Failed to delete notification");
+      alert(err.message || t("Failed to delete notification"));
     }
   }
 
@@ -46,15 +47,15 @@ export default function NotificationsPage() {
     try {
       await markRead(id);
     } catch (err) {
-      alert(err.message || "Failed to mark notification as read");
+      alert(err.message || t("Failed to mark notification as read"));
     }
   }
 
   return (
     <div className="page-container">
       <PageHeader
-        title="System Notifications"
-        description="Alerts from inventory, procurement, ledger, and agency banking modules."
+        title={t("System Notifications")}
+        description={t("Alerts from inventory, procurement, ledger, and agency banking modules.")}
       />
 
       {error && (
@@ -69,7 +70,8 @@ export default function NotificationsPage() {
           size="sm"
           onClick={() => setFilter("all")}
         >
-          All ({items.length})
+          {t("All (")}
+          {items.length})
         </Button>
 
         <Button
@@ -77,7 +79,8 @@ export default function NotificationsPage() {
           size="sm"
           onClick={() => setFilter("unread")}
         >
-          Unread ({unreadCount})
+          {t("Unread (")}
+          {unreadCount})
         </Button>
 
         <Button
@@ -85,14 +88,14 @@ export default function NotificationsPage() {
           size="sm"
           onClick={() => setFilter("high")}
         >
-          High Priority
+          {t("High Priority")}
         </Button>
       </div>
 
       {loading ? (
-        <LoadingSpinner label="Loading notifications..." />
+        <LoadingSpinner label={t("Loading notifications...")} />
       ) : filteredItems.length === 0 ? (
-        <EmptyState icon="🔔" title="No notifications" description="You're all caught up." />
+        <EmptyState icon="🔔" title={t("No notifications")} description={t("You're all caught up.")} />
       ) : (
         <NotificationList items={filteredItems} onMarkRead={handleMarkRead} onDelete={handleDelete} />
       )}

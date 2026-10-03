@@ -8,6 +8,7 @@ import useDashboard from "@/hooks/useDashboard";
 import useAgencyBanking from "@/hooks/useAgencyBanking";
 import { formatCurrency, formatDate } from "@/lib/formatters/index";
 
+import { t } from "@/lib/i18n";
 const TYPE_ICONS = {
   cash_deposit: "⬇",
   cash_withdrawal: "⬆",
@@ -16,12 +17,48 @@ const TYPE_ICONS = {
 };
 
 const QUICK_LINKS = [
-  { href: "/dashboard/agency-banking/create", label: "New Transaction", icon: "🏦" },
-  { href: "/dashboard/agency-banking/summary", label: "Daily Summary", icon: "📊" },
-  { href: "/dashboard/agency-banking", label: "All Transactions", icon: "📋" },
-  { href: "/dashboard/inventory/create", label: "Add Inventory", icon: "📦" },
-  { href: "/dashboard/transactions/create", label: "New Ledger Entry", icon: "💳" },
-  { href: "/dashboard/procurement/create", label: "Procurement", icon: "🛒" },
+  {
+    href: "/dashboard/agency-banking/create",
+    get label() {
+      return t("New Transaction");
+    },
+    icon: "🏦",
+  },
+  {
+    href: "/dashboard/agency-banking/summary",
+    get label() {
+      return t("Daily Summary");
+    },
+    icon: "📊",
+  },
+  {
+    href: "/dashboard/agency-banking",
+    get label() {
+      return t("All Transactions");
+    },
+    icon: "📋",
+  },
+  {
+    href: "/dashboard/inventory/create",
+    get label() {
+      return t("Add Inventory");
+    },
+    icon: "📦",
+  },
+  {
+    href: "/dashboard/transactions/create",
+    get label() {
+      return t("New Ledger Entry");
+    },
+    icon: "💳",
+  },
+  {
+    href: "/dashboard/procurement/create",
+    get label() {
+      return t("Procurement");
+    },
+    icon: "🛒",
+  },
 ];
 
 export default function BankAgentDashboard() {
@@ -45,16 +82,34 @@ export default function BankAgentDashboard() {
   const todayVolume = todayTx.reduce((s, i) => s + (i.amount || 0), 0);
 
   const agencyMetrics = [
-    { label: "Today's Transactions", value: todayTx.length, icon: "🏦", gradient: "gradient-navy" },
-    { label: "Today's Volume", value: formatCurrency(todayVolume), icon: "💵", gradient: "gradient-teal" },
     {
-      label: "Today's Commission",
+      get label() {
+        return t("Today's Transactions");
+      },
+      value: todayTx.length,
+      icon: "🏦",
+      gradient: "gradient-navy",
+    },
+    {
+      get label() {
+        return t("Today's Volume");
+      },
+      value: formatCurrency(todayVolume),
+      icon: "💵",
+      gradient: "gradient-teal",
+    },
+    {
+      get label() {
+        return t("Today's Commission");
+      },
       value: formatCurrency(todayCommission),
       icon: "💰",
       gradient: "gradient-emerald",
     },
     {
-      label: "Total Commission",
+      get label() {
+        return t("Total Commission");
+      },
       value: formatCurrency(agencySummary?.total_commission),
       icon: "🏧",
       gradient: "gradient-amber",
@@ -62,10 +117,34 @@ export default function BankAgentDashboard() {
   ];
 
   const bizMetrics = [
-    { label: "Business Income", value: formatCurrency(bizSummary?.income), icon: "📈" },
-    { label: "Business Expense", value: formatCurrency(bizSummary?.expense), icon: "📉" },
-    { label: "Net Profit", value: formatCurrency(bizSummary?.profit), icon: "💹" },
-    { label: "Low Stock Items", value: `${bizSummary?.low_stock || 0}`, icon: "⚠️" },
+    {
+      get label() {
+        return t("Business Income");
+      },
+      value: formatCurrency(bizSummary?.income),
+      icon: "📈",
+    },
+    {
+      get label() {
+        return t("Business Expense");
+      },
+      value: formatCurrency(bizSummary?.expense),
+      icon: "📉",
+    },
+    {
+      get label() {
+        return t("Net Profit");
+      },
+      value: formatCurrency(bizSummary?.profit),
+      icon: "💹",
+    },
+    {
+      get label() {
+        return t("Low Stock Items");
+      },
+      value: `${bizSummary?.low_stock || 0}`,
+      icon: "⚠️",
+    },
   ];
 
   const recentAgency = [...agencyItems]
@@ -75,8 +154,8 @@ export default function BankAgentDashboard() {
   return (
     <div className="page-container">
       <PageHeader
-        title="Bank Agent Dashboard"
-        description="Agency banking performance and business overview."
+        title={t("Bank Agent Dashboard")}
+        description={t("Agency banking performance and business overview.")}
         action={
           <button
             onClick={() => {
@@ -85,24 +164,24 @@ export default function BankAgentDashboard() {
             }}
             className="btn-secondary px-4 py-2 text-sm"
           >
-            Refresh
+            {t("Refresh")}
           </button>
         }
       />
 
       {/* Role badge */}
       <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm">
-        <span>🏦</span> Signed in as <span className="font-semibold">Bank Agent</span>
+        <span>🏦</span> {t("Signed in as")} <span className="font-semibold">{t("Bank Agent")}</span>
       </div>
 
       {loading && !bizSummary && !agencySummary ? (
-        <LoadingSpinner label="Loading dashboard..." />
+        <LoadingSpinner label={t("Loading dashboard...")} />
       ) : (
         <>
           {/* Agency banking metrics */}
           <div>
             <h2 className="mb-3 font-outfit text-sm font-semibold uppercase tracking-wider text-slate-400">
-              Agency Banking — Today
+              {t("Agency Banking — Today")}
             </h2>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {agencyMetrics.map((m) => (
@@ -121,14 +200,14 @@ export default function BankAgentDashboard() {
 
           {/* CBSL limits reminder */}
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            <span className="font-semibold">CBSL Daily Limits: </span>
-            Cash Deposit LKR 50,000 · Cash Withdrawal LKR 25,000 · Fund Transfer LKR 100,000
+            <span className="font-semibold">{t("CBSL Daily Limits:")} </span>
+            {t("Cash Deposit LKR 50,000 · Cash Withdrawal LKR 25,000 · Fund Transfer LKR 100,000")}
           </div>
 
           {/* Business metrics */}
           <div>
             <h2 className="mb-3 font-outfit text-sm font-semibold uppercase tracking-wider text-slate-400">
-              Business Overview
+              {t("Business Overview")}
             </h2>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {bizMetrics.map((m) => (
@@ -148,7 +227,7 @@ export default function BankAgentDashboard() {
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Quick actions */}
             <Card>
-              <h3 className="mb-4 font-outfit font-semibold text-slate-900">Quick Actions</h3>
+              <h3 className="mb-4 font-outfit font-semibold text-slate-900">{t("Quick Actions")}</h3>
               <div className="grid grid-cols-2 gap-3">
                 {QUICK_LINKS.map((q) => (
                   <Link
@@ -165,9 +244,11 @@ export default function BankAgentDashboard() {
 
             {/* Recent agency transactions */}
             <div className="card lg:col-span-2">
-              <h3 className="mb-4 font-outfit font-semibold text-slate-900">Recent Agency Transactions</h3>
+              <h3 className="mb-4 font-outfit font-semibold text-slate-900">
+                {t("Recent Agency Transactions")}
+              </h3>
               {!recentAgency.length ? (
-                <p className="text-sm text-slate-400">No transactions yet today.</p>
+                <p className="text-sm text-slate-400">{t("No transactions yet today.")}</p>
               ) : (
                 <div className="space-y-3">
                   {recentAgency.map((tx) => (
@@ -198,7 +279,7 @@ export default function BankAgentDashboard() {
                 href="/dashboard/agency-banking"
                 className="mt-4 block text-center text-sm font-medium text-teal-700 hover:underline"
               >
-                View all agency transactions →
+                {t("View all agency transactions →")}
               </Link>
             </div>
           </div>

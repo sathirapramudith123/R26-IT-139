@@ -19,6 +19,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 
+import { t } from "@/lib/i18n";
 /* Count-up: eases a number 0 -> target over `duration` ms (easeOutCubic). */
 function useCountUp(target, duration = 1200) {
   const [val, setVal] = useState(0);
@@ -50,15 +51,51 @@ function CountCurrency({ value, className = "" }) {
 }
 
 const RISK_TIERS = [
-  { value: "LOW", label: "Low volume / rural" },
-  { value: "MEDIUM", label: "Medium volume" },
-  { value: "HIGH", label: "High volume / urban" },
+  {
+    value: "LOW",
+    get label() {
+      return t("Low volume / rural");
+    },
+  },
+  {
+    value: "MEDIUM",
+    get label() {
+      return t("Medium volume");
+    },
+  },
+  {
+    value: "HIGH",
+    get label() {
+      return t("High volume / urban");
+    },
+  },
 ];
 
 const HEALTH = {
-  HEALTHY: { color: "text-emerald-400", bg: "bg-emerald-500/10", icon: ShieldCheck, label: "Healthy" },
-  LOW_ALERT: { color: "text-amber-400", bg: "bg-amber-500/10", icon: ShieldAlert, label: "Low float" },
-  CRITICAL_ALERT: { color: "text-red-400", bg: "bg-red-500/10", icon: ShieldX, label: "Critical" },
+  HEALTHY: {
+    color: "text-emerald-400",
+    bg: "bg-emerald-500/10",
+    icon: ShieldCheck,
+    get label() {
+      return t("Healthy");
+    },
+  },
+  LOW_ALERT: {
+    color: "text-amber-400",
+    bg: "bg-amber-500/10",
+    icon: ShieldAlert,
+    get label() {
+      return t("Low float");
+    },
+  },
+  CRITICAL_ALERT: {
+    color: "text-red-400",
+    bg: "bg-red-500/10",
+    icon: ShieldX,
+    get label() {
+      return t("Critical");
+    },
+  },
 };
 
 export default function MyBanksPage() {
@@ -95,35 +132,37 @@ export default function MyBanksPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-outfit text-2xl font-bold text-slate-900 dark:text-slate-100">My Banks</h1>
+          <h1 className="font-outfit text-2xl font-bold text-slate-900 dark:text-slate-100">
+            {t("My Banks")}
+          </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Float / settlement accounts for your agency banking operations.
+            {t("Float / settlement accounts for your agency banking operations.")}
           </p>
         </div>
         <button
           onClick={() => setShowAdd(true)}
           className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-600/20 hover:bg-teal-500 transition-all"
         >
-          <Plus className="h-4 w-4" /> Add Bank
+          <Plus className="h-4 w-4" /> {t("Add Bank")}
         </button>
       </div>
 
       {/* Totals */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-xs font-medium text-slate-500">Total Float (all banks)</p>
+          <p className="text-xs font-medium text-slate-500">{t("Total Float (all banks)")}</p>
           <p className="mt-1 font-outfit text-2xl font-bold text-teal-600 dark:text-teal-400">
             <CountCurrency value={totalFloat} />
           </p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-start justify-between">
-            <p className="text-xs font-medium text-slate-500">Cash on Hand (shared pool)</p>
+            <p className="text-xs font-medium text-slate-500">{t("Cash on Hand (shared pool)")}</p>
             <button
               onClick={() => setShowAddCash(true)}
               className="inline-flex items-center gap-1 rounded-lg bg-teal-50 px-2 py-1 text-[11px] font-semibold text-teal-700 hover:bg-teal-100 dark:bg-teal-950/50 dark:text-teal-400"
             >
-              <Plus className="h-3 w-3" /> Add Cash
+              <Plus className="h-3 w-3" /> {t("Add Cash")}
             </button>
           </div>
           <p className="mt-1 font-outfit text-2xl font-bold text-slate-800 dark:text-slate-200">
@@ -131,13 +170,13 @@ export default function MyBanksPage() {
           </p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-xs font-medium text-slate-500">Available for Top-up</p>
+          <p className="text-xs font-medium text-slate-500">{t("Available for Top-up")}</p>
           <p className="mt-1 font-outfit text-2xl font-bold text-emerald-600 dark:text-emerald-400">
             {cashPool ? <CountCurrency value={cashPool.available_for_topup} /> : "—"}
           </p>
           {cashPool && (
             <p className="mt-0.5 text-[10px] text-slate-400">
-              {formatCurrency(cashPool.reserve_floor)} reserved for daily ops
+              {formatCurrency(cashPool.reserve_floor)} {t("reserved for daily ops")}
             </p>
           )}
         </div>
@@ -151,7 +190,9 @@ export default function MyBanksPage() {
       ) : banks.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 py-16 text-center dark:border-slate-700 dark:bg-slate-800/40">
           <Landmark className="mx-auto h-10 w-10 text-slate-400" />
-          <p className="mt-3 text-sm text-slate-500">No banks yet. Add your first float account to start.</p>
+          <p className="mt-3 text-sm text-slate-500">
+            {t("No banks yet. Add your first float account to start.")}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -172,7 +213,9 @@ export default function MyBanksPage() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-slate-900 dark:text-slate-100">{b.bank_name}</h3>
-                      <p className="text-xs text-slate-500">{b.risk_tier} risk tier</p>
+                      <p className="text-xs text-slate-500">
+                        {t(b.risk_tier)} {t("risk tier")}
+                      </p>
                     </div>
                   </div>
                   <span
@@ -184,7 +227,7 @@ export default function MyBanksPage() {
 
                 {/* Float + cash */}
                 <div className="mt-4 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/40">
-                  <p className="text-[11px] text-slate-500">Float balance</p>
+                  <p className="text-[11px] text-slate-500">{t("Float balance")}</p>
                   <p className="font-outfit text-lg font-bold text-teal-600 dark:text-teal-400">
                     {formatCurrency(b.float_balance)}
                   </p>
@@ -193,9 +236,12 @@ export default function MyBanksPage() {
                 {/* Utilization bar (float vs floor — 100% = floor line) */}
                 <div className="mt-4">
                   <div className="mb-1 flex items-center justify-between text-[11px] text-slate-500">
-                    <span>Float is at {util}% of floor</span>
+                    <span>
+                      {t("Float is at")} {util}
+                      {t("% of floor")}
+                    </span>
                     <span className={`font-semibold ${util < 100 ? "text-amber-500" : "text-emerald-500"}`}>
-                      {util >= 100 ? "Above floor ✓" : "Below floor"}
+                      {util >= 100 ? t("Above floor ✓") : t("Below floor")}
                     </span>
                   </div>
                   <div className="relative h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
@@ -206,12 +252,16 @@ export default function MyBanksPage() {
                     {/* floor marker at 100% */}
                     <div
                       className="absolute inset-y-0 right-0 w-px bg-slate-400 dark:bg-slate-500"
-                      title="Floor (100%)"
+                      title={t("Floor (100%)")}
                     />
                   </div>
                   <div className="mt-1 flex justify-between text-[10px] text-slate-400">
-                    <span>Floor: {formatCurrency(b.float_floor)} (100%)</span>
-                    <span>Ceiling: {formatCurrency(b.float_ceiling)}</span>
+                    <span>
+                      {t("Floor:")} {formatCurrency(b.float_floor)} (100%)
+                    </span>
+                    <span>
+                      {t("Ceiling:")} {formatCurrency(b.float_ceiling)}
+                    </span>
                   </div>
                 </div>
 
@@ -220,13 +270,13 @@ export default function MyBanksPage() {
                     onClick={() => setLedgerBank(b)}
                     className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 transition-all"
                   >
-                    <History className="h-4 w-4" /> History
+                    <History className="h-4 w-4" /> {t("History")}
                   </button>
                   <button
                     onClick={() => setTopupBank(b)}
                     className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-700 hover:bg-teal-100 dark:border-teal-900 dark:bg-teal-950/50 dark:text-teal-400 transition-all"
                   >
-                    <ArrowUpCircle className="h-4 w-4" /> Top up
+                    <ArrowUpCircle className="h-4 w-4" /> {t("Top up")}
                   </button>
                 </div>
               </div>
@@ -300,7 +350,7 @@ function AddBankModal({ onClose, onSaved }) {
       });
       onSaved();
     } catch (e) {
-      setErr(e.message || "Failed to add bank.");
+      setErr(e.message || t("Failed to add bank."));
     } finally {
       setSaving(false);
     }
@@ -311,7 +361,7 @@ function AddBankModal({ onClose, onSaved }) {
   const lbl = "text-xs font-medium text-slate-500";
 
   return (
-    <Modal title="Add Bank" onClose={onClose}>
+    <Modal title={t("Add Bank")} onClose={onClose}>
       {err && (
         <div className="mb-3 flex items-center gap-2 rounded-lg bg-red-50 p-2.5 text-xs text-red-600 dark:bg-red-950/40">
           <AlertCircle className="h-4 w-4" />
@@ -320,16 +370,16 @@ function AddBankModal({ onClose, onSaved }) {
       )}
       <div className="space-y-3">
         <div>
-          <label className={lbl}>Bank Name</label>
+          <label className={lbl}>{t("Bank Name")}</label>
           <input
             className={inp}
             value={f.bank_name}
             onChange={(e) => set("bank_name", e.target.value)}
-            placeholder="e.g. Bank of Ceylon"
+            placeholder={t("e.g. Bank of Ceylon")}
           />
         </div>
         <div>
-          <label className={lbl}>Risk Tier</label>
+          <label className={lbl}>{t("Risk Tier")}</label>
           <select className={inp} value={f.risk_tier} onChange={(e) => set("risk_tier", e.target.value)}>
             {RISK_TIERS.map((t) => (
               <option key={t.value} value={t.value}>
@@ -340,7 +390,7 @@ function AddBankModal({ onClose, onSaved }) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className={lbl}>Opening Float</label>
+            <label className={lbl}>{t("Opening Float")}</label>
             <input
               type="number"
               className={inp}
@@ -350,7 +400,7 @@ function AddBankModal({ onClose, onSaved }) {
             />
           </div>
           <div>
-            <label className={lbl}>Risk Tier</label>
+            <label className={lbl}>{t("Risk Tier")}</label>
             <select className={inp} value={f.risk_tier} onChange={(e) => set("risk_tier", e.target.value)}>
               {RISK_TIERS.map((t) => (
                 <option key={t.value} value={t.value}>
@@ -362,7 +412,7 @@ function AddBankModal({ onClose, onSaved }) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className={lbl}>Float Floor</label>
+            <label className={lbl}>{t("Float Floor")}</label>
             <input
               type="number"
               className={inp}
@@ -371,7 +421,7 @@ function AddBankModal({ onClose, onSaved }) {
             />
           </div>
           <div>
-            <label className={lbl}>Float Ceiling</label>
+            <label className={lbl}>{t("Float Ceiling")}</label>
             <input
               type="number"
               className={inp}
@@ -386,14 +436,14 @@ function AddBankModal({ onClose, onSaved }) {
           onClick={onClose}
           className="rounded-xl px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
         >
-          Cancel
+          {t("Cancel")}
         </button>
         <button
           onClick={submit}
           disabled={saving}
           className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500 disabled:opacity-50"
         >
-          {saving && <Loader2 className="h-4 w-4 animate-spin" />} Add Bank
+          {saving && <Loader2 className="h-4 w-4 animate-spin" />} {t("Add Bank")}
         </button>
       </div>
     </Modal>
@@ -426,7 +476,7 @@ function TopupModal({ bank, cashPool, onClose, onSaved }) {
       await agentBankApi.topup(bank.id, amt);
       onSaved();
     } catch (e) {
-      setErr(e.message || "Top-up failed.");
+      setErr(e.message || t("Top-up failed."));
     } finally {
       setSaving(false);
     }
@@ -442,15 +492,15 @@ function TopupModal({ bank, cashPool, onClose, onSaved }) {
           {err}
         </div>
       )}
-      <p className="text-sm text-slate-500">Move cash from the shared pool into this float account.</p>
+      <p className="text-sm text-slate-500">{t("Move cash from the shared pool into this float account.")}</p>
       <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-800/40">
         <div className="flex justify-between">
-          <span className="text-slate-500">Current float</span>
+          <span className="text-slate-500">{t("Current float")}</span>
           <span className="font-semibold">{formatCurrency(bank.float_balance)}</span>
         </div>
         {available != null && (
           <div className="mt-1 flex justify-between">
-            <span className="text-slate-500">Available to top up</span>
+            <span className="text-slate-500">{t("Available to top up")}</span>
             <span className="font-semibold text-emerald-600 dark:text-emerald-400">
               {formatCurrency(available)}
             </span>
@@ -458,13 +508,13 @@ function TopupModal({ bank, cashPool, onClose, onSaved }) {
         )}
         {Number(amount) > 0 && (
           <div className="mt-1 flex justify-between">
-            <span className="text-slate-500">Float after top-up</span>
+            <span className="text-slate-500">{t("Float after top-up")}</span>
             <span className="font-semibold text-teal-600 dark:text-teal-400">{formatCurrency(newFloat)}</span>
           </div>
         )}
       </div>
       <div className="mt-3">
-        <label className="text-xs font-medium text-slate-500">Top-up Amount (LKR)</label>
+        <label className="text-xs font-medium text-slate-500">{t("Top-up Amount (LKR)")}</label>
         <input
           type="number"
           autoFocus
@@ -479,14 +529,14 @@ function TopupModal({ bank, cashPool, onClose, onSaved }) {
           onClick={onClose}
           className="rounded-xl px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
         >
-          Cancel
+          {t("Cancel")}
         </button>
         <button
           onClick={submit}
           disabled={saving}
           className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500 disabled:opacity-50"
         >
-          {saving && <Loader2 className="h-4 w-4 animate-spin" />} Top up
+          {saving && <Loader2 className="h-4 w-4 animate-spin" />} {t("Top up")}
         </button>
       </div>
     </Modal>
@@ -511,7 +561,7 @@ function LedgerModal({ bank, onClose }) {
   return (
     <Modal title={`Float statement — ${bank.bank_name}`} onClose={onClose}>
       <div className="mb-3 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm dark:bg-slate-800/40">
-        <span className="text-slate-500">Current float</span>
+        <span className="text-slate-500">{t("Current float")}</span>
         <span className="font-bold text-teal-600 dark:text-teal-400">
           {formatCurrency(bank.float_balance)}
         </span>
@@ -522,7 +572,7 @@ function LedgerModal({ bank, onClose }) {
           <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
         </div>
       ) : entries.length === 0 ? (
-        <p className="py-8 text-center text-sm text-slate-500">No float movements yet.</p>
+        <p className="py-8 text-center text-sm text-slate-500">{t("No float movements yet.")}</p>
       ) : (
         <div className="max-h-96 space-y-2 overflow-y-auto pr-1">
           {entries.map((e) => {
@@ -557,7 +607,9 @@ function LedgerModal({ bank, onClose }) {
                     {formatCurrency(e.amount)}
                   </p>
                   {e.balance_after != null && (
-                    <p className="text-[11px] text-slate-400">Bal: {formatCurrency(e.balance_after)}</p>
+                    <p className="text-[11px] text-slate-400">
+                      {t("Bal:")} {formatCurrency(e.balance_after)}
+                    </p>
                   )}
                 </div>
               </div>
@@ -587,7 +639,7 @@ function AddCashModal({ cashPool, onClose, onSaved }) {
       await agentBankApi.addCash(amt);
       onSaved();
     } catch (e) {
-      setErr(e.message || "Failed to add cash.");
+      setErr(e.message || t("Failed to add cash."));
     } finally {
       setSaving(false);
     }
@@ -597,7 +649,7 @@ function AddCashModal({ cashPool, onClose, onSaved }) {
   const after = current + (Number(amount) || 0);
 
   return (
-    <Modal title="Add Cash to Pool" onClose={onClose}>
+    <Modal title={t("Add Cash to Pool")} onClose={onClose}>
       {err && (
         <div className="mb-3 flex items-center gap-2 rounded-lg bg-red-50 p-2.5 text-xs text-red-600 dark:bg-red-950/40">
           <AlertCircle className="h-4 w-4" />
@@ -605,23 +657,24 @@ function AddCashModal({ cashPool, onClose, onSaved }) {
         </div>
       )}
       <p className="text-sm text-slate-500">
-        Add physical cash you&apos;ve brought into the drawer (e.g. withdrawn from a bank). This increases
-        your shared cash pool.
+        {t(
+          "Add physical cash you've brought into the drawer (e.g. withdrawn from a bank). This increases your shared cash pool.",
+        )}
       </p>
       <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-800/40">
         <div className="flex justify-between">
-          <span className="text-slate-500">Current cash pool</span>
+          <span className="text-slate-500">{t("Current cash pool")}</span>
           <span className="font-semibold">{formatCurrency(current)}</span>
         </div>
         {Number(amount) > 0 && (
           <div className="mt-1 flex justify-between">
-            <span className="text-slate-500">After adding</span>
+            <span className="text-slate-500">{t("After adding")}</span>
             <span className="font-semibold text-teal-600 dark:text-teal-400">{formatCurrency(after)}</span>
           </div>
         )}
       </div>
       <div className="mt-3">
-        <label className="text-xs font-medium text-slate-500">Cash Amount (LKR)</label>
+        <label className="text-xs font-medium text-slate-500">{t("Cash Amount (LKR)")}</label>
         <input
           type="number"
           autoFocus
@@ -636,14 +689,14 @@ function AddCashModal({ cashPool, onClose, onSaved }) {
           onClick={onClose}
           className="rounded-xl px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
         >
-          Cancel
+          {t("Cancel")}
         </button>
         <button
           onClick={submit}
           disabled={saving}
           className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500 disabled:opacity-50"
         >
-          {saving && <Loader2 className="h-4 w-4 animate-spin" />} Add Cash
+          {saving && <Loader2 className="h-4 w-4 animate-spin" />} {t("Add Cash")}
         </button>
       </div>
     </Modal>

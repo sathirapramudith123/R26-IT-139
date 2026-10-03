@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { priceDataApi } from "@/services/api/priceData.api";
 
+import { t } from "@/lib/i18n";
 function PriceBar({ value, max, color = "bg-teal-500" }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   return (
@@ -48,12 +49,12 @@ export default function MarketPriceWidget() {
         <div className="flex items-center gap-3 mb-3">
           <span className="text-2xl">🏛</span>
           <div>
-            <h3 className="font-outfit font-semibold text-slate-900 text-sm">Market Price Data</h3>
-            <p className="text-xs text-slate-400">HKARTI Wholesale Prices</p>
+            <h3 className="font-outfit font-semibold text-slate-900 text-sm">{t("Market Price Data")}</h3>
+            <p className="text-xs text-slate-400">{t("HKARTI Wholesale Prices")}</p>
           </div>
         </div>
         <div className="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-xs text-amber-700">
-          No market price data available yet. Admin needs to upload the daily HKARTI price PDF.
+          {t("No market price data available yet. Admin needs to upload the daily HKARTI price PDF.")}
         </div>
       </div>
     );
@@ -69,14 +70,14 @@ export default function MarketPriceWidget() {
         <div className="flex items-center gap-3">
           <span className="text-2xl">🏛</span>
           <div>
-            <h3 className="font-outfit font-semibold text-slate-900">Market Price Data</h3>
+            <h3 className="font-outfit font-semibold text-slate-900">{t("Market Price Data")}</h3>
             <p className="text-xs text-slate-400">
-              HKARTI Wholesale Prices · {data.report_date} · {data.total_items} items
+              {t("HKARTI Wholesale Prices ·")} {data.report_date} · {data.total_items} items
             </p>
           </div>
         </div>
         <span className="rounded-full bg-teal-50 border border-teal-200 px-2 py-0.5 text-xs font-medium text-teal-700">
-          Live
+          {t("Live")}
         </span>
       </div>
 
@@ -109,7 +110,7 @@ export default function MarketPriceWidget() {
       {tab === "items" && (
         <input
           type="text"
-          placeholder="Search item..."
+          placeholder={t("Search item...")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-teal-400"
@@ -126,7 +127,7 @@ export default function MarketPriceWidget() {
                   <span className="text-[10px] text-emerald-600 font-medium">{item.cheapest_market}</span>
                   {item.price_spread > 50 && (
                     <span className="text-[10px] bg-amber-50 text-amber-600 border border-amber-100 px-1.5 rounded-full">
-                      High spread
+                      {t("High spread")}
                     </span>
                   )}
                 </div>
@@ -138,14 +139,20 @@ export default function MarketPriceWidget() {
               />
               <div className="flex justify-between text-[10px] text-slate-400 mt-0.5">
                 <span>
-                  Cheapest: LKR {item.cheapest_price} @ {item.cheapest_market}
+                  {t("Cheapest: LKR")} {item.cheapest_price} @ {item.cheapest_market}
                 </span>
-                <span>Spread: ±{item.price_spread}</span>
+                <span>
+                  {t("Spread: ±")}
+                  {item.price_spread}
+                </span>
               </div>
             </div>
           ))}
           {filtered.length === 0 && (
-            <p className="text-xs text-slate-400 text-center py-4">No items match &quot;{search}&quot;</p>
+            <p className="text-xs text-slate-400 text-center py-4">
+              {t('No items match "')}
+              {search}&quot;
+            </p>
           )}
         </div>
       )}
@@ -173,7 +180,7 @@ export default function MarketPriceWidget() {
                 </div>
                 {i === 0 && (
                   <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded-full shrink-0">
-                    Cheapest
+                    {t("Cheapest")}
                   </span>
                 )}
               </div>

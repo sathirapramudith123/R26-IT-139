@@ -14,11 +14,32 @@ import { procurementApi } from "@/services/api/procurement";
 import { formatCurrency } from "@/lib/formatters";
 import DetailDialog from "@/components/common/DetailDialog";
 
+import { t } from "@/lib/i18n";
 const COLS = [
-  { key: "item_name", label: "Item" },
-  { key: "quantity", label: "Qty" },
-  { key: "total_cost", label: "Total Cost" },
-  { key: "status", label: "Status" },
+  {
+    key: "item_name",
+    get label() {
+      return t("Item");
+    },
+  },
+  {
+    key: "quantity",
+    get label() {
+      return t("Qty");
+    },
+  },
+  {
+    key: "total_cost",
+    get label() {
+      return t("Total Cost");
+    },
+  },
+  {
+    key: "status",
+    get label() {
+      return t("Status");
+    },
+  },
   { key: "actions", label: "" },
 ];
 
@@ -37,7 +58,7 @@ export default function ProcurementPage() {
       await procurementApi.remove(id);
       await fetchAll();
     } catch (e) {
-      alert(e.message || "Failed");
+      alert(e.message || t("Failed"));
     }
   }
 
@@ -59,15 +80,15 @@ export default function ProcurementPage() {
     actions: (
       <div className="flex gap-2">
         <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => setViewItem(item)}>
-          View
+          {t("View")}
         </Button>
         <Link href={`/dashboard/procurement/${item.id}/edit`}>
           <Button variant="secondary" size="sm">
-            Edit
+            {t("Edit")}
           </Button>
         </Link>
         <Button variant="danger" size="sm" onClick={() => handleDelete(item.id)}>
-          Delete
+          {t("Delete")}
         </Button>
       </div>
     ),
@@ -76,25 +97,25 @@ export default function ProcurementPage() {
   return (
     <div className="page-container">
       <PageHeader
-        title="Procurement"
-        description="Manage procurement decisions."
+        title={t("Procurement")}
+        description={t("Manage procurement decisions.")}
         action={
           <Link href="/dashboard/procurement/create">
-            <Button>+ New Decision</Button>
+            <Button>{t("+ New Decision")}</Button>
           </Link>
         }
       />
       <Card className="mb-4">
         <input
           type="text"
-          placeholder="Search by item or supplier..."
+          placeholder={t("Search by item or supplier...")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="input-field"
         />
       </Card>
       {loading ? (
-        <LoadingSpinner label="Loading procurement..." />
+        <LoadingSpinner label={t("Loading procurement...")} />
       ) : error ? (
         <Card>
           <p className="text-sm text-red-600">{error}</p>
@@ -102,11 +123,11 @@ export default function ProcurementPage() {
       ) : items.length === 0 ? (
         <EmptyState
           icon="🛒"
-          title="No procurement records"
-          description="Create your first decision."
+          title={t("No procurement records")}
+          description={t("Create your first decision.")}
           action={
             <Link href="/dashboard/procurement/create">
-              <Button>New Decision</Button>
+              <Button>{t("New Decision")}</Button>
             </Link>
           }
         />
@@ -116,7 +137,7 @@ export default function ProcurementPage() {
 
       <DetailDialog
         open={!!viewItem}
-        title={viewItem?.item_name || "Procurement Order"}
+        title={viewItem?.item_name || t("Procurement Order")}
         data={viewItem}
         onClose={() => setViewItem(null)}
       />

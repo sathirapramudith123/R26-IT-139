@@ -4,6 +4,7 @@ import '../../core/api.dart';
 import '../../models/module_config.dart';
 import '../../models/field_config.dart';
 import '../../services/crud_service.dart';
+import '../../core/i18n.dart';
 
 class FormScreen extends StatefulWidget {
   final ModuleConfig module;
@@ -127,7 +128,7 @@ class _FormScreenState extends State<FormScreen> {
                   const Icon(Icons.error_outline, color: KadeColors.terra, size: 18),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(error!, style: const TextStyle(color: KadeColors.terra, fontSize: 13)),
+                    child: Text(tr(error!), style: const TextStyle(color: KadeColors.terra, fontSize: 13)),
                   ),
                 ],
               ),
@@ -149,7 +150,7 @@ class _FormScreenState extends State<FormScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
                     )
                   : Text(
-                      isEdit ? "Update" : "Save",
+                      isEdit ? tr("Update") : tr("Save"),
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: "Nunito"),
                     ),
             ),
@@ -172,7 +173,7 @@ class _FormScreenState extends State<FormScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            label,
+            tr(label),
             style: const TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito"),
           ),
           const SizedBox(height: 6),
@@ -180,13 +181,13 @@ class _FormScreenState extends State<FormScreen> {
             TextField(
               onChanged: (val) => selects[f.key] = val,
               controller: TextEditingController(text: selects[f.key] ?? ""),
-              decoration: const InputDecoration(hintText: "No suppliers yet — type a name"),
+              decoration: InputDecoration(hintText: tr("No suppliers yet — type a name")),
             )
           else if (isSelect)
             DropdownButtonFormField<String>(
               initialValue: (opts.contains(selects[f.key])) ? selects[f.key] : null,
-              hint: const Text("— Select —"),
-              items: opts.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
+              hint: Text(tr("— Select —")),
+              items: opts.map((o) => DropdownMenuItem(value: o, child: Text(tr(o)))).toList(),
               onChanged: (val) => setState(() => selects[f.key] = val),
             )
           else
@@ -195,7 +196,7 @@ class _FormScreenState extends State<FormScreen> {
               keyboardType: f.type == "number"
                   ? const TextInputType.numberWithOptions(decimal: true)
                   : TextInputType.text,
-              decoration: InputDecoration(hintText: f.label),
+              decoration: InputDecoration(hintText: tr(f.label)),
             ),
         ],
       ),

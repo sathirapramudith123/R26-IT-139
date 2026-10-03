@@ -1,18 +1,61 @@
+"use client";
+
 import Link from "next/link";
 import StatusBadge from "@/components/common/StatusBadge";
 import Button from "@/components/ui/Button";
 import Table from "@/components/ui/Table";
 import { formatCurrency, formatDate, scoreColor } from "@/lib/formatters/index";
 
+import { t } from "@/lib/i18n";
 const COLS = [
-  { key: "item_name", label: "Item" },
-  { key: "selected_supplier_name", label: "Supplier" },
-  { key: "quantity", label: "Qty" },
-  { key: "total_cost", label: "Total Cost" },
-  { key: "estimated_profit", label: "Est. Profit" },
-  { key: "final_score", label: "Score" },
-  { key: "status", label: "Status" },
-  { key: "created_at", label: "Date" },
+  {
+    key: "item_name",
+    get label() {
+      return t("Item");
+    },
+  },
+  {
+    key: "selected_supplier_name",
+    get label() {
+      return t("Supplier");
+    },
+  },
+  {
+    key: "quantity",
+    get label() {
+      return t("Qty");
+    },
+  },
+  {
+    key: "total_cost",
+    get label() {
+      return t("Total Cost");
+    },
+  },
+  {
+    key: "estimated_profit",
+    get label() {
+      return t("Est. Profit");
+    },
+  },
+  {
+    key: "final_score",
+    get label() {
+      return t("Score");
+    },
+  },
+  {
+    key: "status",
+    get label() {
+      return t("Status");
+    },
+  },
+  {
+    key: "created_at",
+    get label() {
+      return t("Date");
+    },
+  },
   { key: "actions", label: "" },
 ];
 
@@ -42,12 +85,12 @@ export default function ProcurementTable({ items = [], onDelete, deleting }) {
       <div className="flex gap-2">
         <Link href={`/dashboard/procurement/${item.id}`}>
           <Button variant="ghost" size="sm">
-            View
+            {t("View")}
           </Button>
         </Link>
         <Link href={`/dashboard/procurement/${item.id}/edit`}>
           <Button variant="primary" size="sm">
-            Edit
+            {t("Edit")}
           </Button>
         </Link>
         {onDelete && (
@@ -57,7 +100,7 @@ export default function ProcurementTable({ items = [], onDelete, deleting }) {
             onClick={() => onDelete(item.id)}
             disabled={deleting === item.id}
           >
-            {deleting === item.id ? "..." : "Delete"}
+            {deleting === item.id ? "..." : t("Delete")}
           </Button>
         )}
       </div>

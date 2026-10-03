@@ -6,6 +6,7 @@ import AuthForm from "@/components/forms/AuthForm";
 import useAuth from "@/hooks/useAuth";
 import { LogIn, Loader2 } from "lucide-react";
 
+import { t } from "@/lib/i18n";
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -23,13 +24,17 @@ function LoginContent() {
         <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 shadow-inner">
           <LogIn className="h-6 w-6" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Welcome back</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">Sign in to your Lanka-Link account</p>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+          {t("Welcome back")}
+        </h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          {t("Sign in to your Lanka-Link account")}
+        </p>
       </div>
 
       {searchParams.get("reset") === "1" && (
         <div className="rounded-xl border border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/10 p-3 text-center text-sm text-emerald-700 dark:text-emerald-400">
-          Your password has been updated. Please sign in with your new password.
+          {t("Your password has been updated. Please sign in with your new password.")}
         </div>
       )}
 
@@ -48,7 +53,7 @@ export default function LoginPage() {
         fallback={
           <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
             <Loader2 className="h-5 w-5 animate-spin text-teal-600 dark:text-teal-400" />
-            <span>Loading...</span>
+            <span>{t("Loading...")}</span>
           </div>
         }
       >

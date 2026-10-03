@@ -1,5 +1,6 @@
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { LanguageProvider } from "@/components/LanguageProvider";
 import Navbar from "@/components/common/Navbar";
 import Footer from "@/components/common/Footer";
 
@@ -28,9 +29,11 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <ThemeProvider>
-          <Navbar />
-          <main className="mx-auto min-h-screen max-w-9xl px-4 py-6">{children}</main>
-          <Footer />
+          <LanguageProvider>
+            <Navbar />
+            <main className="mx-auto min-h-screen max-w-9xl px-4 py-6">{children}</main>
+            <Footer />
+          </LanguageProvider>
         </ThemeProvider>
       </body>
     </html>

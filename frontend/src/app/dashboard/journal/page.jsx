@@ -14,10 +14,29 @@ import {
   Scale,
 } from "lucide-react";
 
+import { t } from "@/lib/i18n";
 const TABS = [
-  { key: "journal", label: "Journal", icon: FileText },
-  { key: "goods", label: "Goods Movement", icon: Package },
-  { key: "pnl", label: "Profit & Loss", icon: Scale },
+  {
+    key: "journal",
+    get label() {
+      return t("Journal");
+    },
+    icon: FileText,
+  },
+  {
+    key: "goods",
+    get label() {
+      return t("Goods Movement");
+    },
+    icon: Package,
+  },
+  {
+    key: "pnl",
+    get label() {
+      return t("Profit & Loss");
+    },
+    icon: Scale,
+  },
 ];
 
 // default range = current month
@@ -68,10 +87,10 @@ export default function JournalPage() {
         </div>
         <div>
           <h1 className="font-outfit text-2xl font-bold text-slate-900 dark:text-slate-100">
-            General Journal &amp; Reports
+            {t("General Journal & Reports")}
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Double-entry records, goods movement and profit / loss.
+            {t("Double-entry records, goods movement and profit / loss.")}
           </p>
         </div>
       </div>
@@ -79,7 +98,7 @@ export default function JournalPage() {
       {/* date range filter */}
       <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-500">From</label>
+          <label className="mb-1 block text-xs font-medium text-slate-500">{t("From")}</label>
           <input
             type="date"
             value={from}
@@ -88,7 +107,7 @@ export default function JournalPage() {
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-500">To</label>
+          <label className="mb-1 block text-xs font-medium text-slate-500">{t("To")}</label>
           <input
             type="date"
             value={to}
@@ -100,18 +119,18 @@ export default function JournalPage() {
           onClick={load}
           className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500"
         >
-          Apply
+          {t("Apply")}
         </button>
         <div className="ml-auto flex gap-2 text-xs">
           <QuickRange
-            label="This month"
+            label={t("This month")}
             onClick={() => {
               setFrom(firstOfMonth());
               setTo(todayStr());
             }}
           />
           <QuickRange
-            label="Last 7 days"
+            label={t("Last 7 days")}
             onClick={() => {
               const d = new Date();
               d.setDate(d.getDate() - 6);
@@ -144,9 +163,9 @@ export default function JournalPage() {
       </div>
 
       {loading ? (
-        <div className="py-16 text-center text-slate-400">Loading…</div>
+        <div className="py-16 text-center text-slate-400">{t("Loading…")}</div>
       ) : !data ? (
-        <Empty text="No data for this range." />
+        <Empty text={t("No data for this range.")} />
       ) : tab === "journal" ? (
         <JournalTab days={days} totals={totals} />
       ) : tab === "goods" ? (
@@ -171,10 +190,10 @@ function QuickRange({ label, onClick }) {
 
 /* ---------------- Journal tab ---------------- */
 function JournalTab({ days, totals }) {
-  if (!days.length) return <Empty text="No journal entries in this range." />;
+  if (!days.length) return <Empty text={t("No journal entries in this range.")} />;
   return (
     <div className="space-y-4">
-      {totals && <BalanceBanner totals={totals} label="Range total" />}
+      {totals && <BalanceBanner totals={totals} label={t("Range total")} />}
       {days.map((d) => (
         <div
           key={d.date}
@@ -183,15 +202,15 @@ function JournalTab({ days, totals }) {
           <div className="flex items-center justify-between bg-slate-50 px-4 py-2.5 dark:bg-slate-800">
             <span className="font-semibold text-slate-800 dark:text-slate-200">{d.date}</span>
             <span className="text-xs text-slate-500">
-              Dr {formatCurrency(d.total_debit)} · Cr {formatCurrency(d.total_credit)}
+              {t("Dr")} {formatCurrency(d.total_debit)} {t("· Cr")} {formatCurrency(d.total_credit)}
             </span>
           </div>
           <table className="w-full text-sm">
             <thead>
               <tr className="text-slate-500">
-                <th className="px-4 py-2 text-left font-medium">Particulars</th>
-                <th className="px-4 py-2 text-right font-medium">Debit</th>
-                <th className="px-4 py-2 text-right font-medium">Credit</th>
+                <th className="px-4 py-2 text-left font-medium">{t("Particulars")}</th>
+                <th className="px-4 py-2 text-right font-medium">{t("Debit")}</th>
+                <th className="px-4 py-2 text-right font-medium">{t("Credit")}</th>
               </tr>
             </thead>
             <tbody>
@@ -226,21 +245,21 @@ function JournalTab({ days, totals }) {
 
 /* ---------------- Goods tab ---------------- */
 function GoodsTab({ goods }) {
-  if (!goods?.items?.length) return <Empty text="No goods movement in this range." />;
+  if (!goods?.items?.length) return <Empty text={t("No goods movement in this range.")} />;
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
-        <StatBox label="Total Sold" value={`${goods.total_sold_qty} units`} tone="down" />
-        <StatBox label="Total Bought" value={`${goods.total_bought_qty} units`} tone="up" />
+        <StatBox label={t("Total Sold")} value={`${goods.total_sold_qty} units`} tone="down" />
+        <StatBox label={t("Total Bought")} value={`${goods.total_bought_qty} units`} tone="up" />
       </div>
       <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-              <th className="px-4 py-3 text-left font-semibold">Item</th>
-              <th className="px-4 py-3 text-right font-semibold">Sold</th>
-              <th className="px-4 py-3 text-right font-semibold">Bought</th>
-              <th className="px-4 py-3 text-right font-semibold">Net change</th>
+              <th className="px-4 py-3 text-left font-semibold">{t("Item")}</th>
+              <th className="px-4 py-3 text-right font-semibold">{t("Sold")}</th>
+              <th className="px-4 py-3 text-right font-semibold">{t("Bought")}</th>
+              <th className="px-4 py-3 text-right font-semibold">{t("Net change")}</th>
             </tr>
           </thead>
           <tbody>
@@ -260,7 +279,7 @@ function GoodsTab({ goods }) {
         </table>
       </div>
       <p className="text-xs text-slate-400">
-        ▲ stock increased (bought more than sold) · ▼ stock decreased (sold more than bought)
+        {t("▲ stock increased (bought more than sold) · ▼ stock decreased (sold more than bought)")}
       </p>
     </div>
   );
@@ -268,7 +287,7 @@ function GoodsTab({ goods }) {
 
 /* ---------------- Profit & Loss tab ---------------- */
 function PnLTab({ pnl }) {
-  if (!pnl) return <Empty text="No data for profit / loss." />;
+  if (!pnl) return <Empty text={t("No data for profit / loss.")} />;
   const row = (label, value, opts = {}) => (
     <div
       key={opts.rowKey ?? label}
@@ -290,7 +309,7 @@ function PnLTab({ pnl }) {
       {/* Trading account */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
         <div className="bg-slate-50 px-4 py-2.5 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-          Trading Account
+          {t("Trading Account")}
         </div>
         {row("Sales A/C", pnl.sales, { rowKey: "sales" })}
         {row("Less: Cost of Goods Sold", pnl.cost_of_goods, { indent: true, rowKey: "cogs" })}
@@ -305,19 +324,21 @@ function PnLTab({ pnl }) {
       {/* P&L account */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
         <div className="bg-slate-50 px-4 py-2.5 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-          Profit &amp; Loss Account
+          {t("Profit & Loss Account")}
         </div>
         {row("Gross Profit b/d", pnl.gross_profit, { rowKey: "gpbd" })}
         {pnl.expenses.length === 0 ? (
-          <div className="px-4 py-2.5 text-sm text-slate-400">No expenses recorded.</div>
+          <div className="px-4 py-2.5 text-sm text-slate-400">{t("No expenses recorded.")}</div>
         ) : (
           <>
-            <div className="px-4 pt-2 text-xs font-semibold uppercase text-slate-400">Less: Expenses</div>
+            <div className="px-4 pt-2 text-xs font-semibold uppercase text-slate-400">
+              {t("Less: Expenses")}
+            </div>
             {pnl.expenses.map((e, i) => row(e.account, e.amount, { indent: true, rowKey: `exp-${i}` }))}
             {row("Total Expenses", pnl.total_expenses, { border: true, rowKey: "totexp" })}
           </>
         )}
-        {row(pnl.is_profit ? "Net Profit" : "Net Loss", Math.abs(pnl.net_profit), {
+        {row(pnl.is_profit ? t("Net Profit") : t("Net Loss"), Math.abs(pnl.net_profit), {
           rowKey: "net",
           bold: true,
           border: true,
@@ -338,7 +359,7 @@ function PnLTab({ pnl }) {
           <TrendingDown className="h-5 w-5 text-rose-600" />
         )}
         <span className="font-semibold">
-          {pnl.is_profit ? "Net Profit" : "Net Loss"}: {formatCurrency(Math.abs(pnl.net_profit))}
+          {pnl.is_profit ? t("Net Profit") : t("Net Loss")}: {formatCurrency(Math.abs(pnl.net_profit))}
         </span>
       </div>
     </div>
@@ -375,13 +396,13 @@ function BalanceBanner({ totals, label }) {
       </span>
       <span className="flex items-center gap-4">
         <span>
-          Total Debit: <b>{formatCurrency(totals.total_debit)}</b>
+          {t("Total Debit:")} <b>{formatCurrency(totals.total_debit)}</b>
         </span>
         <span>
-          Total Credit: <b>{formatCurrency(totals.total_credit)}</b>
+          {t("Total Credit:")} <b>{formatCurrency(totals.total_credit)}</b>
         </span>
         <span className={ok ? "text-emerald-600" : "text-amber-600"}>
-          {ok ? "Balanced ✓" : "Not balanced"}
+          {ok ? t("Balanced ✓") : t("Not balanced")}
         </span>
       </span>
     </div>

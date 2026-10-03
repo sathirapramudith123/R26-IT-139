@@ -7,6 +7,7 @@ import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../core/config.dart';
 import '../../core/theme.dart';
+import '../../core/i18n.dart';
 
 // Web-service key for the Places search, Geocoding and Directions REST calls
 // made from Dart, given at build time (flutter run --dart-define-from-file=.env).
@@ -167,19 +168,19 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
         perm = await Geolocator.requestPermission();
       }
       if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
-        _snack("Location permission denied.");
+        _snack(tr("Location permission denied."));
         return;
       }
       final pos = await Geolocator.getCurrentPosition();
       _setPoint(LatLng(pos.latitude, pos.longitude), move: true);
     } catch (_) {
-      _snack("Couldn't get your location.");
+      _snack(tr("Couldn't get your location."));
     }
   }
 
   void _snack(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr(msg))));
   }
 
   // ---------------- Places Autocomplete search ----------------
@@ -239,7 +240,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
         );
       }
     } catch (_) {
-      _snack("Couldn't look up that place.");
+      _snack(tr("Couldn't look up that place."));
     }
   }
 
@@ -291,14 +292,14 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
           _polylines = {};
           _routeDistanceKm = null;
           _routeDurationMin = null;
-          _routeError = "No route found";
+          _routeError = tr("No route found");
         });
       }
     } catch (_) {
       if (mounted) {
         setState(() {
           _polylines = {};
-          _routeError = "Couldn't fetch route";
+          _routeError = tr("Couldn't fetch route");
         });
       }
     }
@@ -380,7 +381,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
                           controller: _searchCtrl,
                           onChanged: _onSearchChanged,
                           decoration: InputDecoration(
-                            hintText: "Search a place or address…",
+                            hintText: tr("Search a place or address…"),
                             filled: true,
                             fillColor: Theme.of(context).cardColor,
                             isDense: true,
@@ -422,7 +423,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
                               return ListTile(
                                 dense: true,
                                 leading: const Icon(Icons.place_outlined, size: 18),
-                                title: Text(s.description, style: const TextStyle(fontSize: 13)),
+                                title: Text(tr(s.description), style: const TextStyle(fontSize: 13)),
                                 onTap: () => _selectSuggestion(s),
                               );
                             },

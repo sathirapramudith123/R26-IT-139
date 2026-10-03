@@ -8,6 +8,7 @@ import MLAnalyticsWidget from "@/components/dashboard/MLAnalyticsWidget";
 import useProcurement from "@/hooks/useProcurement";
 import { formatCurrency } from "@/lib/formatters/index";
 
+import { t } from "@/lib/i18n";
 export default function MerchantProcurementPage() {
   const { items, fetchAll } = useProcurement();
 
@@ -21,7 +22,10 @@ export default function MerchantProcurementPage() {
 
   return (
     <div className="page-container">
-      <PageHeader title="Smart Procurement" description="Market analytics and supplier recommendations." />
+      <PageHeader
+        title={t("Smart Procurement")}
+        description={t("Market analytics and supplier recommendations.")}
+      />
 
       <MarketPriceWidget />
 
@@ -30,7 +34,7 @@ export default function MerchantProcurementPage() {
       {recentDecisions.length > 0 && (
         <Card>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-outfit font-semibold text-slate-900">Recent Decisions</h3>
+            <h3 className="font-outfit font-semibold text-slate-900">{t("Recent Decisions")}</h3>
           </div>
           <div className="space-y-2">
             {recentDecisions.map((d) => (
@@ -41,7 +45,7 @@ export default function MerchantProcurementPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-slate-800 truncate">{d.item_name}</p>
                   <p className="text-xs text-slate-400">
-                    {d.selected_supplier_name || "—"} · Qty {d.quantity}
+                    {d.selected_supplier_name || "—"} {t("· Qty")} {d.quantity}
                   </p>
                 </div>
                 <div className="text-right shrink-0">
@@ -67,7 +71,7 @@ export default function MerchantProcurementPage() {
                   {d.status}
                 </span>
                 <Link href={`/dashboard/procurement/${d.id}`} className="shrink-0">
-                  <span className="text-xs text-teal-600 hover:underline">View →</span>
+                  <span className="text-xs text-teal-600 hover:underline">{t("View →")}</span>
                 </Link>
               </div>
             ))}

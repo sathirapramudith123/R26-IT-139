@@ -4,6 +4,7 @@ import '../../core/theme.dart';
 import '../../services/crud_service.dart';
 import '../../services/agent_bank_service.dart';
 import '../inventory/inventory_form_screen.dart' show fieldLabel, errorBox, saveButton;
+import '../../core/i18n.dart';
 
 /// Tiered CBSL daily limits (LKR) — keep identical to the backend
 /// agencyBanking.controller.js TIER_LIMITS. `null` = no limit.
@@ -170,7 +171,10 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
 
   Widget _hint(String text) => Padding(
     padding: const EdgeInsets.only(top: 6, left: 2),
-    child: Text(text, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
+    child: Text(
+      tr(text),
+      style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
+    ),
   );
 
   Widget _floatPanel() {
@@ -198,17 +202,17 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
     Color warnColor = Colors.orange;
     if (after != null) {
       if (txType == "cash_deposit" && after < 0) {
-        warn = "Insufficient float to fund this deposit.";
+        warn = tr("Insufficient float to fund this deposit.");
         warnColor = Colors.red;
       } else if (txType == "cash_deposit" && after < floor) {
-        warn = "Float will drop below floor — top-up recommended.";
+        warn = tr("Float will drop below floor — top-up recommended.");
       } else if (txType == "cash_withdrawal") {
         if (cashAfter != null && cashAfter < 0) {
-          warn = "Insufficient cash on hand to pay out this withdrawal.";
+          warn = tr("Insufficient cash on hand to pay out this withdrawal.");
           warnColor = Colors.red;
         } else {
           final ceil = (bank["float_ceiling"] as num?)?.toDouble() ?? double.infinity;
-          if (after > ceil) warn = "Float will exceed ceiling — schedule a sweep.";
+          if (after > ceil) warn = tr("Float will exceed ceiling — schedule a sweep.");
         }
       }
     }
@@ -218,9 +222,9 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(k, style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodySmall?.color)),
+          Text(tr(k), style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodySmall?.color)),
           Text(
-            v,
+            tr(v),
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color),
           ),
         ],
@@ -238,7 +242,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
       ),
       child: Column(
         children: [
-          row("Current float", "LKR ${_money(bal)}"),
+          row(tr("Current float"), "LKR ${_money(bal)}"),
           if (after != null)
             row(
               "Float after ${txType == "cash_deposit" ? "↓" : "↑"}",
@@ -246,7 +250,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
               color: after < floor ? Colors.orange : Colors.green,
             ),
           const Divider(height: 14),
-          row("Cash on hand", "LKR ${_money(cash)}"),
+          row(tr("Cash on hand"), "LKR ${_money(cash)}"),
           if (cashAfter != null)
             row(
               "Cash after ${txType == "cash_deposit" ? "↑" : "↓"}",
@@ -254,11 +258,11 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
               color: cashAfter < 0 ? Colors.red : Colors.green,
             ),
           const Divider(height: 14),
-          row("Health", health.isEmpty ? "—" : health.replaceAll("_", " "), color: healthColor),
+          row(tr("Health"), health.isEmpty ? "—" : health.replaceAll("_", " "), color: healthColor),
           if (warn != null)
             Padding(
               padding: const EdgeInsets.only(top: 6),
-              child: Text(warn, style: TextStyle(fontSize: 12, color: warnColor)),
+              child: Text(tr(warn), style: TextStyle(fontSize: 12, color: warnColor)),
             ),
         ],
       ),
@@ -269,28 +273,28 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
     FocusScope.of(context).unfocus();
 
     if (customerCtrl.text.trim().isEmpty) {
-      setState(() => error = "Customer Name is required.");
+      setState(() => error = tr("Customer Name is required."));
       return;
     }
     if (phoneCtrl.text.trim().isEmpty) {
-      setState(() => error = "Customer Phone is required.");
+      setState(() => error = tr("Customer Phone is required."));
       return;
     }
     if (phoneCtrl.text.trim().length < 10) {
-      setState(() => error = "Enter a valid phone number (10 digits).");
+      setState(() => error = tr("Enter a valid phone number (10 digits)."));
       return;
     }
     if (accountCtrl.text.trim().isEmpty) {
-      setState(() => error = "Account number is required.");
+      setState(() => error = tr("Account number is required."));
       return;
     }
     if (txType == "cash_deposit") {
       if (sourceOfFunds.isEmpty) {
-        setState(() => error = "Source of funds is required for deposits.");
+        setState(() => error = tr("Source of funds is required for deposits."));
         return;
       }
       if (sourceOfFunds == "OTHER" && sourceOtherCtrl.text.trim().isEmpty) {
-        setState(() => error = "Please specify the source of funds.");
+        setState(() => error = tr("Please specify the source of funds."));
         return;
       }
     }
@@ -298,7 +302,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
     if (needsAmount) {
       final amt = num.tryParse(amountCtrl.text.trim());
       if (amt == null || amt <= 0) {
-        setState(() => error = "Please enter a valid amount.");
+        setState(() => error = tr("Please enter a valid amount."));
         return;
       }
       // Per-transaction tier cap (the cumulative daily limit is checked by the backend)
@@ -310,7 +314,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
       // Client-side float guard (backend enforces too)
       final fa = _floatAfter;
       if (txType == "cash_deposit" && fa != null && fa < 0) {
-        setState(() => error = "Insufficient float in the selected bank for this deposit.");
+        setState(() => error = tr("Insufficient float in the selected bank for this deposit."));
         return;
       }
     }
@@ -369,18 +373,18 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
               if (error != null) ...[errorBox(error!), const SizedBox(height: 12)],
 
               // Agent bank (float account) selector
-              fieldLabel("Agent Bank (Float Account)"),
+              fieldLabel(tr("Agent Bank (Float Account)")),
               if (loadingBanks)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text("Loading banks…", style: TextStyle(fontSize: 13)),
+                  child: Text(tr("Loading banks…"), style: TextStyle(fontSize: 13)),
                 )
               else
                 DropdownButtonFormField<String?>(
                   value: agentBankId,
                   decoration: const InputDecoration(),
                   items: [
-                    const DropdownMenuItem<String?>(value: null, child: Text("— No bank (skip float) —")),
+                    DropdownMenuItem<String?>(value: null, child: Text(tr("— No bank (skip float) —"))),
                     ...banks.map(
                       (b) => DropdownMenuItem<String?>(
                         value: b["id"]?.toString(),
@@ -393,42 +397,42 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
               if (_selectedBank != null) _floatPanel(),
               const SizedBox(height: 16),
 
-              fieldLabel("Customer Name *"),
+              fieldLabel(tr("Customer Name *")),
               TextField(
                 controller: customerCtrl,
                 enabled: !saving,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(hintText: "Enter customer full name"),
+                decoration: InputDecoration(hintText: tr("Enter customer full name")),
               ),
               const SizedBox(height: 16),
 
-              fieldLabel("Customer Phone *"),
+              fieldLabel(tr("Customer Phone *")),
               TextField(
                 controller: phoneCtrl,
                 enabled: !saving,
                 keyboardType: TextInputType.phone,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 maxLength: 10,
-                decoration: const InputDecoration(hintText: "07XXXXXXXX", counterText: ""),
+                decoration: InputDecoration(hintText: tr("07XXXXXXXX"), counterText: ""),
               ),
               const SizedBox(height: 16),
 
               // NEW: Customer NIC
-              fieldLabel("Customer NIC"),
+              fieldLabel(tr("Customer NIC")),
               TextField(
                 controller: nicCtrl,
                 enabled: !saving,
                 textCapitalization: TextCapitalization.characters,
                 decoration: const InputDecoration(hintText: "e.g. 199012345678"),
               ),
-              _hint("Used for daily transaction-count limits (max 5/day per NIC)"),
+              _hint(tr("Used for daily transaction-count limits (max 5/day per NIC)")),
               const SizedBox(height: 16),
 
-              fieldLabel("Transaction Type *"),
+              fieldLabel(tr("Transaction Type *")),
               DropdownButtonFormField<String>(
                 value: types.contains(txType) ? txType : types.first,
                 decoration: const InputDecoration(),
-                items: types.map((o) => DropdownMenuItem(value: o, child: Text(_formatType(o)))).toList(),
+                items: types.map((o) => DropdownMenuItem(value: o, child: Text(tr(_formatType(o))))).toList(),
                 onChanged: saving
                     ? null
                     : (val) {
@@ -442,7 +446,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
               const SizedBox(height: 16),
 
               // NEW: Account Number (mandatory)
-              fieldLabel("Account Number *"),
+              fieldLabel(tr("Account Number *")),
               TextField(
                 controller: accountCtrl,
                 enabled: !saving,
@@ -454,24 +458,24 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
 
               // NEW: Source of Funds — deposits only (mandatory dropdown + Other text)
               if (txType == "cash_deposit") ...[
-                fieldLabel("Source of Funds *"),
+                fieldLabel(tr("Source of Funds *")),
                 DropdownButtonFormField<String>(
                   value: sourceOfFunds.isEmpty ? null : sourceOfFunds,
-                  decoration: const InputDecoration(hintText: "Select source"),
+                  decoration: InputDecoration(hintText: tr("Select source")),
                   items: kSourceOfFunds
                       .map((o) => DropdownMenuItem(value: o["value"], child: Text(o["label"]!)))
                       .toList(),
                   onChanged: saving ? null : (val) => setState(() => sourceOfFunds = val ?? ""),
                 ),
-                _hint("Required for deposits (AML record)"),
+                _hint(tr("Required for deposits (AML record)")),
                 if (sourceOfFunds == "OTHER") ...[
                   const SizedBox(height: 12),
-                  fieldLabel("Specify Source of Funds *"),
+                  fieldLabel(tr("Specify Source of Funds *")),
                   TextField(
                     controller: sourceOtherCtrl,
                     enabled: !saving,
                     textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(hintText: "Describe the source of funds"),
+                    decoration: InputDecoration(hintText: tr("Describe the source of funds")),
                   ),
                 ],
                 const SizedBox(height: 16),
@@ -479,43 +483,45 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
 
               if (needsAmount) ...[
                 const SizedBox(height: 16),
-                fieldLabel("Amount (LKR) *"),
+                fieldLabel(tr("Amount (LKR) *")),
                 TextField(
                   controller: amountCtrl,
                   enabled: !saving,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-                  decoration: const InputDecoration(hintText: "0.00", prefixText: "LKR "),
+                  decoration: InputDecoration(hintText: "0.00", prefixText: tr("LKR ")),
                   onChanged: _onAmountChanged,
                 ),
                 if (lim != null) _hint("Daily limit: LKR ${_money(lim)}"),
               ],
 
               const SizedBox(height: 16),
-              fieldLabel("Service Fee (LKR)"),
+              fieldLabel(tr("Service Fee (LKR)")),
               TextField(
                 controller: feeCtrl,
                 enabled: !saving,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-                decoration: const InputDecoration(hintText: "0.00", prefixText: "LKR "),
+                decoration: InputDecoration(hintText: "0.00", prefixText: tr("LKR ")),
               ),
-              _hint(isEdit ? "Charged to the customer" : "Auto-filled from amount — you can change it"),
+              _hint(
+                isEdit ? tr("Charged to the customer") : tr("Auto-filled from amount — you can change it"),
+              ),
 
               const SizedBox(height: 16),
-              fieldLabel("Commission (LKR)"),
+              fieldLabel(tr("Commission (LKR)")),
               TextField(
                 controller: commissionCtrl,
                 enabled: !saving,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-                decoration: const InputDecoration(hintText: "0.00", prefixText: "LKR "),
+                decoration: InputDecoration(hintText: "0.00", prefixText: tr("LKR ")),
               ),
-              _hint(isEdit ? "Your payout as agent" : "Auto-filled from amount — you can change it"),
+              _hint(isEdit ? tr("Your payout as agent") : tr("Auto-filled from amount — you can change it")),
 
               if (isEdit) ...[
                 const SizedBox(height: 16),
-                fieldLabel("Status"),
+                fieldLabel(tr("Status")),
                 DropdownButtonFormField<String>(
                   value: statuses.contains(status) ? status : statuses.first,
                   decoration: const InputDecoration(),

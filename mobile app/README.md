@@ -31,4 +31,10 @@ lib/
   models/              data models
 ```
 
+## Sinhala / English
+
+Text is wrapped in `tr("English text")` (`lib/core/i18n.dart`); the Sinhala text lives in
+`lib/core/si_strings.dart`, keyed by the English text. A missing translation falls back to English. The
+language is chosen in Settings (or on the login screen) and saved on the phone.
+
 Formatting: `dart format --line-length 110 lib`. Checks: `flutter analyze`.

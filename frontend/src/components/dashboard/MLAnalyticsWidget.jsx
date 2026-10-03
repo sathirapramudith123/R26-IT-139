@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { apiClient } from "@/services/api/client";
 
+import { t } from "@/lib/i18n";
 function TrendBadge({ trend }) {
   const map = {
     rising: { icon: "↑", cls: "bg-red-50   text-red-700   border-red-200" },
@@ -89,12 +90,48 @@ function PriceBar({ value, max, color = "bg-teal-500" }) {
 }
 
 const TABS = [
-  { key: "prediction", label: "Price Prediction", icon: "📈" },
-  { key: "trends", label: "Market Trends", icon: "📊" },
-  { key: "demand", label: "Demand Forecasting", icon: "🔮" },
-  { key: "delivery", label: "Delivery Optimization", icon: "🚚" },
-  { key: "seasonal", label: "Seasonal Patterns", icon: "🌦" },
-  { key: "comparison", label: "Market Comparison", icon: "⚖️" },
+  {
+    key: "prediction",
+    get label() {
+      return t("Price Prediction");
+    },
+    icon: "📈",
+  },
+  {
+    key: "trends",
+    get label() {
+      return t("Market Trends");
+    },
+    icon: "📊",
+  },
+  {
+    key: "demand",
+    get label() {
+      return t("Demand Forecasting");
+    },
+    icon: "🔮",
+  },
+  {
+    key: "delivery",
+    get label() {
+      return t("Delivery Optimization");
+    },
+    icon: "🚚",
+  },
+  {
+    key: "seasonal",
+    get label() {
+      return t("Seasonal Patterns");
+    },
+    icon: "🌦",
+  },
+  {
+    key: "comparison",
+    get label() {
+      return t("Market Comparison");
+    },
+    icon: "⚖️",
+  },
 ];
 
 export default function MLAnalyticsWidget() {
@@ -127,12 +164,14 @@ export default function MLAnalyticsWidget() {
         <div className="flex items-center gap-3 mb-3">
           <span className="text-2xl">📊</span>
           <div>
-            <h3 className="font-outfit font-semibold text-slate-900">Price Analytics</h3>
-            <p className="text-xs text-slate-400">6 models · Linear Regression · K-Means · Demand Index</p>
+            <h3 className="font-outfit font-semibold text-slate-900">{t("Price Analytics")}</h3>
+            <p className="text-xs text-slate-400">
+              {t("6 models · Linear Regression · K-Means · Demand Index")}
+            </p>
           </div>
         </div>
         <div className="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-xs text-amber-800">
-          {data?.message || "Upload HKARTI PDFs to enable ML analytics."}
+          {data?.message || t("Upload HKARTI PDFs to enable ML analytics.")}
         </div>
       </div>
     );
@@ -157,9 +196,9 @@ export default function MLAnalyticsWidget() {
         <div className="flex items-center gap-3">
           <span className="text-2xl">🤖</span>
           <div>
-            <h3 className="font-outfit font-semibold text-slate-900">Price Analytics</h3>
+            <h3 className="font-outfit font-semibold text-slate-900">{t("Price Analytics")}</h3>
             <p className="text-xs text-slate-400">
-              {summary.date_count} days · {summary.item_count} items · {summary.date_range}
+              {summary.date_count} {t("days ·")} {summary.item_count} {t("items ·")} {summary.date_range}
             </p>
           </div>
         </div>
@@ -208,7 +247,7 @@ export default function MLAnalyticsWidget() {
       {["prediction", "trends", "demand", "seasonal", "comparison"].includes(tab) && (
         <input
           type="text"
-          placeholder="Search item..."
+          placeholder={t("Search item...")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-teal-400"
@@ -219,9 +258,9 @@ export default function MLAnalyticsWidget() {
       {tab === "prediction" && (
         <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
           <p className="text-[10px] text-slate-400">
-            Linear Regression trained on {summary.date_count} days of data.
+            {t("Linear Regression trained on")} {summary.date_count} {t("days of data.")}
             <span className="ml-1" style={{ color: "#7F77DD" }}>
-              — — predicted (next 4 weeks)
+              {t("— — predicted (next 4 weeks)")}
             </span>
           </p>
           {filter(price_prediction || [], "item_name").map((p) => (
@@ -230,7 +269,7 @@ export default function MLAnalyticsWidget() {
                 <div>
                   <p className="text-xs font-semibold text-slate-800 capitalize">{p.item_name}</p>
                   <p className="text-[10px] text-slate-400">
-                    Current: LKR {p.current_price} · R² {p.r2_score} · {p.data_points} days
+                    {t("Current: LKR")} {p.current_price} {t("· R²")} {p.r2_score} · {p.data_points} days
                   </p>
                 </div>
                 <TrendBadge trend={p.trend} />
@@ -238,7 +277,7 @@ export default function MLAnalyticsWidget() {
               <MiniSparkline values={p.actual_prices} predicted={p.predicted_prices} />
               <div className="flex items-center justify-between mt-1 text-[10px] text-slate-400">
                 <span>
-                  Next 4 wks: LKR {p.predicted_prices?.[0]} → {p.predicted_prices?.[3]}
+                  {t("Next 4 wks: LKR")} {p.predicted_prices?.[0]} → {p.predicted_prices?.[3]}
                 </span>
                 <span>{p.date_range}</span>
               </div>
@@ -251,7 +290,7 @@ export default function MLAnalyticsWidget() {
       {tab === "trends" && (
         <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
           <p className="text-[10px] text-slate-400 mb-2">
-            7-day and 14-day moving averages. % change over full period.
+            {t("7-day and 14-day moving averages. % change over full period.")}
           </p>
           {filter(market_trends || [], "item_name").map((t) => (
             <div key={t.item_name} className="rounded-xl bg-slate-50 px-3 py-2.5">
@@ -274,9 +313,15 @@ export default function MLAnalyticsWidget() {
                 </div>
               </div>
               <div className="flex items-center justify-between text-[10px] text-slate-400">
-                <span>Start: LKR {t.start_avg}</span>
-                <span>Now: LKR {t.current_avg}</span>
-                <span>{t.data_points} data pts</span>
+                <span>
+                  {t("Start: LKR")} {t.start_avg}
+                </span>
+                <span>
+                  {t("Now: LKR")} {t.current_avg}
+                </span>
+                <span>
+                  {t.data_points} {t("data pts")}
+                </span>
               </div>
               {t.ma7 && t.ma7.length > 1 && (
                 <div className="mt-1.5 h-4 bg-slate-100 rounded-full overflow-hidden flex gap-px p-px">
@@ -303,7 +348,7 @@ export default function MLAnalyticsWidget() {
       {tab === "demand" && (
         <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
           <p className="text-[10px] text-slate-400 mb-2">
-            Price velocity index. Fast rising price = high demand. Falling = low demand.
+            {t("Price velocity index. Fast rising price = high demand. Falling = low demand.")}
           </p>
           {filter(demand_forecast || [], "item_name").map((d) => (
             <div key={d.item_name} className="rounded-xl border border-slate-100 bg-white px-3 py-2.5">
@@ -325,10 +370,12 @@ export default function MLAnalyticsWidget() {
               </div>
               <p className="text-[10px] text-slate-500 italic">{d.forecast}</p>
               <div className="flex items-center justify-between mt-1 text-[10px] text-slate-400">
-                <span>Current: LKR {d.current_price}</span>
                 <span>
-                  7-day velocity: {(d.velocity_7day || 0) > 0 ? "+" : ""}
-                  {d.velocity_7day} LKR/day
+                  {t("Current: LKR")} {d.current_price}
+                </span>
+                <span>
+                  {t("7-day velocity:")} {(d.velocity_7day || 0) > 0 ? "+" : ""}
+                  {d.velocity_7day} {t("LKR/day")}
                 </span>
               </div>
             </div>
@@ -340,8 +387,9 @@ export default function MLAnalyticsWidget() {
       {tab === "delivery" && (
         <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
           <p className="text-[10px] text-slate-400">
-            K-Means clustering groups markets by price level and stability. Buy from green cluster markets to
-            save the most.
+            {t(
+              "K-Means clustering groups markets by price level and stability. Buy from green cluster markets to save the most.",
+            )}
           </p>
           {Object.entries(delivery_opt?.clusters || {}).map(([name, markets], ci) => {
             const colors = [
@@ -362,7 +410,10 @@ export default function MLAnalyticsWidget() {
                       <span className="text-xs text-slate-700 font-medium">{m.market}</span>
                       <div className="text-right">
                         <span className="text-[10px] font-bold text-slate-800">LKR {m.avg_price}</span>
-                        <span className="text-[10px] text-slate-400 ml-1.5">±{m.volatility}% vol</span>
+                        <span className="text-[10px] text-slate-400 ml-1.5">
+                          ±{m.volatility}
+                          {t("% vol")}
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -373,7 +424,7 @@ export default function MLAnalyticsWidget() {
           {(delivery_opt?.top_recommendations || []).length > 0 && (
             <div className="rounded-xl border border-slate-100 overflow-hidden">
               <p className="text-[10px] font-semibold text-slate-600 px-3 py-2 bg-slate-50 border-b border-slate-100">
-                Best delivery source per item
+                {t("Best delivery source per item")}
               </p>
               {delivery_opt.top_recommendations.map((r) => (
                 <div
@@ -396,7 +447,7 @@ export default function MLAnalyticsWidget() {
       {tab === "seasonal" && (
         <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
           <p className="text-[10px] text-slate-400 mb-1">
-            Monthly average prices. Shows which month is cheapest to buy each item.
+            {t("Monthly average prices. Shows which month is cheapest to buy each item.")}
           </p>
           {filter(seasonal || [], "item_name").map((s) => {
             const maxP = Math.max(...(s.prices || [1]));
@@ -405,7 +456,9 @@ export default function MLAnalyticsWidget() {
               <div key={s.item_name} className="rounded-xl border border-slate-100 bg-white p-3">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs font-semibold text-slate-800 capitalize">{s.item_name}</p>
-                  <span className="text-[10px] text-teal-700 font-medium">Cheapest: {s.cheapest_month}</span>
+                  <span className="text-[10px] text-teal-700 font-medium">
+                    {t("Cheapest:")} {s.cheapest_month}
+                  </span>
                 </div>
                 <div className="flex items-end gap-1 h-8">
                   {(s.months || []).map((month, i) => {
@@ -438,14 +491,14 @@ export default function MLAnalyticsWidget() {
       {tab === "comparison" && (
         <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
           <div className="rounded-xl bg-teal-50 border border-teal-100 px-4 py-3">
-            <p className="text-xs font-semibold text-teal-800 mb-1">Overall cheapest market</p>
+            <p className="text-xs font-semibold text-teal-800 mb-1">{t("Overall cheapest market")}</p>
             <p className="text-base font-bold text-teal-700">{market_comparison?.overall_cheapest}</p>
             <p className="text-[10px] text-teal-600 mt-0.5">
-              Most expensive: {market_comparison?.overall_expensive}
+              {t("Most expensive:")} {market_comparison?.overall_expensive}
             </p>
           </div>
           <p className="text-[10px] text-slate-400">
-            Price difference between cheapest and most expensive market per item.
+            {t("Price difference between cheapest and most expensive market per item.")}
           </p>
           {filter(market_comparison?.item_comparisons || [], "item_name").map((c) => {
             const maxP = c.expensive_price || 1;
@@ -454,7 +507,7 @@ export default function MLAnalyticsWidget() {
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs font-semibold text-slate-800 capitalize">{c.item_name}</p>
                   <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2 py-0.5 font-medium">
-                    Save {c.saving_pct}%
+                    {t("Save")} {c.saving_pct}%
                   </span>
                 </div>
                 <div className="space-y-1">
@@ -463,10 +516,10 @@ export default function MLAnalyticsWidget() {
                 </div>
                 <div className="flex justify-between text-[10px] text-slate-400 mt-1">
                   <span>
-                    ✓ {c.cheapest_market} — LKR {c.cheapest_price}
+                    ✓ {c.cheapest_market} {t("— LKR")} {c.cheapest_price}
                   </span>
                   <span>
-                    ✗ {c.expensive_market} — LKR {c.expensive_price}
+                    ✗ {c.expensive_market} {t("— LKR")} {c.expensive_price}
                   </span>
                 </div>
                 <p className="text-[10px] text-teal-600 italic mt-1">{c.insight}</p>
@@ -477,7 +530,7 @@ export default function MLAnalyticsWidget() {
       )}
 
       <p className="text-[10px] text-slate-400 text-center pt-1">
-        Data: HKARTI · Models: Linear Regression · Moving Avg · K-Means · Demand Index
+        {t("Data: HKARTI · Models: Linear Regression · Moving Avg · K-Means · Demand Index")}
       </p>
     </div>
   );

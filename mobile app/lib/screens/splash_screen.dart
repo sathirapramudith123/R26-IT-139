@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
+import '../core/i18n.dart';
 
 /// Animated splash screen shown while the app boots.
 /// Logo fades + scales in, a spinner runs underneath, then it routes onward.
@@ -103,8 +104,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                   // App name
                   FadeTransition(
                     opacity: _fade,
-                    child: const Text(
-                      "Lanka-Link",
+                    child: Text(
+                      tr("Lanka-Link"),
                       style: TextStyle(
                         fontSize: 30,
                         fontWeight: FontWeight.w900,
@@ -118,7 +119,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                   FadeTransition(
                     opacity: _fade,
                     child: Text(
-                      "Smart Merchant Platform",
+                      tr("Smart Merchant Platform"),
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.white.withOpacity(0.85),
@@ -150,7 +151,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
               child: FadeTransition(
                 opacity: _fade,
                 child: Text(
-                  "© 2026 Lanka-Link",
+                  tr("© 2026 Lanka-Link"),
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.6)),
                 ),

@@ -1,5 +1,7 @@
 "use client";
 
+import { t } from "@/lib/i18n";
+
 export default function PredictionResult({
   result,
   positiveLabel = "Positive",
@@ -14,12 +16,12 @@ export default function PredictionResult({
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 space-y-4">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Prediction Output</h3>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t("Prediction Output")}</h3>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col justify-between rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
           <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            Decision / Outcome
+            {t("Decision / Outcome")}
           </span>
           <div className="mt-2 flex items-center gap-2">
             {!isRegression ? (

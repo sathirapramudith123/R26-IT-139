@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 
+import { t } from "@/lib/i18n";
 export default function Footer() {
   return (
     <footer className="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
@@ -8,18 +11,18 @@ export default function Footer() {
           <div className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-lg bg-white ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-700">
             <Image
               src="/images/lankalinklogo.png"
-              alt="Lanka-Link"
+              alt={t("Lanka-Link")}
               width={22}
               height={22}
               className="object-contain"
             />
           </div>
           <span className="font-outfit text-sm font-semibold text-slate-700 dark:text-slate-200">
-            Lanka-Link
+            {t("Lanka-Link")}
           </span>
         </div>
         <p className="text-xs text-slate-400 dark:text-slate-500">
-          © 2026 Lanka-Link · Smart Merchant Support Platform
+          {t("© 2026 Lanka-Link · Smart Merchant Support Platform")}
         </p>
       </div>
     </footer>

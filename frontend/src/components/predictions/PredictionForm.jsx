@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Button from "@/components/ui/Button";
 
+import { t } from "@/lib/i18n";
 export default function PredictionForm({ fields = [], loading = false, onSubmit }) {
   const [formData, setFormData] = useState(() => {
     const initial = {};
@@ -63,7 +64,7 @@ export default function PredictionForm({ fields = [], loading = false, onSubmit 
 
       <div className="flex justify-end pt-2">
         <Button type="submit" disabled={loading}>
-          {loading ? "Calculating..." : "Run Prediction"}
+          {loading ? t("Calculating...") : t("Run Prediction")}
         </Button>
       </div>
     </form>

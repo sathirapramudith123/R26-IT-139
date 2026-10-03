@@ -36,6 +36,14 @@ src/
   hooks/                    data hooks per module (useInventory, useProcurement, ...)
   services/api/             one API client per backend resource
   lib/                      constants, formatters, validators, procurement helpers, PDF reports
+  locales/si.json           Sinhala text, keyed by the English text
 ```
+
+## Sinhala / English
+
+Visible text is wrapped in `t("English text")` from `lib/i18n.js`; `locales/si.json` holds the Sinhala
+text. A missing translation falls back to English. The සිංහල / English button in the navbar switches the
+language (`components/LanguageProvider.jsx`) and the choice is saved in the browser. When you add new
+text, wrap it in `t()` and add its Sinhala line to `si.json`.
 
 Code style: Prettier (config in the repository root, `.prettierrc`).

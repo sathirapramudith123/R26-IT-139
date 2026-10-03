@@ -3,13 +3,39 @@
 import { useEffect, useState } from "react";
 import { insightsApi } from "@/services/api/insights";
 
+import { t } from "@/lib/i18n";
 // "View all items" for Sales Forecast: every item's total sold, from GET /insights/sales-summary.
 export const SALES_SUMMARY_COLS = [
-  { key: "item", label: "Item" },
-  { key: "total_sold", label: "Total Sold" },
-  { key: "avg_sale_price", label: "Avg Sale Price" },
-  { key: "total_revenue", label: "Total Revenue" },
-  { key: "quantity", label: "Stock" },
+  {
+    key: "item",
+    get label() {
+      return t("Item");
+    },
+  },
+  {
+    key: "total_sold",
+    get label() {
+      return t("Total Sold");
+    },
+  },
+  {
+    key: "avg_sale_price",
+    get label() {
+      return t("Avg Sale Price");
+    },
+  },
+  {
+    key: "total_revenue",
+    get label() {
+      return t("Total Revenue");
+    },
+  },
+  {
+    key: "quantity",
+    get label() {
+      return t("Stock");
+    },
+  },
 ];
 
 export function SalesSummaryModal({ open, onClose }) {
@@ -60,7 +86,7 @@ export function SalesSummaryModal({ open, onClose }) {
       >
         <div className="mb-4 flex items-center justify-between">
           <h3 className="font-outfit text-lg font-bold text-slate-900 dark:text-slate-100">
-            All Items — Sales Summary
+            {t("All Items — Sales Summary")}
           </h3>
           <button
             onClick={onClose}
@@ -72,7 +98,7 @@ export function SalesSummaryModal({ open, onClose }) {
 
         <input
           type="text"
-          placeholder="Search item..."
+          placeholder={t("Search item...")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="input-field mb-3"
@@ -80,11 +106,11 @@ export function SalesSummaryModal({ open, onClose }) {
 
         <div className="flex-1 overflow-y-auto">
           {loading ? (
-            <p className="py-8 text-center text-sm text-slate-500">Loading…</p>
+            <p className="py-8 text-center text-sm text-slate-500">{t("Loading…")}</p>
           ) : error ? (
             <p className="py-8 text-center text-sm text-rose-600">{error}</p>
           ) : sorted.length === 0 ? (
-            <p className="py-8 text-center text-sm text-slate-500">No items match.</p>
+            <p className="py-8 text-center text-sm text-slate-500">{t("No items match.")}</p>
           ) : (
             <table className="w-full text-sm">
               <thead>
@@ -125,11 +151,36 @@ export function SalesSummaryModal({ open, onClose }) {
 
 // "View all items" for Buy or Wait: every item's stock vs reorder level, from GET /insights/procurement-summary.
 export const PROCUREMENT_SUMMARY_COLS = [
-  { key: "item", label: "Item" },
-  { key: "quantity", label: "Stock" },
-  { key: "reorder_level", label: "Reorder" },
-  { key: "deficit", label: "Deficit" },
-  { key: "action", label: "Status" },
+  {
+    key: "item",
+    get label() {
+      return t("Item");
+    },
+  },
+  {
+    key: "quantity",
+    get label() {
+      return t("Stock");
+    },
+  },
+  {
+    key: "reorder_level",
+    get label() {
+      return t("Reorder");
+    },
+  },
+  {
+    key: "deficit",
+    get label() {
+      return t("Deficit");
+    },
+  },
+  {
+    key: "action",
+    get label() {
+      return t("Status");
+    },
+  },
 ];
 
 export function ProcurementSummaryModal({ open, onClose }) {
@@ -180,7 +231,7 @@ export function ProcurementSummaryModal({ open, onClose }) {
       >
         <div className="mb-4 flex items-center justify-between">
           <h3 className="font-outfit text-lg font-bold text-slate-900 dark:text-slate-100">
-            All Items — Stock Status
+            {t("All Items — Stock Status")}
           </h3>
           <button
             onClick={onClose}
@@ -192,7 +243,7 @@ export function ProcurementSummaryModal({ open, onClose }) {
 
         <input
           type="text"
-          placeholder="Search item..."
+          placeholder={t("Search item...")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="input-field mb-3"
@@ -200,11 +251,11 @@ export function ProcurementSummaryModal({ open, onClose }) {
 
         <div className="flex-1 overflow-y-auto">
           {loading ? (
-            <p className="py-8 text-center text-sm text-slate-500">Loading…</p>
+            <p className="py-8 text-center text-sm text-slate-500">{t("Loading…")}</p>
           ) : error ? (
             <p className="py-8 text-center text-sm text-rose-600">{error}</p>
           ) : sorted.length === 0 ? (
-            <p className="py-8 text-center text-sm text-slate-500">No items match.</p>
+            <p className="py-8 text-center text-sm text-slate-500">{t("No items match.")}</p>
           ) : (
             <table className="w-full text-sm">
               <thead>
@@ -235,7 +286,7 @@ export function ProcurementSummaryModal({ open, onClose }) {
                             : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
                         }`}
                       >
-                        {r.urgent ? "🛒 Buy" : "⏳ Wait"}
+                        {r.urgent ? t("🛒 Buy") : t("⏳ Wait")}
                       </span>
                     </td>
                   </tr>

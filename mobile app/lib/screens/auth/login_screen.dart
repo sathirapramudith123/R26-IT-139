@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/main_navigation.dart';
 import 'register_screen.dart';
+import '../../core/i18n.dart';
 
 class LoginScreen extends StatefulWidget {
   /// true when the app sent the user here because their session expired
@@ -42,22 +43,33 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  icon: const Icon(Icons.translate, size: 18),
+                  label: Text(LanguageController.isSinhala ? "English" : "සිංහල"),
+                  onPressed: () async {
+                    await LanguageController.set(LanguageController.isSinhala ? "en" : "si");
+                    setState(() {});
+                  },
+                ),
+              ),
               Image.asset("assets/icon/app_icon.png", width: 100, height: 100),
-              const Text("Lanka-Link", style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
-              const Text("Sign in to your account", style: TextStyle(color: Colors.grey)),
+              Text(tr("Lanka-Link"), style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+              Text(tr("Sign in to your account"), style: TextStyle(color: Colors.grey)),
               const SizedBox(height: 24),
               if (widget.sessionExpired && error == null)
-                _errorBox("Your session has expired. Please sign in again."),
-              if (error != null) _errorBox(error!),
+                _errorBox(tr("Your session has expired. Please sign in again.")),
+              if (error != null) _errorBox(tr(error!)),
               TextField(
                 controller: email,
-                decoration: const InputDecoration(labelText: "Email"),
+                decoration: InputDecoration(labelText: tr("Email")),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: password,
                 obscureText: true,
-                decoration: const InputDecoration(labelText: "Password"),
+                decoration: InputDecoration(labelText: tr("Password")),
               ),
               const SizedBox(height: 20),
               SizedBox(
@@ -66,14 +78,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: loading ? null : _login,
                   child: Padding(
                     padding: const EdgeInsets.all(12),
-                    child: Text(loading ? "Signing in..." : "Sign In"),
+                    child: Text(loading ? tr("Signing in...") : tr("Sign In")),
                   ),
                 ),
               ),
               TextButton(
                 onPressed: () =>
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())),
-                child: const Text("New here? Create account"),
+                child: Text(tr("New here? Create account")),
               ),
             ],
           ),
@@ -92,5 +104,5 @@ Widget _errorBox(String msg) => Container(
     borderRadius: BorderRadius.circular(12),
     border: Border.all(color: Colors.red.shade200),
   ),
-  child: Text(msg, style: TextStyle(color: Colors.red.shade700)),
+  child: Text(tr(msg), style: TextStyle(color: Colors.red.shade700)),
 );

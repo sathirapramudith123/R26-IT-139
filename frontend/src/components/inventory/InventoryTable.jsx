@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import StatusBadge from "@/components/common/StatusBadge";
 import { formatCurrency } from "@/lib/formatters";
 
+import { t } from "@/lib/i18n";
 // Define table columns
 const COLS = ["Item", "Supplier", "Qty", "Reorder", "Unit Price", "Status", ""];
 
@@ -25,7 +28,7 @@ export default function InventoryTable({ items = [], onDelete, deleting }) {
           {items.length === 0 ? (
             <tr>
               <td colSpan={7} className="px-5 py-10 text-center text-sm text-slate-400">
-                No inventory items found
+                {t("No inventory items found")}
               </td>
             </tr>
           ) : (
@@ -44,20 +47,20 @@ export default function InventoryTable({ items = [], onDelete, deleting }) {
                 <td className="px-5 py-3.5">
                   <div className="flex gap-2">
                     <Link href={`/dashboard/inventory/${item.id}`} className="btn-ghost text-xs px-3 py-1.5">
-                      View
+                      {t("View")}
                     </Link>
                     <Link
                       href={`/dashboard/inventory/${item.id}/edit`}
                       className="btn-secondary text-xs px-3 py-1.5"
                     >
-                      Edit
+                      {t("Edit")}
                     </Link>
                     <button
                       onClick={() => onDelete?.(item.id)}
                       disabled={deleting === item.id}
                       className="btn-danger text-xs px-3 py-1.5"
                     >
-                      {deleting === item.id ? "..." : "Delete"}
+                      {deleting === item.id ? "..." : t("Delete")}
                     </button>
                   </div>
                 </td>
