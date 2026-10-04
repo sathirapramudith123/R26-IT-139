@@ -48,13 +48,6 @@ class PrivacyScreen extends StatelessWidget {
         "Map searches and routes are sent to Google Maps to find places and distances.",
       ],
     ),
-    (
-      Icons.school_outlined,
-      "Research project",
-      [
-        "Lanka-Link is a university research project (IT4010, R26-IT-139). Your data is not sold or used for advertising.",
-      ],
-    ),
   ];
 
   @override

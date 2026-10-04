@@ -598,8 +598,6 @@ const Map<String, String> siStrings = {
   "Lag 4 Units Sold": "සති 4කට පෙර විකුණූ ඒකක",
   "Lag1 Price": "සතියකට පෙර මිල",
   "Language": "භාෂාව",
-  "Lanka-Link is a university research project (IT4010, R26-IT-139). Your data is not sold or used for advertising.":
-      "Lanka-Link යනු විශ්වවිද්‍යාල පර්යේෂණ ව්‍යාපෘතියකි (IT4010, R26-IT-139). ඔබේ දත්ත විකුණනු නොලැබේ, දැන්වීම් සඳහා භාවිත නොකෙරේ.",
   "Last 7 days": "පසුගිය දින 7",
   "Last Received": "අවසන් වරට ලැබුණේ",
   "Last month": "පසුගිය මාසය",
@@ -942,7 +940,6 @@ const Map<String, String> siStrings = {
   "Required for AI Demand Forecasting": "AI ඉල්ලුම් පුරෝකථනයට අවශ්‍යයි",
   "Required for AI demand forecasting": "AI ඉල්ලුම් පුරෝකථනයට අවශ්‍යයි",
   "Required for deposits (AML record)": "තැන්පතු සඳහා අවශ්‍යයි (AML වාර්තාව)",
-  "Research project": "පර්යේෂණ ව්‍යාපෘතිය",
   "Reset": "යළි සකසන්න",
   "Reset Password": "මුරපදය යළි සකසන්න",
   "Reset failed. The link may have expired.": "යළි සැකසීම අසාර්ථකයි. සබැඳිය කල් ඉකුත් වී ඇති විය හැක.",

@@ -1,6 +1,6 @@
 "use client";
 
-import { Database, Lock, Landmark, Bot, MapPin, GraduationCap, CheckCircle2 } from "lucide-react";
+import { Database, Lock, Landmark, Bot, MapPin, CheckCircle2 } from "lucide-react";
 import useAuthGuard from "@/hooks/useAuthGuard";
 import PageHeader from "@/components/common/PageHeader";
 import { t } from "@/lib/i18n";
@@ -47,13 +47,6 @@ const SECTIONS = [
     points: [
       "Your location is read only when you click “Use My Location” — your browser asks you first.",
       "Map searches and routes are sent to Google Maps to find places and distances.",
-    ],
-  },
-  {
-    icon: GraduationCap,
-    title: "Research project",
-    points: [
-      "Lanka-Link is a university research project (IT4010, R26-IT-139). Your data is not sold or used for advertising.",
     ],
   },
 ];
