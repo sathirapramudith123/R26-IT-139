@@ -9,7 +9,6 @@ import { formatCurrency, titleCase } from "@/lib/formatters";
 import {
   TrendingUp,
   TrendingDown,
-  Plus,
   PackageX,
   ArrowUpRight,
   ArrowDownRight,
@@ -248,11 +247,6 @@ export default function DashboardPage() {
                 {formatCurrency(Math.round(aProfit))}
               </p>
               <p className="mt-1 text-xs text-white/70">{t("Income minus expenses")}</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Link href="/dashboard/transactions/create" className="btn-accent">
-                <Plus className="h-4 w-4" /> {t("New Transaction")}
-              </Link>
             </div>
           </div>
         </div>

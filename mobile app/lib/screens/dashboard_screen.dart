@@ -9,7 +9,6 @@ import 'crud/list_screen.dart';
 import 'notifications_screen.dart';
 import 'predictions/predictions_hub_screen.dart';
 import 'reports/reports_screen.dart';
-import 'transactions/transaction_form_screen.dart';
 import 'agency_banking/my_banks_screen.dart';
 import 'journal/journal_screen.dart';
 import '../core/i18n.dart';
@@ -221,34 +220,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             children: [
                               _topBar(context),
                               const SizedBox(height: 18),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Expanded(child: _netProfit(context)),
-                                  const SizedBox(width: 12),
-                                  Padding(
-                                    padding: const EdgeInsets.only(right: 8, bottom: 6),
-                                    child: FilledButton.icon(
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor: KadeColors.accent,
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                                      ),
-                                      icon: const Icon(Icons.add, size: 18),
-                                      label: Text(tr("Sale")),
-                                      onPressed: () async {
-                                        await Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) => const TransactionFormScreen(initialType: "sale"),
-                                          ),
-                                        );
-                                        _loadMetrics();
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              _netProfit(context),
                             ],
                           ),
                         ),
