@@ -135,12 +135,7 @@ export default function ProcurementPage() {
         <Table columns={COLS} rows={rows} />
       )}
 
-      <DetailDialog
-        open={!!viewItem}
-        title={viewItem?.item_name || t("Procurement Order")}
-        data={viewItem}
-        onClose={() => setViewItem(null)}
-      />
+      <DetailDialog open={!!viewItem} kind="procurement" data={viewItem} onClose={() => setViewItem(null)} />
     </div>
   );
 }

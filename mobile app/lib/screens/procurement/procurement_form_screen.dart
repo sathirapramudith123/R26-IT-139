@@ -7,6 +7,7 @@ import '../../services/crud_service.dart';
 import '../inventory/inventory_form_screen.dart' show fieldLabel, errorBox, saveButton;
 import '../common/location_picker_map.dart';
 import '../../core/i18n.dart';
+import '../../core/geo.dart';
 
 const List<String> _units = ["kg", "g", "l", "ml", "unit", "box", "carton"];
 const List<Map<String, String>> _statuses = [
@@ -117,7 +118,16 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
     prNo = it?["procurement_no"]?.toString() ?? _genPrNo();
     orderDate = _parse(it?["order_date"] ?? it?["date"]) ?? DateTime.now();
     final dl = it?["delivery_location"]?.toString();
-    deliveryLocationCtrl.text = (dl != null && dl.isNotEmpty) ? dl : "";
+    // an older order saved as "lat, lng": show the looked-up address instead
+    final dlPoint = parseCoordText(dl);
+    deliveryLocationCtrl.text = (dl != null && dl.isNotEmpty && dlPoint == null) ? dl : "";
+    if (dlPoint != null) {
+      reverseGeocode(dlPoint.$1, dlPoint.$2).then((addr) {
+        if (addr != null && mounted && deliveryLocationCtrl.text.isEmpty) {
+          setState(() => deliveryLocationCtrl.text = addr);
+        }
+      });
+    }
     noteCtrl.text = it?["special_note"]?.toString() ?? "";
     status = (it?["status"]?.toString().isNotEmpty ?? false) ? it!["status"].toString() : "pending";
 

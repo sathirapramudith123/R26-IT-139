@@ -513,8 +513,8 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
         const SizedBox(height: 6),
         Text(
           _picked == null
-              ? "Tap on the map or search to pick the delivery location"
-              : "Picked: ${_picked!.latitude.toStringAsFixed(5)}, ${_picked!.longitude.toStringAsFixed(5)}",
+              ? tr("Tap on the map or search to pick the delivery location")
+              : tr("📍 Location picked on the map"),
           style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
         ),
       ],

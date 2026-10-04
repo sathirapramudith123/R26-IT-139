@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/i18n.dart';
 import '../../core/theme.dart';
+import '../../core/geo.dart';
 
 /// Read-only view of one procurement order: items, total, supplier, delivery and the
 /// ranked suppliers saved with it (the generic details dialog showed these as raw lists).
@@ -213,7 +214,7 @@ class ProcurementDetailsScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (supplier.isNotEmpty) _row(context, tr("Supplier"), supplier),
-                  if (location.isNotEmpty) _row(context, tr("Delivery Location"), location),
+                  if (location.isNotEmpty) _row(context, tr("Delivery Location"), location, isLocation: true),
                 ],
               ),
             ),
@@ -289,13 +290,17 @@ class ProcurementDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _row(BuildContext context, String label, String value) => Padding(
+  Widget _row(BuildContext context, String label, String value, {bool isLocation = false}) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 5),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(width: 120, child: Text(label, style: Theme.of(context).textTheme.bodySmall)),
-        Expanded(child: Text(value, style: Theme.of(context).textTheme.bodyMedium)),
+        Expanded(
+          child: isLocation
+              ? LocationText(value, style: Theme.of(context).textTheme.bodyMedium)
+              : Text(value, style: Theme.of(context).textTheme.bodyMedium),
+        ),
       ],
     ),
   );

@@ -168,12 +168,7 @@ export default function InventoryPage() {
         <Table columns={COLS} rows={rows} />
       )}
 
-      <DetailDialog
-        open={!!viewItem}
-        title={viewItem?.name || t("Inventory Item")}
-        data={viewItem}
-        onClose={() => setViewItem(null)}
-      />
+      <DetailDialog open={!!viewItem} kind="inventory" data={viewItem} onClose={() => setViewItem(null)} />
     </div>
   );
 }

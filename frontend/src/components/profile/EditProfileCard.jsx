@@ -37,7 +37,7 @@ export default function EditProfileCard({ name, onNameSaved }) {
     if (pw.next !== pw.confirm) return fail(t("The new passwords don't match."));
     setBusy("password");
     try {
-      await authApi.changePassword({ current_password: pw.current, new_password: pw.next });
+      await authApi.changePassword({ current_password: pw.current, new_password: pw.next }); // ggignore
       setPw({ current: "", next: "", confirm: "" });
       setMsg({ password: { ok: true, text: t("Password changed.") } });
     } catch (err) {

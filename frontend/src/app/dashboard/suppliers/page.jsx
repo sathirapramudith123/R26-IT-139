@@ -171,12 +171,7 @@ export default function SuppliersPage() {
       ) : (
         <Table columns={COLS} rows={rows} />
       )}
-      <DetailDialog
-        open={!!viewItem}
-        title={viewItem?.name || t("Procument")}
-        data={viewItem}
-        onClose={() => setViewItem(null)}
-      />
+      <DetailDialog open={!!viewItem} kind="suppliers" data={viewItem} onClose={() => setViewItem(null)} />
     </div>
   );
 }

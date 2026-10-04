@@ -9,6 +9,7 @@ import { procurementApi } from "@/services/api/procurement";
 import { inventoryApi } from "@/services/api/inventory";
 import { supplierApi } from "@/services/api/supplier";
 import { INVENTORY_UNITS } from "@/lib/constants";
+import { parseCoordText, reverseGeocode } from "@/lib/geo";
 import { today, genPrNo, distanceKm, addDays, emptyItem, formatLkr as fmt } from "@/lib/procurement";
 import ProcurementSavedSummary from "@/components/procurement/ProcurementSavedSummary";
 import ItemSupplierList from "@/components/procurement/ItemSupplierList";
@@ -54,6 +55,15 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
       .list()
       .then((d) => setSuppliers(Array.isArray(d) ? d : []))
       .catch(() => setSuppliers([]));
+  }, []);
+
+  // editing an older order whose location was saved as "lat, lng": show the address instead
+  useEffect(() => {
+    const point = parseCoordText(location);
+    if (!point) return;
+    setCoords((c) => c ?? point);
+    reverseGeocode(point.lat, point.lng).then((address) => address && setLocation(address));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const inventoryItemNames = inventory.map((i) => i.name).filter(Boolean);
@@ -306,8 +316,8 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
-        setCoords({ lat: latitude, lng: longitude });
-        if (!location.trim()) setLocation(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+        // look up the address (never save raw "lat, lng" as the delivery location)
+        handleMapPick(latitude, longitude);
       },
       () => {},
       { enableHighAccuracy: true },
@@ -321,10 +331,8 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
       setLocation(displayName);
       return;
     }
-    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
-      .then((r) => r.json())
-      .then((d) => setLocation(d.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`))
-      .catch(() => setLocation(`${lat.toFixed(5)}, ${lng.toFixed(5)}`));
+    // no address found → leave the field for the user to type (the pin is still saved in coords)
+    reverseGeocode(lat, lng).then((address) => address && setLocation(address));
   }
 
   function handleClear() {

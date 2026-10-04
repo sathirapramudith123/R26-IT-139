@@ -174,12 +174,7 @@ export default function TransactionsPage() {
         <Table columns={COLS} rows={rows} />
       )}
 
-      <DetailDialog
-        open={!!viewItem}
-        title={viewItem?.name || t("Transaction")}
-        data={viewItem}
-        onClose={() => setViewItem(null)}
-      />
+      <DetailDialog open={!!viewItem} kind="transactions" data={viewItem} onClose={() => setViewItem(null)} />
     </div>
   );
 }

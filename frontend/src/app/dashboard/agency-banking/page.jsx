@@ -191,7 +191,7 @@ export default function AgencyBankingPage() {
 
       <DetailDialog
         open={!!viewItem}
-        title={viewItem?.name || t("Agency Banking")}
+        kind="agency-banking"
         data={viewItem}
         onClose={() => setViewItem(null)}
       />

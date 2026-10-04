@@ -1101,5 +1101,16 @@
   "Hide": "සඟවන්න",
   "Copy": "පිටපත් කරන්න",
   "Copied": "පිටපත් කළා",
-  "Your sales, stock, suppliers and banking records are stored in a secure cloud database.": "ඔබේ විකුණුම්, තොග, සැපයුම්කරුවන් සහ බැංකු වාර්තා ආරක්ෂිත cloud දත්ත ගබඩාවක තබා ඇත."
+  "Your sales, stock, suppliers and banking records are stored in a secure cloud database.": "ඔබේ විකුණුම්, තොග, සැපයුම්කරුවන් සහ බැංකු වාර්තා ආරක්ෂිත cloud දත්ත ගබඩාවක තබා ඇත.",
+  "Close": "වසන්න",
+  "Switch to Map on the Suppliers page to see how far it is.": "කොපමණ දුරදැයි බැලීමට සැපයුම්කරුවන් පිටුවේ සිතියම තෝරන්න.",
+  "AI check": "AI පරීක්ෂාව",
+  "Batches": "කාණ්ඩ",
+  "Cost": "පිරිවැය",
+  "Delivery": "බෙදාහැරීම",
+  "Risk score": "අවදානම් ලකුණු",
+  "days": "දින",
+  "Finding address…": "ලිපිනය සොයමින්…",
+  "Pinned on the map": "සිතියමේ සලකුණු කර ඇත",
+  "Open in Google Maps": "Google Maps හි විවෘත කරන්න"
 }
