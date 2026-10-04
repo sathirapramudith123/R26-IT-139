@@ -26,6 +26,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   double income = 0, expense = 0;
   int lowStock = 0;
   int unread = 0;
+  List<Map<String, dynamic>> recent = []; // latest 5 transactions
 
   @override
   void initState() {
@@ -49,6 +50,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         }
       }
 
+      // newest first, same as the web "Recent activity"
+      final latest = (txns is List)
+          ? txns.whereType<Map>().map((m) => Map<String, dynamic>.from(m)).toList()
+          : <Map<String, dynamic>>[];
+      latest.sort((a, b) => "${b["created_at"] ?? ""}".compareTo("${a["created_at"] ?? ""}"));
+
       int low = 0;
       if (inv is List) {
         for (final i in inv) {
@@ -71,6 +78,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           expense = exp;
           lowStock = low;
           unread = un;
+          recent = latest.take(5).toList();
         });
       }
     } catch (_) {
@@ -314,27 +322,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       (m) => ModuleTile(
                         icon: m.icon,
                         title: m.title,
+                        subtitle: _moduleCaptions[m.path],
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ListScreen(module: m))),
                       ),
                     ),
                     ModuleTile(
                       icon: Icons.account_balance_wallet_outlined,
                       title: tr("My Banks"),
+                      subtitle: "Float accounts",
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyBanksScreen())),
                     ),
                     ModuleTile(
                       icon: Icons.menu_book_outlined,
                       title: tr("Journal"),
+                      subtitle: "Double-entry ledger",
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const JournalScreen())),
                     ),
                     ModuleTile(
                       icon: Icons.bar_chart_outlined,
                       title: tr("Financial Statement"),
+                      subtitle: "Income statement",
                       onTap: _openIncomeStatement,
                     ),
                     ModuleTile(
                       icon: Icons.insights_outlined,
                       title: tr("Predictions"),
+                      subtitle: "AI insights",
                       highlight: true,
                       onTap: () =>
                           Navigator.push(context, MaterialPageRoute(builder: (_) => const PredictionsHubScreen())),
@@ -342,13 +355,128 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ]),
                 ),
               ),
+
+              // ---- Recent activity (latest 5 transactions) ----
+              SliverToBoxAdapter(child: _recentActivity(context)),
             ],
           ),
         ),
       ),
     );
   }
+
+  Widget _recentActivity(BuildContext context) {
+    final soft = Theme.of(context).textTheme.bodySmall?.color;
+    final txModule = modules.firstWhere((m) => m.path == "/transactions");
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
+            child: Text(
+              tr("Recent activity"),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
+          Card(
+            margin: EdgeInsets.zero,
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                if (recent.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(tr("No transactions yet."), style: TextStyle(color: soft)),
+                  )
+                else
+                  for (var i = 0; i < recent.length; i++) ...[
+                    if (i > 0) const Divider(height: 1),
+                    _activityRow(recent[i], soft),
+                  ],
+                const Divider(height: 1),
+                InkWell(
+                  onTap: () async {
+                    await Navigator.push(context, MaterialPageRoute(builder: (_) => ListScreen(module: txModule)));
+                    _loadMetrics();
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Center(
+                      child: Text(
+                        tr("View all transactions →"),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? KadeColors.tealDark
+                              : KadeColors.teal,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _activityRow(Map<String, dynamic> tx, Color? soft) {
+    final type = "${tx["transaction_type"] ?? ""}";
+    final isIn = type == "sale" || type == "deposit";
+    final color = isIn ? KadeColors.success : KadeColors.terra;
+    final amount = (tx["amount"] is num) ? (tx["amount"] as num).toDouble() : double.tryParse("${tx["amount"]}") ?? 0;
+    final d = DateTime.tryParse("${tx["created_at"] ?? ""}")?.toLocal();
+    final when = d == null ? "" : "${d.year}-${d.month.toString().padLeft(2, "0")}-${d.day.toString().padLeft(2, "0")}";
+    String title(String s) =>
+        s.split("_").map((w) => w.isEmpty ? w : "${w[0].toUpperCase()}${w.substring(1)}").join(" ");
+    final cat = "${tx["category"] ?? ""}".trim();
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: color.withValues(alpha: 0.12),
+            child: Icon(isIn ? Icons.south_west : Icons.north_east, size: 16, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(tr(title(type)), style: const TextStyle(fontWeight: FontWeight.w600)),
+                Text(
+                  "${cat.isNotEmpty ? cat : tr(title("${tx["payment_method"] ?? ""}"))} · $when",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 11, color: soft),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            "${isIn ? "+" : "-"} ${_fmtMoney(amount)}",
+            style: TextStyle(fontWeight: FontWeight.w700, color: color),
+          ),
+        ],
+      ),
+    );
+  }
 }
+
+// small caption under each module tile (same as the web module cards)
+const _moduleCaptions = {
+  "/transactions": "Sales, purchases & expenses",
+  "/inventory": "Stock & batches",
+  "/procurement": "Purchase orders",
+  "/suppliers": "Your vendors",
+  "/agency-banking": "Deposits & withdrawals",
+};
 
 String _fmtMoney(double v, {bool isCount = false}) {
   if (isCount) return v.round().toString();

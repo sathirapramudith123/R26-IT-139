@@ -8,6 +8,7 @@ import '../core/i18n.dart';
 class ModuleTile extends StatelessWidget {
   final IconData icon;
   final String title;
+  final String? subtitle;
   final VoidCallback onTap;
   final bool highlight;
 
@@ -16,6 +17,7 @@ class ModuleTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.onTap,
+    this.subtitle,
     this.highlight = false,
   });
 
@@ -60,10 +62,17 @@ class ModuleTile extends StatelessWidget {
               const Spacer(),
               Text(
                 tr(title),
-                style: Theme.of(
-                  context,
-                ).textTheme.titleSmall?.copyWith(color: highlight ? Colors.white : null),
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(color: highlight ? Colors.white : null),
               ),
+              if (subtitle != null)
+                Text(
+                  tr(subtitle!),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(fontSize: 11, color: highlight ? Colors.white70 : null),
+                ),
             ],
           ),
         ),
