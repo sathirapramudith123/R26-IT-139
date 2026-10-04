@@ -1099,5 +1099,9 @@
   "Your location is read only when you click “Use My Location” — your browser asks you first.": "ඔබේ ස්ථානය කියවන්නේ ඔබ “මගේ ස්ථානය භාවිත කරන්න” ක්ලික් කළ විට පමණි — browser එක පළමුව ඔබෙන් අසයි.",
   "Privacy & Security": "පෞද්ගලිකත්වය සහ ආරක්ෂාව",
   "How your data is handled": "ඔබේ දත්ත හසුරුවන ආකාරය",
-  "Edit Profile": "පැතිකඩ සංස්කරණය"
+  "Edit Profile": "පැතිකඩ සංස්කරණය",
+  "Show": "පෙන්වන්න",
+  "Hide": "සඟවන්න",
+  "Copy": "පිටපත් කරන්න",
+  "Copied": "පිටපත් කළා"
 }

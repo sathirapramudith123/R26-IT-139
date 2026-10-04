@@ -25,6 +25,8 @@ const Map<String, String> siStrings = {
   "7-day and 14-day moving averages. % change over full period.":
       "දින 7 සහ දින 14 චලන සාමාන්‍ය. සම්පූර්ණ කාලය තුළ % වෙනස.",
   "7-day velocity:": "දින 7 වේගය:",
+  "A login lasts 8 hours, then you are signed out automatically.":
+      "පිවිසුමක් පැය 8ක් පවතී, ඉන්පසු ඔබ ස්වයංක්‍රීයව ඉවත් කෙරේ.",
   "A login lasts 8 hours; the login token is kept encrypted on this phone.":
       "පිවිසුමක් පැය 8ක් පවතී; පිවිසුම් token එක මෙම දුරකථනයේ සංකේතනය කර තබා ඇත.",
   "A quick snapshot of your income, expenses and stock — plus fast access to everything you manage.":
@@ -236,6 +238,8 @@ const Map<String, String> siStrings = {
   "Contacts, delivery cost and lead time of every supplier.":
       "සෑම සැපයුම්කරුවෙකුගේම සම්බන්ධතා, බෙදාහැරීමේ ගාස්තුව සහ කාලය.",
   "Continue": "ඉදිරියට",
+  "Copied": "පිටපත් කළා",
+  "Copy": "පිටපත් කරන්න",
   "Cost / Selling Price per Unit (LKR)": "ඒකකයක පිරිවැය / විකුණුම් මිල (රු.)",
   "Cost Price per Unit (LKR)": "ඒකකයක පිරිවැය මිල (රු.)",
   "Cost Range": "පිරිවැය පරාසය",
@@ -500,6 +504,7 @@ const Map<String, String> siStrings = {
   "Helping the result ↑": "ප්‍රතිඵලයට උදව් වන ↑",
   "Here's your Lanka-Link today": "අද ඔබේ Lanka-Link",
   "Here's your Lanka-Link today.": "අද ඔබේ Lanka-Link.",
+  "Hide": "සඟවන්න",
   "High Priority": "ඉහළ ප්‍රමුඛතාව",
   "High monthly expenses eat your profit — look for costs to cut.":
       "ඉහළ මාසික වියදම් ඔබේ ලාභය අඩු කරයි — අඩු කළ හැකි වියදම් සොයන්න.",
@@ -1028,6 +1033,7 @@ const Map<String, String> siStrings = {
   "Settings": "සැකසුම්",
   "Shelf Life Days": "කල් තබාගත හැකි දින",
   "Should I Buy?": "මිලදී ගත යුතුද?",
+  "Show": "පෙන්වන්න",
   "Shown on your profile and on your reports.": "ඔබේ පැතිකඩේ සහ වාර්තාවල පෙන්වයි.",
   "Sign In": "පිවිසෙන්න",
   "Sign Out": "ඉවත් වන්න",
@@ -1259,6 +1265,7 @@ const Map<String, String> siStrings = {
   "Withdrawal": "ආපසු ගැනීම",
   "Yes": "ඔව්",
   "You": "ඔබ",
+  "You stay signed in on this device.": "ඔබ මෙම උපාංගයේ පිවිසී සිටියි.",
   "You stay signed in on this phone.": "ඔබ මෙම දුරකථනයේ පිවිසී සිටියි.",
   "You're all caught up.": "ඔබ සියල්ල බලා ඇත.",
   "Your Business Forecasts": "ඔබේ ව්‍යාපාර පුරෝකථන",
@@ -1272,6 +1279,8 @@ const Map<String, String> siStrings = {
       "ඔබේ ව්‍යාපාර දළ විශ්ලේෂණය — මූල්‍ය, තොග සහ මිලදී ගැනීම්.",
   "Your business this week": "මෙම සතියේ ඔබේ ව්‍යාපාරය",
   "Your full name": "ඔබේ සම්පූර්ණ නම",
+  "Your location is read only when you click “Use My Location” — your browser asks you first.":
+      "ඔබේ ස්ථානය කියවන්නේ ඔබ “මගේ ස්ථානය භාවිත කරන්න” ක්ලික් කළ විට පමණි — browser එක පළමුව ඔබෙන් අසයි.",
   "Your location is read only when you tap \"Use my location\" or a route map.":
       "ඔබේ ස්ථානය කියවන්නේ ඔබ \"මගේ ස්ථානය භාවිත කරන්න\" හෝ මාර්ග සිතියමක් ඔබන විට පමණි.",
   "Your name": "ඔබේ නම",

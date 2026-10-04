@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/theme.dart';
 import '../services/auth_service.dart';
 import 'auth/login_screen.dart';
@@ -18,6 +19,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String email = "";
   String role = "";
   String userCode = "";
+  bool showCode = false; // Account ID is hidden until the eye is tapped
 
   @override
   void initState() {
@@ -138,7 +140,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ListTile(
                 leading: const Icon(Icons.tag),
                 title: Text(tr("Account ID")),
-                subtitle: Text(userCode),
+                subtitle: Text(
+                  showCode
+                      ? userCode
+                      : userCode.replaceAllMapped(RegExp(r'^(\w+-)?(.*)$'), (m) {
+                          return "${m[1] ?? ""}${"•" * m[2]!.length}";
+                        }),
+                  style: const TextStyle(fontFamily: "monospace"),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: showCode ? tr("Hide") : tr("Show"),
+                      icon: Icon(showCode ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                      onPressed: () => setState(() => showCode = !showCode),
+                    ),
+                    IconButton(
+                      tooltip: tr("Copy"),
+                      icon: const Icon(Icons.copy_outlined),
+                      onPressed: () async {
+                        await Clipboard.setData(ClipboardData(text: userCode));
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr("Copied"))));
+                      },
+                    ),
+                  ],
+                ),
               ),
 
             const SizedBox(height: 12),
