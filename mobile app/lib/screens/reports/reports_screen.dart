@@ -412,57 +412,64 @@ class _ReportBody extends StatelessWidget {
           const SizedBox(height: 8),
           Card(
             clipBehavior: Clip.antiAlias,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                headingRowColor: WidgetStatePropertyAll(teal),
-                headingTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                columnSpacing: 22,
-                horizontalMargin: 14,
-                dataRowMinHeight: 40,
-                columns: [for (final c in s.columns) DataColumn(label: Text(c.label), numeric: c.right)],
-                rows: [
-                  if (s.rows.isEmpty)
-                    DataRow(
-                      cells: [
-                        for (var i = 0; i < s.columns.length; i++)
-                          DataCell(
-                            Text(i == 0 ? tr("No records for this period.") : "", style: text.bodySmall),
-                          ),
-                      ],
-                    ),
-                  for (var r = 0; r < s.rows.length; r++)
-                    DataRow(
-                      color: r.isOdd ? WidgetStatePropertyAll(teal.withValues(alpha: 0.04)) : null,
-                      cells: [
-                        for (final c in s.columns)
-                          DataCell(
-                            Text(
-                              formatCell(s.rows[r][c.key], c.type),
-                              style: TextStyle(
-                                fontWeight: s.rows[r]["_bold"] == true ? FontWeight.w700 : null,
-                                color: s.rows[r]["_bad"] == true && c.key == "status"
-                                    ? KadeColors.terra
-                                    : null,
+            // at least as wide as the card (a narrow table left an empty gap on the right);
+            // wider tables still scroll sideways
+            child: LayoutBuilder(
+              builder: (context, box) => SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: box.maxWidth),
+                  child: DataTable(
+                    headingRowColor: WidgetStatePropertyAll(teal),
+                    headingTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                    columnSpacing: 22,
+                    horizontalMargin: 14,
+                    dataRowMinHeight: 40,
+                    columns: [for (final c in s.columns) DataColumn(label: Text(c.label), numeric: c.right)],
+                    rows: [
+                      if (s.rows.isEmpty)
+                        DataRow(
+                          cells: [
+                            for (var i = 0; i < s.columns.length; i++)
+                              DataCell(
+                                Text(i == 0 ? tr("No records for this period.") : "", style: text.bodySmall),
                               ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  if (s.totals != null && s.rows.isNotEmpty)
-                    DataRow(
-                      color: WidgetStatePropertyAll(teal.withValues(alpha: 0.12)),
-                      cells: [
-                        for (final c in s.columns)
-                          DataCell(
-                            Text(
-                              formatCell(s.totals![c.key], c.type),
-                              style: const TextStyle(fontWeight: FontWeight.w700),
-                            ),
-                          ),
-                      ],
-                    ),
-                ],
+                          ],
+                        ),
+                      for (var r = 0; r < s.rows.length; r++)
+                        DataRow(
+                          color: r.isOdd ? WidgetStatePropertyAll(teal.withValues(alpha: 0.04)) : null,
+                          cells: [
+                            for (final c in s.columns)
+                              DataCell(
+                                Text(
+                                  formatCell(s.rows[r][c.key], c.type),
+                                  style: TextStyle(
+                                    fontWeight: s.rows[r]["_bold"] == true ? FontWeight.w700 : null,
+                                    color: s.rows[r]["_bad"] == true && c.key == "status"
+                                        ? KadeColors.terra
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      if (s.totals != null && s.rows.isNotEmpty)
+                        DataRow(
+                          color: WidgetStatePropertyAll(teal.withValues(alpha: 0.12)),
+                          cells: [
+                            for (final c in s.columns)
+                              DataCell(
+                                Text(
+                                  formatCell(s.totals![c.key], c.type),
+                                  style: const TextStyle(fontWeight: FontWeight.w700),
+                                ),
+                              ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
