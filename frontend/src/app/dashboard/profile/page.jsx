@@ -1,8 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import useAuthGuard from "@/hooks/useAuthGuard";
 import { tokenService } from "@/services/auth/tokenService";
+import { authApi } from "@/services/api/auth";
+import EditProfileCard from "@/components/profile/EditProfileCard";
 import { User, Mail, Hash, LogOut, Sun, Moon, Shield, Store, ChevronRight } from "lucide-react";
 
 import { t } from "@/lib/i18n";
@@ -14,9 +17,20 @@ export default function ProfilePage() {
 
   useEffect(() => {
     setUser(tokenService.getUser());
+    // fresh name / user code from the server (the stored copy is from login time)
+    authApi
+      .me()
+      .then(saveUser)
+      .catch(() => {});
     // read current theme from the html element (works with a `.dark` class strategy)
     setDark(document.documentElement.classList.contains("dark"));
   }, []);
+
+  function saveUser(me) {
+    const merged = { ...(tokenService.getUser() || {}), ...me };
+    tokenService.setUser(merged);
+    setUser(merged);
+  }
 
   function toggleTheme() {
     const el = document.documentElement;
@@ -76,7 +90,7 @@ export default function ProfilePage() {
           <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
             <DetailRow icon={User} label={t("Full Name")} value={name} />
             <DetailRow icon={Mail} label={t("Email")} value={email} />
-            <DetailRow icon={Hash} label={t("Account ID")} value={user?.id ?? "—"} mono />
+            <DetailRow icon={Hash} label={t("Account ID")} value={user?.user_code ?? user?.id ?? "—"} mono />
           </div>
         </div>
 
@@ -114,21 +128,24 @@ export default function ProfilePage() {
               </span>
             </button>
 
-            {/* Security (placeholder / info) */}
-            <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            {/* Privacy & Security */}
+            <Link
+              href="/dashboard/privacy"
+              className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-brand-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-brand-700"
+            >
               <span className="flex items-center gap-3">
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600 dark:bg-sky-950 dark:text-sky-400">
                   <Shield className="h-5 w-5" />
                 </span>
                 <span className="text-left">
                   <span className="block text-sm font-semibold text-slate-800 dark:text-slate-200">
-                    {t("Security")}
+                    {t("Privacy & Security")}
                   </span>
-                  <span className="block text-xs text-slate-500">{t("Your session is protected")}</span>
+                  <span className="block text-xs text-slate-500">{t("How your data is handled")}</span>
                 </span>
               </span>
               <ChevronRight className="h-4 w-4 text-slate-400" />
-            </div>
+            </Link>
 
             {/* Sign out */}
             <button
@@ -139,6 +156,14 @@ export default function ProfilePage() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* ===== Edit profile ===== */}
+      <div>
+        <h2 className="mb-3 font-display text-lg font-bold text-slate-900 dark:text-slate-100">
+          {t("Edit Profile")}
+        </h2>
+        {user && <EditProfileCard key={user.user_code || user.id} name={name} onNameSaved={saveUser} />}
       </div>
     </div>
   );
