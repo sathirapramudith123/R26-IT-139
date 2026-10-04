@@ -40,10 +40,10 @@ export default function AuthForm({ mode = "login", onSubmit, loading, error }) {
   }
 
   const getInputClass = (k) =>
-    `w-full rounded-xl border bg-slate-950/50 pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 transition-all ${
+    `w-full rounded-xl border bg-white pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-all dark:bg-slate-950/50 dark:text-slate-100 dark:placeholder:text-slate-500 ${
       fieldErrors[k]
         ? "border-red-500/50 focus:border-red-500 focus:ring-red-500/20"
-        : "border-slate-800 focus:border-brand-500/50 focus:ring-brand-500/20"
+        : "border-slate-300 focus:border-brand-500 focus:ring-brand-500/20 dark:border-slate-800 dark:focus:border-brand-500/50"
     }`;
 
   return (
