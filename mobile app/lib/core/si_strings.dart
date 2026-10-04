@@ -340,6 +340,7 @@ const Map<String, String> siStrings = {
   "Delete this notification?": "මෙම දැනුම්දීම මකන්නද?",
   "Delete this supplier?": "මෙම සැපයුම්කරු මකන්නද?",
   "Delete?": "මකන්නද?",
+  "Delivery": "බෙදාහැරීම",
   "Delivery Cost (LKR)": "බෙදාහැරීමේ ගාස්තුව (රු.)",
   "Delivery Lead Time (Days)": "බෙදාහැරීමේ කාලය (දින)",
   "Delivery Location": "බෙදාහැරීමේ ස්ථානය",

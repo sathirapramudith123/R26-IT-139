@@ -7,6 +7,7 @@ import '../transactions/transaction_form_screen.dart';
 import '../inventory/inventory_form_screen.dart';
 import '../suppliers/supplier_form_screen.dart';
 import '../procurement/procurement_form_screen.dart';
+import '../procurement/procurement_details_screen.dart';
 import '../agency_banking/agency_banking_form_screen.dart';
 import '../../core/i18n.dart';
 import '../suppliers/supplier_route_screen.dart';
@@ -176,6 +177,11 @@ class _ListScreenState extends State<ListScreen> {
   }
 
   void _viewDetails(Map<String, dynamic> item) {
+    // procurement orders hold lists (items, ranked suppliers) — they get their own screen
+    if (widget.module.path == "/procurement") {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => ProcurementDetailsScreen(order: item)));
+      return;
+    }
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final entries = item.entries
