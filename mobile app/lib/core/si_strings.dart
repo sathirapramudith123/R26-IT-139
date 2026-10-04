@@ -1236,6 +1236,7 @@ const Map<String, String> siStrings = {
   "fund_transfer": "අරමුදල් මාරු කිරීම",
   "high": "ඉහළ",
   "in stock)": "තොගයේ ඇත)",
+  "income − expense": "ආදායම − වියදම",
   "items": "භාණ්ඩ",
   "items ·": "භාණ්ඩ ·",
   "low": "අඩු",

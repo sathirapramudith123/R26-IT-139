@@ -10,6 +10,7 @@ import {
   TrendingUp,
   TrendingDown,
   PackageX,
+  Wallet,
   ArrowUpRight,
   ArrowDownRight,
   CreditCard,
@@ -130,6 +131,8 @@ const STAT = {
   income: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
   expense: "bg-rose-50 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
   stock: "bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
+  profit: "bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-400",
+  loss: "bg-rose-50 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
 };
 
 /* Count-up animation: eases a number from 0 to `target`. */
@@ -212,6 +215,18 @@ export default function DashboardPage() {
       tint: STAT.expense,
     },
     {
+      key: "profit",
+      get label() {
+        return t("Net Profit");
+      },
+      get caption() {
+        return t("Income minus expenses");
+      },
+      value: formatCurrency(Math.round(aProfit)),
+      icon: Wallet,
+      tint: m.profit < 0 ? STAT.loss : STAT.profit,
+    },
+    {
       key: "stock",
       get label() {
         return t("Low Stock Items");
@@ -234,24 +249,22 @@ export default function DashboardPage() {
 
   return (
     <div className="page-container space-y-6">
-      {/* ===== Blue gradient header with net profit; white stat cards overlap its bottom edge ===== */}
+      {/* ===== Blue gradient header (greeting); white stat cards overlap its bottom edge ===== */}
       <div>
         <div className="relative overflow-hidden rounded-3xl gradient-brand px-6 pb-24 pt-7 text-white shadow-elevated sm:px-8">
           <div className="pointer-events-none absolute -right-10 -top-12 h-48 w-48 rounded-full bg-white/10" />
           <div className="pointer-events-none absolute -bottom-20 right-32 h-40 w-40 rounded-full bg-white/5" />
           <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm text-white/80">{t("Ayubowan 👋")}</p>
-              <p className="mt-3 text-sm font-medium">{t("Net Profit")}</p>
-              <p className="mt-1 font-display text-4xl font-semibold tracking-tight">
-                {formatCurrency(Math.round(aProfit))}
+              <p className="font-display text-2xl font-semibold">{t("Ayubowan 👋")}</p>
+              <p className="mt-1 text-sm text-white/80">
+                {t("Your business overview — finances, stock and procurement.")}
               </p>
-              <p className="mt-1 text-xs text-white/70">{t("Income minus expenses")}</p>
             </div>
           </div>
         </div>
 
-        <div className="relative -mt-16 grid gap-4 px-3 sm:grid-cols-3 sm:px-6">
+        <div className="relative -mt-16 grid grid-cols-1 gap-4 px-3 sm:grid-cols-2 sm:px-6 xl:grid-cols-4">
           {stats.map((s) => {
             const Icon = s.icon;
             return (

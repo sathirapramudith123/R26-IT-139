@@ -158,33 +158,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // "Net Profit" headline figure — tap for the income statement
-  Widget _netProfit(BuildContext context) {
-    final white70 = Colors.white.withValues(alpha: 0.8);
-    return GestureDetector(
-      onTap: _openIncomeStatement,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(tr("Ayubowan 👋"), style: TextStyle(color: white70, fontSize: 14)),
-          const SizedBox(height: 10),
-          Text(
-            tr("Net Profit"),
-            style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500),
-          ),
-          const SizedBox(height: 4),
-          loading
-              ? const Text("…", style: TextStyle(color: Colors.white, fontSize: 30))
-              : _CountUp(
-                  value: income - expense,
-                  style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w600),
-                ),
-          const SizedBox(height: 4),
-          Text(tr("Income minus expenses · tap for the statement"), style: TextStyle(color: white70, fontSize: 11)),
-        ],
+  // greeting on the blue header (net profit is a stat card below, like income / expense)
+  Widget _greeting(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        tr("Ayubowan 👋"),
+        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600),
       ),
-    );
-  }
+      const SizedBox(height: 4),
+      Text(
+        tr("Your business overview — finances, stock and procurement."),
+        style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12),
+      ),
+    ],
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -217,11 +205,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _topBar(context),
-                              const SizedBox(height: 18),
-                              _netProfit(context),
-                            ],
+                            children: [_topBar(context), const SizedBox(height: 18), _greeting(context)],
                           ),
                         ),
                         const SizedBox(height: 70),
@@ -251,6 +235,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             caption: tr("money out"),
                             value: expense,
                             loading: loading,
+                          ),
+                          _StatCard(
+                            icon: Icons.account_balance_wallet_outlined,
+                            color: income - expense < 0 ? KadeColors.terra : KadeColors.teal,
+                            label: tr("Net Profit"),
+                            caption: tr("income − expense"),
+                            value: income - expense,
+                            loading: loading,
+                            onTap: _openIncomeStatement,
                           ),
                           _StatCard(
                             icon: Icons.inventory_2_outlined,
@@ -488,6 +481,7 @@ class _StatCard extends StatelessWidget {
   final double value;
   final bool loading;
   final bool isCount;
+  final VoidCallback? onTap;
 
   const _StatCard({
     required this.icon,
@@ -497,12 +491,13 @@ class _StatCard extends StatelessWidget {
     required this.value,
     required this.loading,
     this.isCount = false,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
-    return Container(
+    final card = Container(
       width: 168,
       margin: const EdgeInsets.symmetric(horizontal: 4),
       padding: const EdgeInsets.all(14),
@@ -540,5 +535,6 @@ class _StatCard extends StatelessWidget {
         ],
       ),
     );
+    return onTap == null ? card : GestureDetector(onTap: onTap, child: card);
   }
 }
