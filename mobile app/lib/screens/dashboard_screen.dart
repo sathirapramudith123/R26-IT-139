@@ -8,7 +8,7 @@ import 'auth/login_screen.dart';
 import 'crud/list_screen.dart';
 import 'notifications_screen.dart';
 import 'predictions/predictions_hub_screen.dart';
-import 'reports/income_statement_screen.dart';
+import 'reports/reports_screen.dart';
 import 'transactions/transaction_form_screen.dart';
 import '../core/i18n.dart';
 
@@ -78,7 +78,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _openIncomeStatement() {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const IncomeStatementScreen()));
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportViewScreen(reportId: "income")));
   }
 
   // logo, notification bell, theme and logout — white on the blue header

@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   CreditCard,
   BookOpen,
+  FileBarChart,
   Package,
   ShoppingCart,
   Landmark,
@@ -21,6 +22,7 @@ const ICONS = {
   LayoutDashboard,
   CreditCard,
   BookOpen,
+  FileBarChart,
   Package,
   ShoppingCart,
   Landmark,
@@ -51,7 +53,8 @@ export default function Sidebar() {
                 {items.map((item) => {
                   // the Dashboard link is a prefix of every page, so it only matches exactly
                   const active =
-                    pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`));
+                    pathname === item.href ||
+                    (item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`));
                   const Icon = ICONS[item.icon];
                   return (
                     <Link

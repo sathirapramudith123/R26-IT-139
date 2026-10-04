@@ -50,6 +50,9 @@ dependencies:
   # Keeps the login token between app restarts, encrypted
   # (Android Keystore / iOS Keychain) — see services/auth_service.dart.
   flutter_secure_storage: ^11.2.0
+  archive: ^4.3.0
+  share_plus: ^13.3.1
+  path_provider: ^2.1.6
 
 dev_dependencies:
   flutter_test:

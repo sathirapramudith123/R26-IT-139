@@ -35,6 +35,14 @@ export const NAV_ITEMS = [
   },
   {
     get label() {
+      return t("Reports");
+    },
+    href: "/dashboard/reports",
+    icon: "FileBarChart",
+    group: "finance",
+  },
+  {
+    get label() {
       return t("Inventory");
     },
     href: "/dashboard/inventory",
