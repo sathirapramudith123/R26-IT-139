@@ -20,6 +20,12 @@ const HIDDEN = [
   // items_supplied gets its own dedicated table below instead of falling
   // through to the generic key/value row (which would show [object Object]).
   "items_supplied",
+  // map / model internals
+  "coords",
+  "metadata",
+  "features",
+  "explanation",
+  "batch_ids",
 ];
 
 const DATE_FIELDS = ["created_at", "updated_at", "read_at"];
@@ -62,8 +68,43 @@ function formatMoney(v) {
   return "LKR " + n.toLocaleString("en-LK", { minimumFractionDigits: 2 });
 }
 
+// One readable line for an entry of a list field, e.g. "Salt — 67 g × LKR 120.00"
+function lineOf(v) {
+  if (v === null || typeof v !== "object") return String(v);
+  const name = v.item_name ?? v.name ?? v.item;
+  const unit = v.unit && v.unit !== "unit" ? ` ${t(v.unit)}` : "";
+  const price = v.unit_cost ?? v.unit_price ?? v.cost_price;
+  if (name != null && v.quantity != null) {
+    return `${name} — ${Number(v.quantity)}${unit}${price != null ? ` × ${formatMoney(price)}` : ""}`;
+  }
+  if (name != null) return String(name);
+  return Object.entries(v)
+    .filter(([, x]) => x != null && typeof x !== "object")
+    .map(([key, x]) => `${t(label(key))}: ${x}`)
+    .join(", ");
+}
+
+const isEmptyValue = (v) =>
+  v === null ||
+  v === undefined ||
+  v === "" ||
+  (Array.isArray(v) && v.length === 0) ||
+  (typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === 0);
+
 function display(k, v) {
   if (v === null || v === undefined || v === "") return "—";
+  // lists: one line per entry (items of a sale, etc.) instead of "[object Object]"
+  if (Array.isArray(v))
+    return (
+      <span className="block space-y-1">
+        {v.map((x, i) => (
+          <span key={i} className="block">
+            {lineOf(x)}
+          </span>
+        ))}
+      </span>
+    );
+  if (typeof v === "object") return lineOf(v);
   if (DATE_FIELDS.includes(k)) return formatDate(v);
   if (MONEY_FIELDS.includes(k)) return formatMoney(v);
   if (typeof v === "boolean") return v ? t("Yes") : t("No");
@@ -359,9 +400,7 @@ export default function DetailDialog({ open, title, data, onClose }) {
   const entries =
     isProcurement || isTransaction || isInventory
       ? []
-      : Object.entries(data).filter(
-          ([k, v]) => !HIDDEN.includes(k) && v !== null && v !== undefined && v !== "",
-        );
+      : Object.entries(data).filter(([k, v]) => !HIDDEN.includes(k) && !isEmptyValue(v));
 
   // items_supplied ([{item_name, quantity, unit, unit_price}]) needs its
   // own table instead of the generic key/value row.

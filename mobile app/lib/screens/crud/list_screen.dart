@@ -132,6 +132,14 @@ class _ListScreenState extends State<ListScreen> {
     "supplier_status",
     "procurement_status",
     "banking_status",
+    // map / model internals — shown elsewhere (map pins) or meaningless to a merchant
+    "coords",
+    "latitude",
+    "longitude",
+    "metadata",
+    "features",
+    "explanation",
+    "batch_ids",
   ];
   static const _dateFields = ["created_at", "updated_at", "read_at"];
   static const _moneyFields = [
@@ -166,11 +174,35 @@ class _ListScreenState extends State<ListScreen> {
     return "LKR ${n.toStringAsFixed(2)}";
   }
 
+  // One readable line for an entry of a list field, e.g. an item line:
+  // "Salt — 67 g × LKR 120.00" (instead of the raw {unit: g, quantity: 67, ...})
+  String _lineOf(dynamic v) {
+    if (v is! Map) return "$v";
+    final name = v["item_name"] ?? v["name"] ?? v["item"];
+    final qty = v["quantity"];
+    final unit = v["unit"] == null || v["unit"] == "unit" ? "" : " ${tr("${v["unit"]}")}";
+    final price = v["unit_cost"] ?? v["unit_price"] ?? v["cost_price"];
+    if (name != null && qty != null) {
+      final q = num.tryParse("$qty") ?? 0;
+      final qs = q == q.roundToDouble() ? q.toStringAsFixed(0) : q.toStringAsFixed(2);
+      return "$name — $qs$unit${price != null ? " × ${_fmtMoney(price)}" : ""}";
+    }
+    if (name != null) return "$name";
+    return v.entries
+        .where((e) => e.value != null)
+        .map((e) => "${tr(_titleCase(e.key))}: ${e.value}")
+        .join(", ");
+  }
+
+  // a list / map value? (rendered as lines, or skipped when empty)
+  bool _isEmptyValue(dynamic v) =>
+      v == null || "$v".isEmpty || (v is List && v.isEmpty) || (v is Map && v.isEmpty);
+
   String _display(String key, dynamic v) {
     if (v == null || "$v".isEmpty) return "—";
     if (_dateFields.contains(key)) return _fmtDate(v);
     if (_moneyFields.contains(key)) return _fmtMoney(v);
-    if (v is bool) return v ? "Yes" : "No";
+    if (v is bool) return v ? tr("Yes") : tr("No");
     final s = "$v";
     if (RegExp(r'^[a-z_]+$').hasMatch(s)) return _titleCase(s);
     return s;
@@ -184,9 +216,7 @@ class _ListScreenState extends State<ListScreen> {
     }
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final entries = item.entries
-        .where((e) => !_hidden.contains(e.key) && e.value != null && "${e.value}".isNotEmpty)
-        .toList();
+    final entries = item.entries.where((e) => !_hidden.contains(e.key) && !_isEmptyValue(e.value)).toList();
 
     showDialog(
       context: context,
@@ -217,29 +247,62 @@ class _ListScreenState extends State<ListScreen> {
                           color: isDark ? Colors.white10 : KadeColors.surfaceMutedLight,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                tr(_titleCase(e.key)),
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Theme.of(context).textTheme.bodySmall?.color,
-                                ),
+                        child: e.value is List
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    tr(_titleCase(e.key)),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Theme.of(context).textTheme.bodySmall?.color,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  for (final line in e.value as List)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text("•  ", style: TextStyle(fontWeight: FontWeight.w700)),
+                                          Expanded(
+                                            child: Text(
+                                              _lineOf(line),
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                ],
+                              )
+                            : Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      tr(_titleCase(e.key)),
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Theme.of(context).textTheme.bodySmall?.color,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 3,
+                                    child: Text(
+                                      e.value is Map ? _lineOf(e.value) : tr(_display(e.key, e.value)),
+                                      textAlign: TextAlign.right,
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                            Expanded(
-                              flex: 3,
-                              child: Text(
-                                tr(_display(e.key, e.value)),
-                                textAlign: TextAlign.right,
-                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                              ),
-                            ),
-                          ],
-                        ),
                       );
                     }).toList(),
                   ),
