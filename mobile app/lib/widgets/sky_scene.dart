@@ -121,7 +121,7 @@ class _SkyPainter extends CustomPainter {
   void _sun(Canvas c, Offset center, double r, {bool rays = true}) {
     if (rays) {
       final rayPaint = Paint()
-        ..color = const Color(0xFFFDE047).withOpacity(0.22)
+        ..color = const Color(0xFFFDE047).withValues(alpha: 0.22)
         ..strokeWidth = 3;
       for (int i = 0; i < 12; i++) {
         final a = (i / 12) * 2 * math.pi + t * 2 * math.pi * 0.15;
@@ -136,7 +136,7 @@ class _SkyPainter extends CustomPainter {
       r + 10,
       Paint()
         ..shader = RadialGradient(
-          colors: [const Color(0xFFFDE047).withOpacity(0.4), Colors.transparent],
+          colors: [const Color(0xFFFDE047).withValues(alpha: 0.4), Colors.transparent],
         ).createShader(Rect.fromCircle(center: center, radius: r + 12)),
     );
     // core
@@ -188,7 +188,10 @@ class _SkyPainter extends CustomPainter {
     // sea
     c.drawRect(Rect.fromLTWH(0, seaTop, w, h - seaTop), Paint()..color = const Color(0x8C1E1B4B));
     // horizon highlight
-    c.drawRect(Rect.fromLTWH(0, seaTop, w, 2), Paint()..color = const Color(0xFFFDE047).withOpacity(0.6));
+    c.drawRect(
+      Rect.fromLTWH(0, seaTop, w, 2),
+      Paint()..color = const Color(0xFFFDE047).withValues(alpha: 0.6),
+    );
     // shimmering reflection column
     for (int i = 0; i < 3; i++) {
       final ww = (8 - i * 2).toDouble();
@@ -197,7 +200,7 @@ class _SkyPainter extends CustomPainter {
         ..moveTo(w * 0.5 - ww, seaTop)
         ..quadraticBezierTo(w * 0.5, h, w * 0.5 + ww, seaTop)
         ..close();
-      c.drawPath(path, Paint()..color = const Color(0xFFFBBF24).withOpacity(shimmer.clamp(0.0, 0.85)));
+      c.drawPath(path, Paint()..color = const Color(0xFFFBBF24).withValues(alpha: shimmer.clamp(0.0, 0.85)));
     }
     // moving wave lines
     _waves(c, w, seaTop);
@@ -228,7 +231,7 @@ class _SkyPainter extends CustomPainter {
       final sx = rnd.nextDouble() * w;
       final sy = rnd.nextDouble() * h * 0.7;
       final tw = 0.3 + 0.7 * (0.5 + 0.5 * math.sin(t * 2 * math.pi + i));
-      star.color = Colors.white.withOpacity(tw);
+      star.color = Colors.white.withValues(alpha: tw);
       c.drawCircle(Offset(sx, sy), 1.4 + tw, star);
     }
 
@@ -259,7 +262,7 @@ class _SkyPainter extends CustomPainter {
   }
 
   void _clouds(Canvas c, double w, double h, double opacity) {
-    final cloud = Paint()..color = Colors.white.withOpacity(0.55 * opacity);
+    final cloud = Paint()..color = Colors.white.withValues(alpha: 0.55 * opacity);
     // drift across using t
     final dx = (t * w * 1.4) % (w + 120) - 120;
     _cloudBlob(c, Offset(dx, h * 0.22), 34, cloud);
@@ -279,7 +282,7 @@ class _SkyPainter extends CustomPainter {
 
   void _waves(Canvas c, double w, double seaTop) {
     final wave = Paint()
-      ..color = Colors.white.withOpacity(0.16)
+      ..color = Colors.white.withValues(alpha: 0.16)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.4;
     for (int row = 0; row < 2; row++) {

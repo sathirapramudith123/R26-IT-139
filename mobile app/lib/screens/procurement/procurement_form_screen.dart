@@ -156,17 +156,19 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
       final objs = (data is List)
           ? data.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
           : <Map<String, dynamic>>[];
-      if (mounted)
+      if (mounted) {
         setState(() {
           inventory = objs;
           loadingInventory = false;
         });
+      }
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           inventory = [];
           loadingInventory = false;
         });
+      }
     }
   }
 
@@ -405,7 +407,7 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
             // ── Add item ──
             fieldLabel(tr("Item *")),
             DropdownButtonFormField<String>(
-              value: names.contains(pickItem) ? pickItem : null,
+              initialValue: names.contains(pickItem) ? pickItem : null,
               hint: Text(
                 loadingInventory
                     ? tr("Loading...")
@@ -444,7 +446,7 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
                     children: [
                       fieldLabel(tr("Unit")),
                       DropdownButtonFormField<String>(
-                        value: _units.contains(unit) ? unit : "unit",
+                        initialValue: _units.contains(unit) ? unit : "unit",
                         isExpanded: true,
                         items: _units
                             .map(
@@ -600,7 +602,7 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
             if (isEdit) ...[
               fieldLabel(tr("Status")),
               DropdownButtonFormField<String>(
-                value: status,
+                initialValue: status,
                 items: _statuses
                     .map((s) => DropdownMenuItem(value: s["value"], child: Text(tr(s["label"]!))))
                     .toList(),

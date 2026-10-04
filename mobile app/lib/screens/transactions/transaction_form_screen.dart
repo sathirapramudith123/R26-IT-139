@@ -352,7 +352,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                 margin: const EdgeInsets.only(bottom: 16),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: KadeColors.terra.withOpacity(0.12),
+                  color: KadeColors.terra.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Row(
@@ -368,7 +368,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
             _label(tr("Transaction Type *")),
             DropdownButtonFormField<String>(
-              value: _txTypes.any((t) => t["value"] == txType) ? txType : _txTypes.first["value"],
+              initialValue: _txTypes.any((t) => t["value"] == txType) ? txType : _txTypes.first["value"],
               items: _txTypes
                   .map((t) => DropdownMenuItem(value: t["value"], child: Text(t["label"]!)))
                   .toList(),
@@ -378,7 +378,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
             _label(tr("Payment Method *")),
             DropdownButtonFormField<String>(
-              value: payValue,
+              initialValue: payValue,
               items: payOpts
                   .map((m) => DropdownMenuItem(value: m["value"], child: Text(m["label"]!)))
                   .toList(),
@@ -444,7 +444,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         const SizedBox(height: 16),
         _label(tr("Category *")),
         DropdownButtonFormField<String>(
-          value: _categoryOptions.contains(category) ? category : null,
+          initialValue: _categoryOptions.contains(category) ? category : null,
           hint: Text(tr("Select category…")),
           items: _categoryOptions.map((c) => DropdownMenuItem(value: c, child: Text(tr(c)))).toList(),
           onChanged: saving ? null : (v) => setState(() => category = v),
@@ -475,7 +475,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     return [
       _label(tr(itemLabel)),
       DropdownButtonFormField<String>(
-        value: names.contains(pickItem) ? pickItem : null,
+        initialValue: names.contains(pickItem) ? pickItem : null,
         hint: Text(
           loadingInventory
               ? tr("Loading...")
@@ -522,7 +522,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.03),
+          color: Colors.black.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(

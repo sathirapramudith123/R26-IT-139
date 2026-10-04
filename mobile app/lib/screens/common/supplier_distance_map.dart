@@ -188,7 +188,7 @@ class _SupplierDistanceMapState extends State<SupplierDistanceMap> {
             ),
             if (_loading)
               Container(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 child: const Center(child: CircularProgressIndicator()),
               ),
             if (!_loading && (_distanceKm != null || _error != null))

@@ -204,7 +204,7 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
 
             fieldLabel(tr("Supplier")),
             DropdownButtonFormField<String>(
-              value: supplierOptions.contains(supplierName) ? supplierName : null,
+              initialValue: supplierOptions.contains(supplierName) ? supplierName : null,
               hint: Text(
                 loadingSuppliers
                     ? tr("Loading...")
@@ -245,7 +245,7 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
 
             fieldLabel(tr("Category *")),
             DropdownButtonFormField<String>(
-              value: (category != null && categoryOptions.contains(category)) ? category : null,
+              initialValue: (category != null && categoryOptions.contains(category)) ? category : null,
               hint: Text(tr("Select category…")),
               items: categoryOptions.map((o) => DropdownMenuItem(value: o, child: Text(tr(o)))).toList(),
               onChanged: saving ? null : (v) => setState(() => category = v),
@@ -261,7 +261,7 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
 
             fieldLabel(tr("Unit")),
             DropdownButtonFormField<String>(
-              value: units.contains(unit) ? unit : "unit",
+              initialValue: units.contains(unit) ? unit : "unit",
               items: units.map((o) => DropdownMenuItem(value: o, child: Text(tr(o)))).toList(),
               onChanged: saving ? null : (v) => setState(() => unit = v ?? "unit"),
             ),
@@ -354,7 +354,7 @@ Widget errorBox(String msg) => Container(
   margin: const EdgeInsets.only(bottom: 16),
   padding: const EdgeInsets.all(12),
   decoration: BoxDecoration(
-    color: KadeColors.terra.withOpacity(0.12),
+    color: KadeColors.terra.withValues(alpha: 0.12),
     borderRadius: BorderRadius.circular(14),
   ),
   child: Row(

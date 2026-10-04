@@ -179,7 +179,7 @@ class InfluenceBars extends StatelessWidget {
                               ),
                             ),
                           ),
-                          Container(width: 1.5, height: 14, color: sub?.withOpacity(0.3)),
+                          Container(width: 1.5, height: 14, color: sub?.withValues(alpha: 0.3)),
                           Expanded(
                             child: Align(
                               alignment: Alignment.centerLeft,
@@ -301,7 +301,7 @@ class _TrendPainter extends CustomPainter {
 
     // Faint horizontal guide lines.
     final grid = Paint()
-      ..color = (isDark ? Colors.white : Colors.black).withOpacity(0.06)
+      ..color = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06)
       ..strokeWidth = 1;
     for (int g = 0; g <= 2; g++) {
       final yy = pad + h * g / 2;
@@ -319,7 +319,7 @@ class _TrendPainter extends CustomPainter {
       ..lineTo(pt(values.length - 1).dx, size.height - pad)
       ..lineTo(pt(0).dx, size.height - pad)
       ..close();
-    canvas.drawPath(area, Paint()..color = color.withOpacity(0.12));
+    canvas.drawPath(area, Paint()..color = color.withValues(alpha: 0.12));
 
     canvas.drawPath(
       line,
@@ -335,7 +335,7 @@ class _TrendPainter extends CustomPainter {
     for (int i = 0; i < values.length; i++) {
       final last = i == values.length - 1;
       if (last) {
-        canvas.drawCircle(pt(i), 8, Paint()..color = color.withOpacity(0.25));
+        canvas.drawCircle(pt(i), 8, Paint()..color = color.withValues(alpha: 0.25));
       }
       canvas.drawCircle(pt(i), last ? 5 : 3, Paint()..color = color);
     }

@@ -63,13 +63,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (n is Map && n["count"] is num) un = (n["count"] as num).toInt();
       } catch (_) {}
 
-      if (mounted)
+      if (mounted) {
         setState(() {
           income = inc;
           expense = exp;
           lowStock = low;
           unread = un;
         });
+      }
     } catch (_) {
       // leave metrics at 0 on error
     } finally {

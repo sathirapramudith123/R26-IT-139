@@ -31,11 +31,12 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
         loading = false;
       });
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           banks = [];
           loading = false;
         });
+      }
     }
   }
 
@@ -113,7 +114,7 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
     decoration: BoxDecoration(
       color: Theme.of(context).cardColor,
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: Colors.grey.withOpacity(0.2)),
+      border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
     ),
     child: Column(
       mainAxisSize: MainAxisSize.min,
@@ -152,7 +153,7 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -178,7 +179,7 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: hc.withOpacity(0.12),
+                  color: hc.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -228,7 +229,7 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
             child: LinearProgressIndicator(
               value: barPct,
               minHeight: 8,
-              backgroundColor: Colors.grey.withOpacity(0.2),
+              backgroundColor: Colors.grey.withValues(alpha: 0.2),
               color: util <= 20
                   ? Colors.red
                   : util <= 40
@@ -288,7 +289,10 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
 
   Widget _miniStat(String label, String value, Color? color) => Container(
     padding: const EdgeInsets.all(10),
-    decoration: BoxDecoration(color: Colors.grey.withOpacity(0.08), borderRadius: BorderRadius.circular(10)),
+    decoration: BoxDecoration(
+      color: Colors.grey.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(10),
+    ),
     child: Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -396,7 +400,7 @@ class _AddBankSheetState extends State<_AddBankSheet> {
             const SizedBox(height: 14),
             fieldLabel(tr("Risk Tier")),
             DropdownButtonFormField<String>(
-              value: riskTier,
+              initialValue: riskTier,
               items: tiers.map((t) => DropdownMenuItem(value: t, child: Text(tr(t)))).toList(),
               onChanged: (v) => setState(() => riskTier = v ?? "LOW"),
             ),
@@ -572,7 +576,7 @@ class _TopupSheetState extends State<_TopupSheet> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.08),
+              color: Colors.grey.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Column(
@@ -667,11 +671,12 @@ class _LedgerSheetState extends State<_LedgerSheet> {
         loading = false;
       });
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           entries = [];
           loading = false;
         });
+      }
     }
   }
 
@@ -711,7 +716,7 @@ class _LedgerSheetState extends State<_LedgerSheet> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.08),
+              color: Colors.grey.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
@@ -742,7 +747,7 @@ class _LedgerSheetState extends State<_LedgerSheet> {
               child: ListView.separated(
                 shrinkWrap: true,
                 itemCount: entries.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
                 itemBuilder: (_, i) {
                   final e = entries[i];
                   final inflow = e["flow"] == "in";
@@ -752,14 +757,14 @@ class _LedgerSheetState extends State<_LedgerSheet> {
                   return Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                      border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       children: [
                         CircleAvatar(
                           radius: 16,
-                          backgroundColor: color.withOpacity(0.12),
+                          backgroundColor: color.withValues(alpha: 0.12),
                           child: Icon(inflow ? Icons.south_west : Icons.north_east, size: 16, color: color),
                         ),
                         const SizedBox(width: 12),

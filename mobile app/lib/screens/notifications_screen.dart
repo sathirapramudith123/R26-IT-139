@@ -84,7 +84,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
                     decoration: BoxDecoration(
-                      color: unread ? _color(type).withOpacity(0.08) : Theme.of(context).cardTheme.color,
+                      color: unread
+                          ? _color(type).withValues(alpha: 0.08)
+                          : Theme.of(context).cardTheme.color,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(color: isDark ? KadeColors.borderDark : KadeColors.borderLight),
                     ),

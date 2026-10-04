@@ -46,8 +46,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           transitionDuration: const Duration(milliseconds: 500),
-          pageBuilder: (_, __, ___) => widget.next(),
-          transitionsBuilder: (_, anim, __, child) => FadeTransition(opacity: anim, child: child),
+          pageBuilder: (_, _, _) => widget.next(),
+          transitionsBuilder: (_, anim, _, child) => FadeTransition(opacity: anim, child: child),
         ),
       );
     });
@@ -74,8 +74,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
         child: Stack(
           children: [
             // soft decorative circles
-            Positioned(top: -60, left: -40, child: _circle(160, Colors.white.withOpacity(0.06))),
-            Positioned(bottom: -50, right: -30, child: _circle(200, Colors.white.withOpacity(0.05))),
+            Positioned(top: -60, left: -40, child: _circle(160, Colors.white.withValues(alpha: 0.06))),
+            Positioned(bottom: -50, right: -30, child: _circle(200, Colors.white.withValues(alpha: 0.05))),
 
             Center(
               child: Column(
@@ -118,7 +118,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                       tr("Smart Merchant Platform"),
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.white.withOpacity(0.85),
+                        color: Colors.white.withValues(alpha: 0.85),
                         fontWeight: FontWeight.w500,
                         letterSpacing: 0.3,
                       ),
@@ -132,7 +132,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     height: 30,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.6,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.9)),
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withValues(alpha: 0.9)),
                     ),
                   ),
                 ],
@@ -149,7 +149,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                 child: Text(
                   tr("© 2026 Lanka-Link"),
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.6)),
+                  style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.6)),
                 ),
               ),
             ),
@@ -174,7 +174,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 24, offset: const Offset(0, 10)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 24, offset: const Offset(0, 10)),
         ],
       ),
       child: ClipRRect(
@@ -184,7 +184,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
           child: Image.asset(
             "assets/icon/app_icon.png",
             fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) =>
+            errorBuilder: (_, _, _) =>
                 const Center(child: Text("assets/images/app_icon.png", style: TextStyle(fontSize: 56))),
           ),
         ),

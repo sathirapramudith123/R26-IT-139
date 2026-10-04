@@ -120,7 +120,7 @@ class _FormScreenState extends State<FormScreen> {
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: KadeColors.terra.withOpacity(0.12),
+                color: KadeColors.terra.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Row(

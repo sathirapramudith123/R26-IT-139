@@ -237,7 +237,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).brightness == Brightness.dark
             ? Colors.white10
-            : Colors.black.withOpacity(0.03),
+            : Colors.black.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -381,7 +381,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
                 )
               else
                 DropdownButtonFormField<String?>(
-                  value: agentBankId,
+                  initialValue: agentBankId,
                   decoration: const InputDecoration(),
                   items: [
                     DropdownMenuItem<String?>(value: null, child: Text(tr("— No bank (skip float) —"))),
@@ -430,7 +430,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
 
               fieldLabel(tr("Transaction Type *")),
               DropdownButtonFormField<String>(
-                value: types.contains(txType) ? txType : types.first,
+                initialValue: types.contains(txType) ? txType : types.first,
                 decoration: const InputDecoration(),
                 items: types.map((o) => DropdownMenuItem(value: o, child: Text(tr(_formatType(o))))).toList(),
                 onChanged: saving
@@ -460,7 +460,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
               if (txType == "cash_deposit") ...[
                 fieldLabel(tr("Source of Funds *")),
                 DropdownButtonFormField<String>(
-                  value: sourceOfFunds.isEmpty ? null : sourceOfFunds,
+                  initialValue: sourceOfFunds.isEmpty ? null : sourceOfFunds,
                   decoration: InputDecoration(hintText: tr("Select source")),
                   items: kSourceOfFunds
                       .map((o) => DropdownMenuItem(value: o["value"], child: Text(o["label"]!)))
@@ -523,7 +523,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
                 const SizedBox(height: 16),
                 fieldLabel(tr("Status")),
                 DropdownButtonFormField<String>(
-                  value: statuses.contains(status) ? status : statuses.first,
+                  initialValue: statuses.contains(status) ? status : statuses.first,
                   decoration: const InputDecoration(),
                   items: statuses
                       .map(

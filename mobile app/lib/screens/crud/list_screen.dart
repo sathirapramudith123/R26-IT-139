@@ -343,7 +343,7 @@ class _ListScreenState extends State<ListScreen> {
                               height: 40,
                               width: 40,
                               decoration: BoxDecoration(
-                                color: teal.withOpacity(0.10),
+                                color: teal.withValues(alpha: 0.10),
                                 borderRadius: BorderRadius.circular(KadeRadius.sm),
                               ),
                               child: Icon(widget.module.icon, size: 20, color: teal),

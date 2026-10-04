@@ -33,7 +33,11 @@ class GradientStatCard extends StatelessWidget {
             gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient),
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
-              BoxShadow(color: gradient.first.withOpacity(0.35), blurRadius: 16, offset: const Offset(0, 8)),
+              BoxShadow(
+                color: gradient.first.withValues(alpha: 0.35),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
             ],
           ),
           // mainAxisSize.min so the column takes only what it needs; the label
@@ -53,7 +57,7 @@ class GradientStatCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         fontWeight: FontWeight.w600,
                       ),
                     ),

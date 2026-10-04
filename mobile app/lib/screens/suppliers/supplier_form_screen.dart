@@ -359,7 +359,7 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
                 Expanded(
                   // takes a share of the row (a fixed width overflowed with longer unit names)
                   child: DropdownButtonFormField<String>(
-                    value: itemUnit,
+                    initialValue: itemUnit,
                     isExpanded: true,
                     decoration: InputDecoration(
                       labelText: tr("Unit"),

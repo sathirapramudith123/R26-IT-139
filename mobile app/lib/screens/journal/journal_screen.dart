@@ -98,10 +98,11 @@ class _JournalScreenState extends State<JournalScreen> {
   Widget build(BuildContext context) {
     final canBack = selMonth != null || selDay != null;
     String title = "General Journal";
-    if (selDay != null)
+    if (selDay != null) {
       title = "${selDay!["date"]}";
-    else if (selMonth != null)
+    } else if (selMonth != null) {
       title = _pretty(selMonth!);
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -193,7 +194,7 @@ class _JournalScreenState extends State<JournalScreen> {
         const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.withOpacity(0.3)),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
@@ -202,7 +203,7 @@ class _JournalScreenState extends State<JournalScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
-                  color: Colors.grey.withOpacity(0.1),
+                  color: Colors.grey.withValues(alpha: 0.1),
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                 ),
                 child: Row(
@@ -243,7 +244,7 @@ class _JournalScreenState extends State<JournalScreen> {
                   decoration: BoxDecoration(
                     border: Border(
                       top: BorderSide(
-                        color: Colors.grey.withOpacity(newTxn && i > 0 ? 0.3 : 0.12),
+                        color: Colors.grey.withValues(alpha: newTxn && i > 0 ? 0.3 : 0.12),
                         width: newTxn && i > 0 ? 1.5 : 0.5,
                       ),
                     ),
@@ -272,7 +273,7 @@ class _JournalScreenState extends State<JournalScreen> {
                                   margin: const EdgeInsets.only(top: 2),
                                   padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey.withOpacity(0.15),
+                                    color: Colors.grey.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
@@ -308,9 +309,9 @@ class _JournalScreenState extends State<JournalScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
-                  color: Colors.grey.withOpacity(0.1),
+                  color: Colors.grey.withValues(alpha: 0.1),
                   borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
-                  border: Border(top: BorderSide(color: Colors.grey.withOpacity(0.4), width: 1.5)),
+                  border: Border(top: BorderSide(color: Colors.grey.withValues(alpha: 0.4), width: 1.5)),
                 ),
                 child: Row(
                   children: [
@@ -354,9 +355,9 @@ class _JournalScreenState extends State<JournalScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

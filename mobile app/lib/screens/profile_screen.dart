@@ -72,7 +72,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   CircleAvatar(
                     radius: 42,
-                    backgroundColor: Colors.white.withOpacity(0.2),
+                    backgroundColor: Colors.white.withValues(alpha: 0.2),
                     child: Text(
                       name.isNotEmpty ? name[0].toUpperCase() : "?",
                       style: const TextStyle(fontSize: 32, color: Colors.white, fontWeight: FontWeight.w800),
@@ -84,12 +84,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 4),
-                  Text(email, style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 13)),
+                  Text(email, style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13)),
                   const SizedBox(height: 10),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.18),
+                      color: Colors.white.withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(

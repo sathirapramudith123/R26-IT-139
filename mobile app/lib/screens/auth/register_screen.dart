@@ -88,7 +88,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 6),
                     Text(
                       tr("Join Lanka-Link and manage your kade."),
-                      style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 15),
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 15),
                     ),
                   ],
                 ),
@@ -105,7 +105,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     border: Border.all(color: isDark ? KadeColors.borderDark : KadeColors.borderLight),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(isDark ? 0.3 : 0.06),
+                        color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
                         blurRadius: 24,
                         offset: const Offset(0, 12),
                       ),
@@ -119,7 +119,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           margin: const EdgeInsets.only(bottom: 16),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: KadeColors.terra.withOpacity(0.12),
+                            color: KadeColors.terra.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Row(
