@@ -137,3 +137,60 @@ export const resetPassword = async (req, res, next) => {
     next(e);
   }
 };
+
+/* -------------------------------------------------------------------------- */
+/*  Signed-in user's own profile                                               */
+/* -------------------------------------------------------------------------- */
+export const me = async (req, res, next) => {
+  try {
+    const { data: user, error } = await supabase
+      .from("users")
+      .select("user_id, user_code, full_name, email")
+      .eq("user_id", req.user.id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json(publicUser(user));
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const updateMe = async (req, res, next) => {
+  try {
+    const { data: user, error } = await supabase
+      .from("users")
+      .update({ full_name: req.body.full_name.trim(), updated_at: new Date().toISOString() })
+      .eq("user_id", req.user.id)
+      .select("user_id, user_code, full_name, email")
+      .single();
+    if (error) throw error;
+    res.json(publicUser(user));
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const changePassword = async (req, res, next) => {
+  try {
+    const { current_password, new_password } = req.body;
+    const { data: user, error } = await supabase
+      .from("users")
+      .select("user_id, password_hash")
+      .eq("user_id", req.user.id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!user || !(await bcrypt.compare(current_password, user.password_hash)))
+      return res.status(400).json({ error: "Current password is incorrect" });
+
+    const password_hash = await bcrypt.hash(new_password, 10);
+    const { error: upErr } = await supabase
+      .from("users")
+      .update({ password_hash, updated_at: new Date().toISOString() })
+      .eq("user_id", user.user_id);
+    if (upErr) throw upErr;
+    res.json({ message: "Password changed" });
+  } catch (e) {
+    next(e);
+  }
+};

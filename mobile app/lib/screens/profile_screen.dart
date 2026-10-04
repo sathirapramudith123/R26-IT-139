@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../services/auth_service.dart';
 import 'auth/login_screen.dart';
+import 'edit_profile_screen.dart';
 import '../core/i18n.dart';
 
-/// User profile tab. Wire the TODOs below to your real user/session data
-/// (e.g. whatever AuthService exposes for the logged-in user) once you
-/// know the exact field names your backend returns.
+/// User profile tab — name and user code come from GET /auth/me (AuthService.profile).
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -18,11 +17,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String name = "";
   String email = "";
   String role = "";
+  String userCode = "";
 
   @override
   void initState() {
     super.initState();
     _loadUser();
+    AuthService.loadProfile().then((_) {
+      if (mounted) _loadUser(); // fresh name from the server
+    });
   }
 
   void _loadUser() {
@@ -34,6 +37,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       name = _firstNonEmpty(claims, ['fullName', 'full_name', 'name']) ?? "Merchant";
       email = _firstNonEmpty(claims, ['email']) ?? "—";
       role = _firstNonEmpty(claims, ['role', 'user_role']) ?? "Merchant";
+      userCode = _firstNonEmpty(claims, ['user_code']) ?? "";
     });
   }
 
@@ -80,7 +84,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    tr(name),
+                    name,
                     style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 4),
@@ -118,7 +122,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ListTile(
               leading: const Icon(Icons.person_outline),
               title: Text(tr("Name")),
-              subtitle: Text(tr(name)),
+              subtitle: Text(name),
             ),
             ListTile(
               leading: const Icon(Icons.email_outlined),
@@ -130,6 +134,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               title: Text(tr("Role")),
               subtitle: Text(tr(role)),
             ),
+            if (userCode.isNotEmpty)
+              ListTile(
+                leading: const Icon(Icons.tag),
+                title: Text(tr("Account ID")),
+                subtitle: Text(userCode),
+              ),
 
             const SizedBox(height: 12),
             Padding(
@@ -141,8 +151,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 icon: const Icon(Icons.edit_outlined),
                 label: Text(tr("Edit Profile")),
-                onPressed: () {
-                  // TODO: navigate to an edit-profile form once you have one.
+                onPressed: () async {
+                  await Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen()));
+                  _loadUser(); // show the new name
                 },
               ),
             ),

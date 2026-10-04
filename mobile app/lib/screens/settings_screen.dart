@@ -4,6 +4,7 @@ import '../services/auth_service.dart';
 import 'auth/login_screen.dart';
 import 'notifications_screen.dart';
 import 'profile_screen.dart';
+import 'privacy_screen.dart';
 import '../widgets/main_navigation.dart';
 import '../core/i18n.dart';
 
@@ -78,9 +79,7 @@ class SettingsScreen extends StatelessWidget {
             icon: Icons.privacy_tip_outlined,
             title: tr('Privacy & Security'),
             subtitle: tr('How your data is handled'),
-            onTap: () {
-              // TODO: link to a privacy policy screen/page if you have one.
-            },
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyScreen())),
           ),
 
           const SizedBox(height: 24),

@@ -217,3 +217,11 @@ export const creditWhatIf = Joi.object({
     months_active: Joi.number().integer().min(1).max(600),
   }).required(),
 });
+
+export const updateProfile = Joi.object({ full_name: Joi.string().trim().min(2).max(150).required() });
+export const changePassword = Joi.object({
+  current_password: Joi.string().max(200).required(),
+  new_password: Joi.string().min(6).max(128).invalid(Joi.ref("current_password")).required().messages({
+    "any.invalid": "New password must be different from the current one",
+  }),
+});

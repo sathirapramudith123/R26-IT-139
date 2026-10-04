@@ -25,11 +25,14 @@ const Map<String, String> siStrings = {
   "7-day and 14-day moving averages. % change over full period.":
       "දින 7 සහ දින 14 චලන සාමාන්‍ය. සම්පූර්ණ කාලය තුළ % වෙනස.",
   "7-day velocity:": "දින 7 වේගය:",
+  "A login lasts 8 hours; the login token is kept encrypted on this phone.":
+      "පිවිසුමක් පැය 8ක් පවතී; පිවිසුම් token එක මෙම දුරකථනයේ සංකේතනය කර තබා ඇත.",
   "A quick snapshot of your income, expenses and stock — plus fast access to everything you manage.":
       "ඔබේ ආදායම, වියදම් සහ තොගය පිළිබඳ කෙටි දළ විශ්ලේෂණයක් — ඔබ කළමනාකරණය කරන සියල්ලට ඉක්මන් ප්‍රවේශය සමඟ.",
   "A thin margin hurts — check your prices and cut waste.":
       "අඩු ලාභ ආන්තිකයක් හානිකරයි — මිල පරීක්ෂා කර නාස්තිය අඩු කරන්න.",
   "AI insights": "AI අවබෝධය",
+  "AI predictions": "AI අනාවැකි",
   "AI you can check": "ඔබට පරීක්ෂා කළ හැකි AI",
   "About": "පිළිබඳ",
   "Above floor ✓": "අවම සීමාවට ඉහළින් ✓",
@@ -139,6 +142,7 @@ const Map<String, String> siStrings = {
   "Bank agent payout": "බැංකු නියෝජිත ගෙවීම",
   "Bank name is required.": "බැංකුවේ නම අවශ්‍යයි.",
   "Banking Anomaly": "බැංකු අසාමාන්‍යතා",
+  "Banking safety": "බැංකු ආරක්ෂාව",
   "Batticaloa": "මඩකලපුව",
   "Beats the usual bank rules: F1 0.75 vs 0.68": "සාමාන්‍ය බැංකු නීතිවලට වඩා හොඳයි: F1 0.75 එදිරිව 0.68",
   "Below floor": "අවම සීමාවට පහළින්",
@@ -167,6 +171,8 @@ const Map<String, String> siStrings = {
   "Buying price per unit": "ඒකකයක මිලදී ගැනීමේ මිල",
   "Buying price per unit (goes to the batch cost)": "ඒකකයක මිලදී ගැනීමේ මිල (කාණ්ඩ පිරිවැයට යයි)",
   "CBSL Daily Limits:": "CBSL දෛනික සීමා:",
+  "CBSL daily limits for agent banking are always enforced — over-limit transactions are refused.":
+      "නියෝජිත බැංකුකරණය සඳහා CBSL දෛනික සීමා සැමවිටම බලාත්මකයි — සීමාව ඉක්මවන ගනුදෙනු ප්‍රතික්ෂේප කෙරේ.",
   "CBSL limits are always enforced; the model catches what the limits cannot.":
       "CBSL සීමා සැමවිටම බලාත්මකයි; සීමාවලට අල්ලාගත නොහැකි දේ මාදිලිය හඳුනාගනී.",
   "CBSL limits are hard rules that are always enforced. The models flag what rules cannot see.":
@@ -199,6 +205,7 @@ const Map<String, String> siStrings = {
   "Category": "ප්‍රවර්ගය",
   "Category *": "ප්‍රවර්ගය *",
   "Ceiling:": "උපරිම සීමාව:",
+  "Change password": "මුරපදය වෙනස් කරන්න",
   "Channel": "මාධ්‍යය",
   "Charged to the customer": "පාරිභෝගිකයාගෙන් අය කෙරේ",
   "Cheapest": "අඩුම මිල",
@@ -270,6 +277,8 @@ const Map<String, String> siStrings = {
   "Current Stock Kg": "වත්මන් තොගය (kg)",
   "Current cash pool": "වත්මන් මුදල් සංචිතය",
   "Current float": "වත්මන් float ශේෂය",
+  "Current password": "වත්මන් මුරපදය",
+  "Current password is incorrect": "වත්මන් මුරපදය වැරදියි",
   "Current stock": "වත්මන් තොගය",
   "Current stock, its value and what needs reordering.":
       "වත්මන් තොගය, එහි වටිනාකම සහ නැවත ඇණවුම් කළ යුතු දේ.",
@@ -386,11 +395,17 @@ const Map<String, String> siStrings = {
   "Enter the cost price per unit.": "ඒකකයක පිරිවැය මිල ඇතුළත් කරන්න.",
   "Enter the selling price per unit.": "ඒකකයක විකුණුම් මිල ඇතුළත් කරන්න.",
   "Enter the unit cost.": "ඒකක පිරිවැය ඇතුළත් කරන්න.",
+  "Enter your current password.": "ඔබේ වත්මන් මුරපදය ඇතුළත් කරන්න.",
+  "Enter your full name.": "ඔබේ සම්පූර්ණ නම ඇතුළත් කරන්න.",
   "Enter your selling price per unit": "ඒකකයක විකුණුම් මිල ඇතුළත් කරන්න",
   "Est. Profit": "ඇස්තමේන්තු ලාභය",
   "Estimated Profit (LKR)": "ඇස්තමේන්තු ලාභය (රු.)",
+  "Every prediction shows the reasons behind it, so you can check it.":
+      "සෑම අනාවැකියක්ම එයට හේතු පෙන්වන නිසා ඔබට එය පරීක්ෂා කළ හැක.",
   "Every prediction shows what pushed it up and what held it back, in plain words.":
       "සෑම අනාවැකියක්ම එය ඉහළ දැමූ සහ පහළ තැබූ හේතු සරල වචනවලින් පෙන්වයි.",
+  "Every request is checked against your login, so you only ever see your own shop's data.":
+      "සෑම ඉල්ලීමක්ම ඔබේ පිවිසුම සමඟ පරීක්ෂා කරන නිසා ඔබට පෙනෙන්නේ ඔබේම කඩයේ දත්ත පමණි.",
   "Every sale, purchase, expense, deposit and transfer.":
       "සෑම විකුණුමක්ම, මිලදී ගැනීමක්ම, වියදමක්ම, තැන්පතුවක්ම සහ මාරු කිරීමක්ම.",
   "Expected Arrival": "අපේක්ෂිත පැමිණීම",
@@ -434,6 +449,8 @@ const Map<String, String> siStrings = {
   "Float accounts": "float ගිණුම්",
   "Float after": "පසු float",
   "Float after top-up": "පිරවීමෙන් පසු float",
+  "Float and cash updates run as one database transaction, so two actions at the same moment cannot corrupt a balance.":
+      "Float සහ මුදල් යාවත්කාලීන කිරීම් එක් දත්ත ගබඩා ගනුදෙනුවක් ලෙස ක්‍රියාත්මක වන නිසා එකම මොහොතේ ක්‍රියා දෙකකින් ශේෂයක් අවුල් නොවේ.",
   "Float balance": "float ශේෂය",
   "Float is at": "float ශේෂය",
   "Float top-up": "float පිරවීම",
@@ -576,6 +593,8 @@ const Map<String, String> siStrings = {
   "Lag 4 Units Sold": "සති 4කට පෙර විකුණූ ඒකක",
   "Lag1 Price": "සතියකට පෙර මිල",
   "Language": "භාෂාව",
+  "Lanka-Link is a university research project (IT4010, R26-IT-139). Your data is not sold or used for advertising.":
+      "Lanka-Link යනු විශ්වවිද්‍යාල පර්යේෂණ ව්‍යාපෘතියකි (IT4010, R26-IT-139). ඔබේ දත්ත විකුණනු නොලැබේ, දැන්වීම් සඳහා භාවිත නොකෙරේ.",
   "Last 7 days": "පසුගිය දින 7",
   "Last Received": "අවසන් වරට ලැබුණේ",
   "Last month": "පසුගිය මාසය",
@@ -611,9 +630,11 @@ const Map<String, String> siStrings = {
   "Loan limit": "ණය සීමාව",
   "Locating…": "ස්ථානය සොයමින්…",
   "Location": "ස්ථානය",
+  "Location and maps": "ස්ථානය සහ සිතියම්",
   "Location is required.": "ස්ථානය අවශ්‍යයි.",
   "Location permission denied.": "ස්ථාන අවසරය ප්‍රතික්ෂේප විය.",
   "Log Out": "ඉවත් වන්න",
+  "Login and passwords": "පිවිසුම සහ මුරපද",
   "Low Stock Alerts": "අඩු තොග ඇඟවීම්",
   "Low Stock Items": "තොගය අඩු භාණ්ඩ",
   "Low float": "float අඩුයි",
@@ -630,6 +651,8 @@ const Map<String, String> siStrings = {
       "සිතියම් සෙවීම අසාර්ථකයි — අන්තර්ජාල සම්බන්ධතාවය පරීක්ෂා කරන්න.",
   "Map search needs the Google Maps key — run with --dart-define-from-file=.env":
       "සිතියම් සෙවීමට Google Maps key එක අවශ්‍යයි — --dart-define-from-file=.env සමඟ run කරන්න",
+  "Map searches and routes are sent to Google Maps to find places and distances.":
+      "ස්ථාන සහ දුර සොයාගැනීමට සිතියම් සෙවීම් සහ මාර්ග Google Maps වෙත යවනු ලැබේ.",
   "Mar": "මාර්",
   "Margin:": "ආන්තිකය:",
   "Mark Read": "කියවූ ලෙස සලකුණු කරන්න",
@@ -684,6 +707,7 @@ const Map<String, String> siStrings = {
   "NET LOSS": "ශුද්ධ අලාභය",
   "NET PROFIT": "ශුද්ධ ලාභය",
   "Name": "නම",
+  "Name updated.": "නම යාවත්කාලීන විය.",
   "Nearest supplier": "ළඟම සැපයුම්කරු",
   "Net Cash Flow": "ශුද්ධ මුදල් ප්‍රවාහය",
   "Net Cash Flow (LKR)": "ශුද්ධ මුදල් ප්‍රවාහය (රු.)",
@@ -701,6 +725,7 @@ const Map<String, String> siStrings = {
   "New here?": "අලුත්ද?",
   "New here? Create account": "අලුත්ද? ගිණුමක් සාදන්න",
   "New password": "නව මුරපදය",
+  "New password must be different from the current one": "නව මුරපදය වත්මන් මුරපදයට වඩා වෙනස් විය යුතුයි",
   "Next 4 wks: LKR": "ඊළඟ සති 4: රු.",
   "Next week": "ලබන සතිය",
   "Next week's demand per item, aware of Avurudu and festivals.":
@@ -795,6 +820,11 @@ const Map<String, String> siStrings = {
   "Parsing:": "කියවමින්:",
   "Particulars": "විස්තරය",
   "Password": "මුරපදය",
+  "Password changed.": "මුරපදය වෙනස් විය.",
+  "Password-reset links work for 1 hour and only once. Repeated wrong logins are slowed down.":
+      "මුරපදය යළි සැකසීමේ සබැඳි පැයක් සහ එක් වරක් පමණක් ක්‍රියා කරයි. නැවත නැවත වැරදි පිවිසුම් මන්දගාමී කෙරේ.",
+  "Passwords are never stored as text — only a bcrypt hash that cannot be turned back into the password.":
+      "මුරපද කිසිවිටෙක පෙළ ලෙස ගබඩා නොකෙරේ — නැවත මුරපදයට හැරවිය නොහැකි bcrypt hash එකක් පමණි.",
   "Paying down existing debt improves your score.": "දැනට ඇති ණය අඩු කිරීමෙන් ඔබේ ලකුණු වැඩි වේ.",
   "Payment": "ගෙවීම",
   "Payment Method": "ගෙවීම් ක්‍රමය",
@@ -907,6 +937,7 @@ const Map<String, String> siStrings = {
   "Required for AI Demand Forecasting": "AI ඉල්ලුම් පුරෝකථනයට අවශ්‍යයි",
   "Required for AI demand forecasting": "AI ඉල්ලුම් පුරෝකථනයට අවශ්‍යයි",
   "Required for deposits (AML record)": "තැන්පතු සඳහා අවශ්‍යයි (AML වාර්තාව)",
+  "Research project": "පර්යේෂණ ව්‍යාපෘතිය",
   "Reset": "යළි සකසන්න",
   "Reset Password": "මුරපදය යළි සකසන්න",
   "Reset failed. The link may have expired.": "යළි සැකසීම අසාර්ථකයි. සබැඳිය කල් ඉකුත් වී ඇති විය හැක.",
@@ -997,6 +1028,7 @@ const Map<String, String> siStrings = {
   "Settings": "සැකසුම්",
   "Shelf Life Days": "කල් තබාගත හැකි දින",
   "Should I Buy?": "මිලදී ගත යුතුද?",
+  "Shown on your profile and on your reports.": "ඔබේ පැතිකඩේ සහ වාර්තාවල පෙන්වයි.",
   "Sign In": "පිවිසෙන්න",
   "Sign Out": "ඉවත් වන්න",
   "Sign in": "පිවිසෙන්න",
@@ -1073,6 +1105,9 @@ const Map<String, String> siStrings = {
   "Tap on the map or search to pick the delivery location":
       "බෙදාහැරීමේ ස්ථානය තෝරීමට සිතියම මත තට්ටු කරන්න හෝ සොයන්න",
   "Tested against simple methods": "සරල ක්‍රම සමඟ පරීක්ෂා කර ඇත",
+  "The AI models only receive figures worked out from your records (for example monthly sales or stock-out rate), and only through our own server.":
+      "AI මාදිලිවලට ලැබෙන්නේ ඔබේ වාර්තාවලින් ගණනය කළ අගයන් (උදා. මාසික විකුණුම් හෝ තොග අවසන් වීමේ අනුපාතය) පමණි, එයත් අපගේම server එක හරහා පමණි.",
+  "The new passwords don't match.": "නව මුරපද දෙක ගැළපෙන්නේ නැත.",
   "This cannot be undone.": "මෙය ආපසු හැරවිය නොහැක.",
   "This looks different from your usual pattern — worth a quick check.":
       "මෙය ඔබේ සාමාන්‍ය රටාවට වඩා වෙනස් — ඉක්මනින් පරීක්ෂා කිරීම හොඳයි.",
@@ -1217,12 +1252,14 @@ const Map<String, String> siStrings = {
   "What you record once feeds every insight. The demand forecast sets when to restock, and steady stock improves your credit score.":
       "ඔබ එක් වරක් සටහන් කරන දේ සියලු අවබෝධයන්ට යොදා ගැනේ. ඉල්ලුම් පුරෝකථනය තොග පිරවිය යුතු කාලය තීරණය කරයි, ස්ථාවර තොගය ඔබේ ණය ලකුණු වැඩි කරයි.",
   "What's affecting this": "මෙයට බලපාන්නේ කුමක්ද",
+  "Where your data is kept": "ඔබේ දත්ත තබා ඇති තැන",
   "Which float account funds this transaction": "මෙම ගනුදෙනුවට මුදල් සපයන float ගිණුම",
   "Why ranked #": "ස්ථානය # වීමට හේතුව",
   "Why you can trust it": "ඔබට විශ්වාස කළ හැක්කේ ඇයි",
   "Withdrawal": "ආපසු ගැනීම",
   "Yes": "ඔව්",
   "You": "ඔබ",
+  "You stay signed in on this phone.": "ඔබ මෙම දුරකථනයේ පිවිසී සිටියි.",
   "You're all caught up.": "ඔබ සියල්ල බලා ඇත.",
   "Your Business Forecasts": "ඔබේ ව්‍යාපාර පුරෝකථන",
   "Your Forecasts": "ඔබේ පුරෝකථන",
@@ -1235,10 +1272,15 @@ const Map<String, String> siStrings = {
       "ඔබේ ව්‍යාපාර දළ විශ්ලේෂණය — මූල්‍ය, තොග සහ මිලදී ගැනීම්.",
   "Your business this week": "මෙම සතියේ ඔබේ ව්‍යාපාරය",
   "Your full name": "ඔබේ සම්පූර්ණ නම",
+  "Your location is read only when you tap \"Use my location\" or a route map.":
+      "ඔබේ ස්ථානය කියවන්නේ ඔබ \"මගේ ස්ථානය භාවිත කරන්න\" හෝ මාර්ග සිතියමක් ඔබන විට පමණි.",
+  "Your name": "ඔබේ නම",
   "Your password": "ඔබේ මුරපදය",
   "Your password has been updated. Please sign in with your new password.":
       "ඔබේ මුරපදය යාවත්කාලීන විය. නව මුරපදයෙන් පිවිසෙන්න.",
   "Your payout as agent": "නියෝජිතයා ලෙස ඔබට ලැබෙන මුදල",
+  "Your sales, stock, suppliers and banking records are stored in a secure cloud database (Supabase / PostgreSQL).":
+      "ඔබේ විකුණුම්, තොග, සැපයුම්කරුවන් සහ බැංකු වාර්තා ආරක්ෂිත cloud දත්ත ගබඩාවක (Supabase / PostgreSQL) තබා ඇත.",
   "Your session has expired. Please sign in again.": "ඔබේ සැසිය කල් ඉකුත් විය. නැවත පිවිසෙන්න.",
   "Your session is protected": "ඔබේ සැසිය ආරක්ෂිතයි",
   "Your shop": "ඔබේ කඩේ",
