@@ -11,6 +11,7 @@ import 'predictions/predictions_hub_screen.dart';
 import 'reports/reports_screen.dart';
 import 'transactions/transaction_form_screen.dart';
 import 'agency_banking/my_banks_screen.dart';
+import 'journal/journal_screen.dart';
 import '../core/i18n.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -172,10 +173,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w600),
                 ),
           const SizedBox(height: 4),
-          Text(
-            tr("Income minus expenses · tap for the statement"),
-            style: TextStyle(color: white70, fontSize: 11),
-          ),
+          Text(tr("Income minus expenses · tap for the statement"), style: TextStyle(color: white70, fontSize: 11)),
         ],
       ),
     );
@@ -316,15 +314,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       (m) => ModuleTile(
                         icon: m.icon,
                         title: m.title,
-                        onTap: () =>
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => ListScreen(module: m))),
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ListScreen(module: m))),
                       ),
                     ),
                     ModuleTile(
                       icon: Icons.account_balance_wallet_outlined,
                       title: tr("My Banks"),
-                      onTap: () =>
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => const MyBanksScreen())),
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyBanksScreen())),
+                    ),
+                    ModuleTile(
+                      icon: Icons.menu_book_outlined,
+                      title: tr("Journal"),
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const JournalScreen())),
                     ),
                     ModuleTile(
                       icon: Icons.bar_chart_outlined,
@@ -335,10 +336,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       icon: Icons.insights_outlined,
                       title: tr("Predictions"),
                       highlight: true,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const PredictionsHubScreen()),
-                      ),
+                      onTap: () =>
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const PredictionsHubScreen())),
                     ),
                   ]),
                 ),

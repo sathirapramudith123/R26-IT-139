@@ -15,6 +15,7 @@ import '../screens/procurement/procurement_form_screen.dart';
 import '../screens/suppliers/supplier_form_screen.dart';
 import '../screens/transactions/transaction_form_screen.dart';
 import '../screens/reports/reports_screen.dart';
+import '../screens/journal/journal_screen.dart';
 import '../core/i18n.dart';
 
 class MainNavigation extends StatefulWidget {
@@ -92,6 +93,7 @@ class MenuScreen extends StatelessWidget {
       _MenuItem(tr('Procurement'), Icons.shopping_cart_outlined, () => const ProcurementFormScreen()),
       _MenuItem(tr('Suppliers'), Icons.handshake_outlined, () => const SupplierFormScreen()),
       _MenuItem(tr('Transactions'), Icons.receipt_long_outlined, () => const TransactionFormScreen()),
+      _MenuItem(tr('Journal'), Icons.menu_book_outlined, () => const JournalScreen()),
       _MenuItem(tr('Reports'), Icons.bar_chart_outlined, () => const ReportsScreen()),
     ];
 
