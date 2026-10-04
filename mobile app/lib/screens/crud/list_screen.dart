@@ -9,6 +9,7 @@ import '../suppliers/supplier_form_screen.dart';
 import '../procurement/procurement_form_screen.dart';
 import '../agency_banking/agency_banking_form_screen.dart';
 import '../../core/i18n.dart';
+import '../suppliers/supplier_route_screen.dart';
 
 class ListScreen extends StatefulWidget {
   final ModuleConfig module;
@@ -238,6 +239,26 @@ class _ListScreenState extends State<ListScreen> {
                   ),
                 ),
               ),
+              // suppliers with a map pin: open the road route from where you are now
+              if (widget.module.path == "/suppliers" &&
+                  item["latitude"] != null &&
+                  item["longitude"] != null) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    icon: const Icon(Icons.directions_outlined),
+                    label: Text(tr("How far? Show route")),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => SupplierRouteScreen(supplier: item)),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ],
           ),
         ),

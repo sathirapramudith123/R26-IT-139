@@ -951,5 +951,22 @@
   "Select a unit.": "ඒකකයක් තෝරන්න.",
   "Source of funds is required for deposits.": "තැන්පතු සඳහා අරමුදල් මූලාශ්‍රය අවශ්‍යයි.",
   "Supplier name is required.": "සැපයුම්කරුගේ නම අවශ්‍යයි.",
-  "Unit price cannot be negative.": "ඒකක මිල සෘණ විය නොහැක."
+  "Unit price cannot be negative.": "ඒකක මිල සෘණ විය නොහැක.",
+  "No places found.": "ස්ථාන හමු නොවීය.",
+  "Map search failed": "සිතියම් සෙවීම අසාර්ථකයි",
+  "Couldn't look up that place.": "එම ස්ථානය සොයාගත නොහැකි විය.",
+  "List": "ලැයිස්තුව",
+  "Map": "සිතියම",
+  "Delete this supplier?": "මෙම සැපයුම්කරු මකන්නද?",
+  "Your shop location is set — click the map to change it.": "ඔබේ කඩේ ස්ථානය සකසා ඇත — වෙනස් කිරීමට සිතියම මත ක්ලික් කරන්න.",
+  "Set your shop location: use your location or click the map.": "ඔබේ කඩේ ස්ථානය සකසන්න: ඔබේ ස්ථානය භාවිත කරන්න හෝ සිතියම මත ක්ලික් කරන්න.",
+  "Locating…": "ස්ථානය සොයමින්…",
+  "Your shop": "ඔබේ කඩේ",
+  "Nearest supplier": "ළඟම සැපයුම්කරු",
+  "Other suppliers": "වෙනත් සැපයුම්කරුවන්",
+  "Suppliers by distance": "දුර අනුව සැපයුම්කරුවන්",
+  "Suppliers on the map": "සිතියමේ සැපයුම්කරුවන්",
+  "No supplier has a map location yet.": "තවම කිසිදු සැපයුම්කරුවෙකුට සිතියම් ස්ථානයක් නැත.",
+  "Set your shop location to see the road route.": "මාර්ගය බැලීමට ඔබේ කඩේ ස්ථානය සකසන්න.",
+  "by road": "මාර්ගයෙන්"
 }

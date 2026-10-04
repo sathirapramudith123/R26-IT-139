@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+import { List, Map as MapIcon } from "lucide-react";
 import useAuthGuard from "@/hooks/useAuthGuard";
 import PageHeader from "@/components/common/PageHeader";
 import Button from "@/components/ui/Button";
@@ -12,6 +14,9 @@ import EmptyState from "@/components/common/EmptyState";
 import useSuppliers from "@/hooks/useSuppliers";
 import { supplierApi } from "@/services/api/supplier";
 import DetailDialog from "@/components/common/DetailDialog";
+
+// Google Maps touches `window`, so the map view is loaded on the client only
+const SupplierMap = dynamic(() => import("@/components/suppliers/SupplierMap"), { ssr: false });
 
 import { t } from "@/lib/i18n";
 const COLS = [
@@ -53,12 +58,13 @@ export default function SuppliersPage() {
   const { items, loading, error, fetchAll } = useSuppliers();
   const [search, setSearch] = useState("");
   const [viewItem, setViewItem] = useState(null);
+  const [view, setView] = useState("list"); // list | map
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
 
   async function handleDelete(id) {
-    if (!confirm("Delete this supplier?")) return;
+    if (!confirm(t("Delete this supplier?"))) return;
     try {
       await supplierApi.remove(id);
       await fetchAll();
@@ -81,7 +87,7 @@ export default function SuppliersPage() {
     return {
       ...item,
       company_name: item.company_name ?? "—",
-      items_summary: itemCount > 0 ? `${itemCount} item${itemCount > 1 ? "s" : ""}` : "—",
+      items_summary: itemCount > 0 ? `${itemCount} ${t("items")}` : "—",
       status: <StatusBadge status={item.status} />,
       actions: (
         <div className="flex gap-2">
@@ -113,13 +119,35 @@ export default function SuppliersPage() {
         }
       />
       <Card className="mb-4">
-        <input
-          type="text"
-          placeholder={t("Search by name, company, contact...")}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="input-field"
-        />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <input
+            type="text"
+            placeholder={t("Search by name, company, contact...")}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="input-field"
+          />
+          {/* List / Map switch */}
+          <div className="inline-flex shrink-0 rounded-full bg-slate-100 p-1 dark:bg-slate-800">
+            {[
+              ["list", List, t("List")],
+              ["map", MapIcon, t("Map")],
+            ].map(([key, Icon, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setView(key)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+                  view === key
+                    ? "bg-white text-brand-700 shadow-card dark:bg-slate-900 dark:text-brand-400"
+                    : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+                }`}
+              >
+                <Icon className="h-4 w-4" /> {label}
+              </button>
+            ))}
+          </div>
+        </div>
       </Card>
       {loading ? (
         <LoadingSpinner label={t("Loading suppliers...")} />
@@ -138,6 +166,8 @@ export default function SuppliersPage() {
             </Link>
           }
         />
+      ) : view === "map" ? (
+        <SupplierMap suppliers={filtered} />
       ) : (
         <Table columns={COLS} rows={rows} />
       )}

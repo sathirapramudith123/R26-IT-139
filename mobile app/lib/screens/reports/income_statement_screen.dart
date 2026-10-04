@@ -63,10 +63,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          tr("Income & Expense Statement"),
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: Text(tr("Income & Expense Statement"), style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
             icon: const Icon(Icons.picture_as_pdf),
