@@ -13,6 +13,7 @@ class MyBanksScreen extends StatefulWidget {
 
 class _MyBanksScreenState extends State<MyBanksScreen> {
   List<Map<String, dynamic>> banks = [];
+  Map<String, dynamic> pool = {};
   bool loading = true;
 
   @override
@@ -24,10 +25,11 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
   Future<void> _load() async {
     setState(() => loading = true);
     try {
-      final b = await AgentBankService.list();
+      final r = await AgentBankService.fetch();
       if (!mounted) return;
       setState(() {
-        banks = b;
+        banks = r.banks;
+        pool = r.pool;
         loading = false;
       });
     } catch (_) {
@@ -59,7 +61,16 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
   }
 
   double _totalFloat() => banks.fold(0.0, (s, b) => s + ((b["float_balance"] as num?)?.toDouble() ?? 0));
-  double _totalCash() => banks.fold(0.0, (s, b) => s + ((b["cash_on_hand"] as num?)?.toDouble() ?? 0));
+  num _poolValue(String key) => (pool[key] as num?) ?? 0;
+
+  Future<void> _addCash() async {
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _AddCashSheet(current: _poolValue("cash_on_hand")),
+    );
+    if (ok == true) _load();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -86,16 +97,22 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  if (banks.isNotEmpty) ...[
-                    Row(
-                      children: [
-                        Expanded(child: _statCard(tr("Total Float"), "LKR ${_money(_totalFloat())}", teal)),
-                        const SizedBox(width: 12),
-                        Expanded(child: _statCard(tr("Total Cash"), "LKR ${_money(_totalCash())}", null)),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                  ],
+                  Row(
+                    children: [
+                      Expanded(child: _statCard(tr("Total Float (all banks)"), "LKR ${_money(_totalFloat())}", teal)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _statCard(
+                          tr("Available for Top-up"),
+                          pool.isEmpty ? "—" : "LKR ${_money(_poolValue("available_for_topup"))}",
+                          KadeColors.success,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _cashPoolCard(teal),
+                  const SizedBox(height: 16),
                   if (banks.isEmpty)
                     Padding(
                       padding: EdgeInsets.only(top: 80),
@@ -108,6 +125,47 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
             ),
     );
   }
+
+  // The one shared cash pool: cash on hand, reserve, and an Add Cash button
+  Widget _cashPoolCard(Color teal) => Container(
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: Theme.of(context).cardColor,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                tr("Cash on Hand (shared pool)"),
+                style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
+              ),
+              const SizedBox(height: 4),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  pool.isEmpty ? "—" : "LKR ${_money(_poolValue("cash_on_hand"))}",
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              if (pool.isNotEmpty)
+                Text(
+                  "LKR ${_money(_poolValue("reserve_floor"))} ${tr("reserved for daily ops")}",
+                  style: TextStyle(fontSize: 11, color: Theme.of(context).textTheme.bodySmall?.color),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        FilledButton.tonalIcon(icon: const Icon(Icons.add, size: 18), label: Text(tr("Add Cash")), onPressed: _addCash),
+      ],
+    ),
+  );
 
   Widget _statCard(String label, String value, Color? color) => Container(
     padding: const EdgeInsets.all(14),
@@ -178,10 +236,7 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: hc.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(20),
-                ),
+                decoration: BoxDecoration(color: hc.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
                 child: Text(
                   health.isEmpty ? "—" : health.replaceAll("_", " "),
                   style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: hc),
@@ -200,9 +255,7 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
                 ),
               ),
               const SizedBox(width: 10),
-              Expanded(
-                child: _miniStat(tr("Cash on hand"), "LKR ${_money((b["cash_on_hand"] as num?) ?? 0)}", null),
-              ),
+              Expanded(child: _miniStat(tr("Float floor"), "LKR ${_money((b["float_floor"] as num?) ?? 0)}", null)),
             ],
           ),
           const SizedBox(height: 14),
@@ -241,14 +294,8 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                "Floor: LKR ${_money(floor)} (100%)",
-                style: const TextStyle(fontSize: 10, color: Colors.grey),
-              ),
-              Text(
-                "Ceiling: LKR ${_money(ceiling)}",
-                style: const TextStyle(fontSize: 10, color: Colors.grey),
-              ),
+              Text("Floor: LKR ${_money(floor)} (100%)", style: const TextStyle(fontSize: 10, color: Colors.grey)),
+              Text("Ceiling: LKR ${_money(ceiling)}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
             ],
           ),
           const SizedBox(height: 12),
@@ -289,10 +336,7 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
 
   Widget _miniStat(String label, String value, Color? color) => Container(
     padding: const EdgeInsets.all(10),
-    decoration: BoxDecoration(
-      color: Colors.grey.withValues(alpha: 0.08),
-      borderRadius: BorderRadius.circular(10),
-    ),
+    decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10)),
     child: Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -327,7 +371,6 @@ class _AddBankSheet extends StatefulWidget {
 class _AddBankSheetState extends State<_AddBankSheet> {
   final nameCtrl = TextEditingController();
   final floatCtrl = TextEditingController();
-  final cashCtrl = TextEditingController();
   final floorCtrl = TextEditingController(text: "50000");
   final ceilingCtrl = TextEditingController(text: "500000");
   String riskTier = "LOW";
@@ -340,7 +383,6 @@ class _AddBankSheetState extends State<_AddBankSheet> {
   void dispose() {
     nameCtrl.dispose();
     floatCtrl.dispose();
-    cashCtrl.dispose();
     floorCtrl.dispose();
     ceilingCtrl.dispose();
     super.dispose();
@@ -361,7 +403,6 @@ class _AddBankSheetState extends State<_AddBankSheet> {
         "bank_name": nameCtrl.text.trim(),
         "risk_tier": riskTier,
         "float_balance": p(floatCtrl.text),
-        "cash_on_hand": p(cashCtrl.text),
         "float_floor": p(floorCtrl.text),
         "float_ceiling": p(ceilingCtrl.text),
       });
@@ -378,12 +419,7 @@ class _AddBankSheetState extends State<_AddBankSheet> {
     final teal = Theme.of(context).brightness == Brightness.dark ? KadeColors.tealDark : KadeColors.teal;
     final digits = [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))];
     return Padding(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-      ),
+      padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(context).viewInsets.bottom + 20),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -405,38 +441,13 @@ class _AddBankSheetState extends State<_AddBankSheet> {
               onChanged: (v) => setState(() => riskTier = v ?? "LOW"),
             ),
             const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      fieldLabel(tr("Opening Float")),
-                      TextField(
-                        controller: floatCtrl,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: digits,
-                        decoration: InputDecoration(prefixText: tr("LKR "), hintText: "100000"),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      fieldLabel(tr("Cash on Hand")),
-                      TextField(
-                        controller: cashCtrl,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: digits,
-                        decoration: InputDecoration(prefixText: tr("LKR "), hintText: "50000"),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            // cash on hand is one shared pool — added from the My Banks screen, not per bank
+            fieldLabel(tr("Opening Float")),
+            TextField(
+              controller: floatCtrl,
+              keyboardType: TextInputType.number,
+              inputFormatters: digits,
+              decoration: InputDecoration(prefixText: tr("LKR "), hintText: "100000"),
             ),
             const SizedBox(height: 14),
             Row(
@@ -501,6 +512,136 @@ class _AddBankSheetState extends State<_AddBankSheet> {
 }
 
 /* ------------------------------- Top-up sheet ------------------------------- */
+// Add physical cash to the shared pool
+class _AddCashSheet extends StatefulWidget {
+  final num current; // cash in the pool now
+  const _AddCashSheet({required this.current});
+  @override
+  State<_AddCashSheet> createState() => _AddCashSheetState();
+}
+
+class _AddCashSheetState extends State<_AddCashSheet> {
+  final amountCtrl = TextEditingController();
+  bool saving = false;
+  String? error;
+
+  String _money(num n) {
+    final fixed = n == n.roundToDouble() ? n.toStringAsFixed(0) : n.toStringAsFixed(2);
+    final parts = fixed.split('.');
+    final intPart = parts[0].replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',');
+    return parts.length > 1 ? "$intPart.${parts[1]}" : intPart;
+  }
+
+  @override
+  void dispose() {
+    amountCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final amt = num.tryParse(amountCtrl.text.trim()) ?? 0;
+    if (amt <= 0) {
+      setState(() => error = tr("Enter an amount greater than 0."));
+      return;
+    }
+    setState(() {
+      saving = true;
+      error = null;
+    });
+    try {
+      await AgentBankService.addCash(amt);
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      setState(() => error = e.toString().replaceFirst("Exception: ", ""));
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final teal = Theme.of(context).brightness == Brightness.dark ? KadeColors.tealDark : KadeColors.teal;
+    final bal = widget.current;
+    final amt = num.tryParse(amountCtrl.text.trim()) ?? 0;
+    return Padding(
+      padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(context).viewInsets.bottom + 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(tr("Add Cash to Pool"), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text(
+            tr("Cash you have in hand (e.g. withdrawn from a bank). Shared by all banks for top-ups."),
+            style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodySmall?.color),
+          ),
+          const SizedBox(height: 14),
+          if (error != null) ...[errorBox(error!), const SizedBox(height: 12)],
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(tr("Current cash pool")),
+                    Text("LKR ${_money(bal)}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                if (amt > 0) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(tr("After adding")),
+                      Text(
+                        "LKR ${_money(bal + amt)}",
+                        style: TextStyle(fontWeight: FontWeight.bold, color: teal),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          fieldLabel(tr("Cash Amount (LKR)")),
+          TextField(
+            controller: amountCtrl,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+            decoration: InputDecoration(prefixText: tr("LKR "), hintText: "50000"),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: teal, padding: const EdgeInsets.symmetric(vertical: 14)),
+              onPressed: saving ? null : _save,
+              child: saving
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : Text(
+                      tr("Add Cash"),
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _TopupSheet extends StatefulWidget {
   final Map<String, dynamic> bank;
   const _TopupSheet({required this.bank});
@@ -552,12 +693,7 @@ class _TopupSheetState extends State<_TopupSheet> {
     final bal = (widget.bank["float_balance"] as num?)?.toDouble() ?? 0;
     final amt = num.tryParse(amountCtrl.text.trim()) ?? 0;
     return Padding(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-      ),
+      padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(context).viewInsets.bottom + 20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -618,10 +754,7 @@ class _TopupSheetState extends State<_TopupSheet> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: teal,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: teal, padding: const EdgeInsets.symmetric(vertical: 14)),
               onPressed: saving ? null : _save,
               child: saving
                   ? const SizedBox(
@@ -777,8 +910,7 @@ class _LedgerSheetState extends State<_LedgerSheet> {
                                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                               ),
                               Text(
-                                DateTime.tryParse(e["date"]?.toString() ?? "")?.toString().substring(0, 16) ??
-                                    "",
+                                DateTime.tryParse(e["date"]?.toString() ?? "")?.toString().substring(0, 16) ?? "",
                                 style: const TextStyle(fontSize: 11, color: Colors.grey),
                               ),
                             ],
@@ -792,10 +924,7 @@ class _LedgerSheetState extends State<_LedgerSheet> {
                               style: TextStyle(fontWeight: FontWeight.bold, color: color),
                             ),
                             if (bal != null)
-                              Text(
-                                "Bal: ${_money(bal)}",
-                                style: const TextStyle(fontSize: 11, color: Colors.grey),
-                              ),
+                              Text("Bal: ${_money(bal)}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
                           ],
                         ),
                       ],

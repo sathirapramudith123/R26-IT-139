@@ -10,6 +10,7 @@ import 'notifications_screen.dart';
 import 'predictions/predictions_hub_screen.dart';
 import 'reports/reports_screen.dart';
 import 'transactions/transaction_form_screen.dart';
+import 'agency_banking/my_banks_screen.dart';
 import '../core/i18n.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -318,6 +319,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         onTap: () =>
                             Navigator.push(context, MaterialPageRoute(builder: (_) => ListScreen(module: m))),
                       ),
+                    ),
+                    ModuleTile(
+                      icon: Icons.account_balance_wallet_outlined,
+                      title: tr("My Banks"),
+                      onTap: () =>
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const MyBanksScreen())),
                     ),
                     ModuleTile(
                       icon: Icons.bar_chart_outlined,

@@ -9,6 +9,7 @@ import '../screens/profile_screen.dart';
 
 // Module screens (shown inside the Menu grid, not on the bar).
 import '../screens/agency_banking/agency_banking_form_screen.dart';
+import '../screens/agency_banking/my_banks_screen.dart';
 import '../screens/inventory/inventory_form_screen.dart';
 import '../screens/procurement/procurement_form_screen.dart';
 import '../screens/suppliers/supplier_form_screen.dart';
@@ -86,6 +87,7 @@ class MenuScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = <_MenuItem>[
       _MenuItem(tr('Agency Banking'), Icons.account_balance_outlined, () => const AgencyBankingFormScreen()),
+      _MenuItem(tr('My Banks'), Icons.account_balance_wallet_outlined, () => const MyBanksScreen()),
       _MenuItem(tr('Inventory'), Icons.inventory_2_outlined, () => const InventoryFormScreen()),
       _MenuItem(tr('Procurement'), Icons.shopping_cart_outlined, () => const ProcurementFormScreen()),
       _MenuItem(tr('Suppliers'), Icons.handshake_outlined, () => const SupplierFormScreen()),
