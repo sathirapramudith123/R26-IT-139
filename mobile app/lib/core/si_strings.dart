@@ -1285,8 +1285,8 @@ const Map<String, String> siStrings = {
   "Your password has been updated. Please sign in with your new password.":
       "ඔබේ මුරපදය යාවත්කාලීන විය. නව මුරපදයෙන් පිවිසෙන්න.",
   "Your payout as agent": "නියෝජිතයා ලෙස ඔබට ලැබෙන මුදල",
-  "Your sales, stock, suppliers and banking records are stored in a secure cloud database (Supabase / PostgreSQL).":
-      "ඔබේ විකුණුම්, තොග, සැපයුම්කරුවන් සහ බැංකු වාර්තා ආරක්ෂිත cloud දත්ත ගබඩාවක (Supabase / PostgreSQL) තබා ඇත.",
+  "Your sales, stock, suppliers and banking records are stored in a secure cloud database.":
+      "ඔබේ විකුණුම්, තොග, සැපයුම්කරුවන් සහ බැංකු වාර්තා ආරක්ෂිත cloud දත්ත ගබඩාවක තබා ඇත.",
   "Your session has expired. Please sign in again.": "ඔබේ සැසිය කල් ඉකුත් විය. නැවත පිවිසෙන්න.",
   "Your session is protected": "ඔබේ සැසිය ආරක්ෂිතයි",
   "Your shop": "ඔබේ කඩේ",

@@ -1077,7 +1077,6 @@
   "Current password is incorrect": "වත්මන් මුරපදය වැරදියි",
   "New password must be different from the current one": "නව මුරපදය වත්මන් මුරපදයට වඩා වෙනස් විය යුතුයි",
   "Where your data is kept": "ඔබේ දත්ත තබා ඇති තැන",
-  "Your sales, stock, suppliers and banking records are stored in a secure cloud database (Supabase / PostgreSQL).": "ඔබේ විකුණුම්, තොග, සැපයුම්කරුවන් සහ බැංකු වාර්තා ආරක්ෂිත cloud දත්ත ගබඩාවක (Supabase / PostgreSQL) තබා ඇත.",
   "Every request is checked against your login, so you only ever see your own shop's data.": "සෑම ඉල්ලීමක්ම ඔබේ පිවිසුම සමඟ පරීක්ෂා කරන නිසා ඔබට පෙනෙන්නේ ඔබේම කඩයේ දත්ත පමණි.",
   "Login and passwords": "පිවිසුම සහ මුරපද",
   "Passwords are never stored as text — only a bcrypt hash that cannot be turned back into the password.": "මුරපද කිසිවිටෙක පෙළ ලෙස ගබඩා නොකෙරේ — නැවත මුරපදයට හැරවිය නොහැකි bcrypt hash එකක් පමණි.",
@@ -1101,5 +1100,6 @@
   "Show": "පෙන්වන්න",
   "Hide": "සඟවන්න",
   "Copy": "පිටපත් කරන්න",
-  "Copied": "පිටපත් කළා"
+  "Copied": "පිටපත් කළා",
+  "Your sales, stock, suppliers and banking records are stored in a secure cloud database.": "ඔබේ විකුණුම්, තොග, සැපයුම්කරුවන් සහ බැංකු වාර්තා ආරක්ෂිත cloud දත්ත ගබඩාවක තබා ඇත."
 }

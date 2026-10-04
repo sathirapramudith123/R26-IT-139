@@ -11,7 +11,7 @@ class PrivacyScreen extends StatelessWidget {
       Icons.storage_outlined,
       "Where your data is kept",
       [
-        "Your sales, stock, suppliers and banking records are stored in a secure cloud database (Supabase / PostgreSQL).",
+        "Your sales, stock, suppliers and banking records are stored in a secure cloud database.",
         "Every request is checked against your login, so you only ever see your own shop's data.",
       ],
     ),
