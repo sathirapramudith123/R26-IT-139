@@ -163,14 +163,9 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
             ],
           ),
           const SizedBox(height: 14),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 8,
-            childAspectRatio: 2.3,
-            children: [
+          // two rows that grow with their text (a fixed-ratio grid overflowed with 3 lines / Sinhala)
+          for (final pair in [
+            [
               tile(
                 tr("Credit Score"),
                 credit["available"] == true ? "${score.toStringAsFixed(0)}/100" : "—",
@@ -183,6 +178,8 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
                 "",
                 true,
               ),
+            ],
+            [
               tile(
                 tr("To restock"),
                 procurement["available"] == true ? "$toBuy ${tr("items")}" : "—",
@@ -196,7 +193,20 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
                 !unusual,
               ),
             ],
-          ),
+          ])
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: pair[0]),
+                    const SizedBox(width: 8),
+                    Expanded(child: pair[1]),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
