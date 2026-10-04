@@ -253,12 +253,6 @@ export default function DashboardPage() {
               <Link href="/dashboard/transactions/create" className="btn-accent">
                 <Plus className="h-4 w-4" /> {t("New Transaction")}
               </Link>
-              <Link
-                href="/dashboard/reports?report=income"
-                className="btn-secondary border-white/30 bg-white/15 text-white hover:bg-white/25 dark:border-white/30 dark:bg-white/15 dark:text-white dark:hover:bg-white/25"
-              >
-                {t("Income Statement")}
-              </Link>
             </div>
           </div>
         </div>

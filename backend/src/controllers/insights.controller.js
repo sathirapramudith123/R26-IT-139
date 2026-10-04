@@ -123,11 +123,11 @@ export const getInsights = async (req, res) => {
     const list = [];
     for (const item of sortedBySales) {
       if (list.length >= 6) break;
-      const { hasSalesHistory, features: demandFeatures } = await buildDemandFeatures(
-        userId,
-        item,
-        avgSalePrice[normName(item.item_name)],
-      );
+      const {
+        hasSalesHistory,
+        features: demandFeatures,
+        history,
+      } = await buildDemandFeatures(userId, item, avgSalePrice[normName(item.item_name)]);
       if (hasSalesHistory) {
         const r = await safePredict("demand", demandFeatures);
         if (r.available) forecastByItem[normName(item.item_name)] = r.prediction;
@@ -144,6 +144,11 @@ export const getInsights = async (req, res) => {
           forecast_units: r.available ? r.prediction : null,
           forecast_revenue: forecastRevenue,
           available: r.available,
+          // past 8 completed weeks, oldest first — the chart's "actual" line
+          history: (history || [])
+            .slice()
+            .reverse()
+            .map((w) => ({ week: new Date(w.week).toISOString().slice(0, 10), units: w.units })),
         });
       } else {
         list.push({
@@ -369,5 +374,112 @@ export const getProcurementSummary = async (req, res, next) => {
     res.json({ items: list });
   } catch (e) {
     next(e);
+  }
+};
+
+/* -------------------------------------------------------------------------- */
+/*  Credit what-if: score the shop's real numbers with some of them changed    */
+/* -------------------------------------------------------------------------- */
+const WHAT_IF_FIELDS = [
+  "monthly_revenue_rs",
+  "monthly_expenses_rs",
+  "avg_daily_txns",
+  "digital_payment_ratio",
+  "sales_volatility",
+  "stockout_rate",
+  "months_active",
+];
+
+// Apply changes and keep the derived fields (profit, margin) consistent with them
+function applyCreditChanges(base, changes) {
+  const f = { ...base };
+  for (const k of WHAT_IF_FIELDS) if (changes[k] != null) f[k] = Number(changes[k]);
+  f.monthly_profit_rs = Math.round(f.monthly_revenue_rs - f.monthly_expenses_rs);
+  f.profit_margin_pct =
+    f.monthly_revenue_rs > 0 ? +((f.monthly_profit_rs / f.monthly_revenue_rs) * 100).toFixed(2) : 0;
+  return f;
+}
+
+const creditSummary = (r) => ({
+  credit_score: r.credit_score,
+  status: r.status,
+  max_loan_limit_lkr: r.max_loan_limit_lkr,
+  rule_alerts: r.rule_alerts,
+  explanation: r.explanation,
+});
+
+export const creditWhatIf = async (req, res, next) => {
+  try {
+    const base = await buildCreditFeatures(req.user.id);
+    if (!base) return res.status(400).json({ error: "Record some transactions to get a credit score." });
+    const scenarioFeatures = applyCreditChanges(base, req.body.changes || {});
+    const [now, scenario] = await Promise.all([predict("credit", base), predict("credit", scenarioFeatures)]);
+    res.json({
+      base: { ...creditSummary(now), features: base },
+      scenario: { ...creditSummary(scenario), features: scenarioFeatures },
+      delta: +(scenario.credit_score - now.credit_score).toFixed(1),
+    });
+  } catch (err) {
+    if (err?.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
+};
+
+/* -------------------------------------------------------------------------- */
+/*  Credit action plan: realistic improvements, each scored by the model       */
+/* -------------------------------------------------------------------------- */
+export const creditActions = async (req, res, next) => {
+  try {
+    const base = await buildCreditFeatures(req.user.id);
+    if (!base) return res.json({ available: false, actions: [] });
+
+    // only steps the merchant can actually take, sized to be realistic
+    const steps = [
+      { key: "stock", title: "Keep every item in stock", changes: { stockout_rate: 0 } },
+      {
+        key: "digital",
+        title: "Take 20% more payments digitally (card, QR, bank)",
+        changes: { digital_payment_ratio: Math.min(1, base.digital_payment_ratio + 0.2) },
+      },
+      {
+        key: "sales",
+        title: "Make 20% more sales each day",
+        changes: {
+          avg_daily_txns: +(base.avg_daily_txns * 1.2).toFixed(2),
+          monthly_revenue_rs: Math.round(base.monthly_revenue_rs * 1.2),
+        },
+      },
+      {
+        key: "expenses",
+        title: "Cut monthly expenses by 10%",
+        changes: { monthly_expenses_rs: Math.round(base.monthly_expenses_rs * 0.9) },
+      },
+      {
+        key: "steady",
+        title: "Keep daily sales steadier",
+        changes: { sales_volatility: +(base.sales_volatility * 0.7).toFixed(3) },
+      },
+    ].filter((s) => Object.entries(s.changes).some(([k, v]) => v !== base[k])); // skip steps already done
+
+    const [now, ...results] = await Promise.all([
+      predict("credit", base),
+      ...steps.map((s) => predict("credit", applyCreditChanges(base, s.changes))),
+    ]);
+    const actions = steps
+      .map((s, i) => ({
+        key: s.key,
+        title: s.title,
+        changes: s.changes,
+        new_score: results[i].credit_score,
+        delta: +(results[i].credit_score - now.credit_score).toFixed(1),
+        new_status: results[i].status,
+      }))
+      .filter((a) => a.delta > 0)
+      .sort((a, b) => b.delta - a.delta);
+
+    res.json({ available: true, score: now.credit_score, status: now.status, actions });
+  } catch (err) {
+    if (err?.status) return res.status(err.status).json({ error: err.message });
+    next(err);
   }
 };

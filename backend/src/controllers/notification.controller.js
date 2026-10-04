@@ -1,5 +1,6 @@
 import { supabase } from "../config/supabase.js";
 import { toClient, toClientList, up } from "../utils/mappers.js";
+import { sendAlertEmail } from "../utils/mailer.js";
 
 const TABLE = "notifications";
 const ID = "notification_id";
@@ -74,7 +75,10 @@ export const remove = async (req, res, next) => {
   }
 };
 
-export async function notify(userId, { title, message, type = "INFO", category, link }) {
+// Notifications that are also emailed to the merchant
+const EMAIL_TYPES = new Set(["WARNING", "ALERT"]);
+
+export async function notify(userId, { title, message, type = "INFO", category, link, details }) {
   try {
     await supabase.from(TABLE).insert([
       {
@@ -88,5 +92,30 @@ export async function notify(userId, { title, message, type = "INFO", category, 
     ]);
   } catch (e) {
     console.error("[notify] failed:", e.message);
+  }
+  if (EMAIL_TYPES.has(up(type))) emailNotification(userId, { title, message, type, category, link, details });
+}
+
+// fire-and-forget: the request that raised the alert does not wait for the mail server
+async function emailNotification(userId, { title, message, type, category, link, details }) {
+  try {
+    const { data: user } = await supabase.from("users").select("email").eq("user_id", userId).maybeSingle();
+    if (!user?.email) return;
+    await sendAlertEmail(user.email, {
+      title,
+      message,
+      severity: up(type),
+      link,
+      details: [
+        ...(details || []),
+        ...(category ? [["Area", category.charAt(0) + category.slice(1).toLowerCase()]] : []),
+        [
+          "Time",
+          new Date().toLocaleString("en-LK", { timeZone: process.env.APP_TIMEZONE || "Asia/Colombo" }),
+        ],
+      ],
+    });
+  } catch (e) {
+    console.error("[notify] email failed:", e.message);
   }
 }

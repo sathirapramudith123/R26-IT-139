@@ -39,6 +39,11 @@ async function notifyStock(userId, itemName, totalBefore, totalAfter, reorder, u
       type: "ALERT",
       category: "INVENTORY",
       link: "/dashboard/inventory",
+      details: [
+        ["Item", itemName],
+        ["Stock now", `0 ${unit}`],
+        ["Reorder level", `${reorder} ${unit}`],
+      ],
     });
   } else if (justWentLow) {
     await notify(userId, {
@@ -47,6 +52,11 @@ async function notifyStock(userId, itemName, totalBefore, totalAfter, reorder, u
       type: "WARNING",
       category: "INVENTORY",
       link: "/dashboard/inventory/alerts",
+      details: [
+        ["Item", itemName],
+        ["Stock now", `${totalAfter} ${unit}`],
+        ["Reorder level", `${reorder} ${unit}`],
+      ],
     });
   }
 }

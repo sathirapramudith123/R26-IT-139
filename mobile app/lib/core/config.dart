@@ -17,6 +17,6 @@ class AppConfig {
 
   /// Google Maps web-service key (Places / Geocoding / Directions), given at build time:
   ///   flutter run --dart-define-from-file=.env
-  /// Kept out of the app's assets and out of git (see .env.example).
+  /// Kept out of the app's assets and out of git (.env is git-ignored).
   static const String googleMapsApiKey = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
 }

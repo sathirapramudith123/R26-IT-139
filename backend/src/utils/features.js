@@ -324,6 +324,7 @@ export async function buildDemandFeatures(userId, item, avgRetailPrice = null, n
 
   return {
     hasSalesHistory: true,
+    history: series, // weekly units, most recent completed week first (for charts)
     features: {
       item: item.item_name || "Unknown",
       category: itemCategory(item),

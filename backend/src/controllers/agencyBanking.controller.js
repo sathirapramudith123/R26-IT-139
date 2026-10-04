@@ -197,17 +197,21 @@ export const create = async (req, res, next) => {
       type: alerts.length ? "WARNING" : "SUCCESS",
       category: "BANKING",
       link: "/dashboard/agency-banking",
+      details: [
+        ["Customer", data.customer_name],
+        ["Transaction", String(data.transaction_type).replace(/_/g, " ").toLowerCase()],
+        ["Amount", `LKR ${Number(data.amount).toLocaleString("en-LK")}`],
+        ...alerts.map((a) => ["Why", a]),
+      ],
     });
 
-    res
-      .status(201)
-      .json({
-        ...shape(data),
-        float_after: floatAfter,
-        cash_after: cashAfter,
-        float_health: health,
-        float_warning: floatWarn,
-      });
+    res.status(201).json({
+      ...shape(data),
+      float_after: floatAfter,
+      cash_after: cashAfter,
+      float_health: health,
+      float_warning: floatWarn,
+    });
   } catch (e) {
     next(e);
   }

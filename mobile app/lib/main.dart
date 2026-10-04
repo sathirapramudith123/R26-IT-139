@@ -16,7 +16,7 @@ Future<void> main() async {
   if (AppConfig.googleMapsApiKey.isEmpty) {
     debugPrint(
       'GOOGLE_MAPS_API_KEY not set — map search and distances are disabled. '
-      'Run with: flutter run --dart-define-from-file=.env  (see .env.example)',
+      'Run with: flutter run --dart-define-from-file=.env  (see README.md)',
     );
   }
   await AuthService.restoreSession(); // stay logged in across app restarts

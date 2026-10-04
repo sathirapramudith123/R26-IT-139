@@ -131,6 +131,11 @@ export const create = async (req, res, next) => {
         type: "WARNING",
         category: "INVENTORY",
         link: "/dashboard/inventory/alerts",
+        details: [
+          ["Item", data.item_name],
+          ["Stock now", `${data.quantity} ${data.unit || ""}`.trim()],
+          ["Reorder level", `${data.reorder_level}`],
+        ],
       });
     }
 

@@ -15,7 +15,7 @@ Backend URL: the Android emulator uses `http://10.0.2.2:5000/api/v1` by default;
 
 ## Keys (never committed)
 
-- `mobile app/.env` — `GOOGLE_MAPS_API_KEY` (copy `.env.example`).
+- `mobile app/.env` — create it with one line: `GOOGLE_MAPS_API_KEY=your-key` (git-ignored).
 - `android/local.properties` — `MAPS_API_KEY=...` for the Android map view.
 
 ## Structure

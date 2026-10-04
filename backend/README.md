@@ -22,7 +22,8 @@ Health check: `GET http://localhost:5000/health` · all routes are under `/api/v
 | `CORS_ORIGINS` | `http://localhost:3000` | Web origins allowed to call the API |
 | `APP_TIMEZONE` | `Asia/Colombo` | "Today" for daily limits, journal dates and ML features |
 | `ML_URL` | `http://localhost:8000` | ML service |
-| `SMTP_*`, `FRONTEND_URL` | — | Password-reset email (optional; without SMTP the link is printed to the console) |
+| `SMTP_*`, `FRONTEND_URL` | — | Branded emails: password reset, and alert emails for WARNING / ALERT notifications (low stock, out of stock, banking alerts — the same alert at most once per 6 hours). Optional; without SMTP the reset link is printed to the console |
+| `EMAIL_ALERTS` | `true` | Set to `false` to stop alert emails (in-app notifications continue) |
 | `TRUST_PROXY` | `1` | Only when running behind a hosting proxy |
 
 ## Database

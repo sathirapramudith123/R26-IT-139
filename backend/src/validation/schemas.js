@@ -198,14 +198,22 @@ export const register = Joi.object({
 export const login = Joi.object({ email: anyEmail.required(), password: Joi.string().max(200).required() });
 export const forgotPassword = Joi.object({ email: anyEmail.required() });
 export const resetPassword = Joi.object({
-  token: Joi.string()
-    .trim()
-    .hex()
-    .length(64)
-    .required()
-    .messages({
-      "string.hex": "Invalid or expired reset token",
-      "string.length": "Invalid or expired reset token",
-    }),
+  token: Joi.string().trim().hex().length(64).required().messages({
+    "string.hex": "Invalid or expired reset token",
+    "string.length": "Invalid or expired reset token",
+  }),
   password: Joi.string().min(6).max(128).required(),
+});
+
+// What-if credit scenario: only the shop measures a merchant can change, within valid ranges
+export const creditWhatIf = Joi.object({
+  changes: Joi.object({
+    monthly_revenue_rs: money,
+    monthly_expenses_rs: money,
+    avg_daily_txns: Joi.number().min(0).max(1000),
+    digital_payment_ratio: Joi.number().min(0).max(1),
+    sales_volatility: Joi.number().min(0).max(1.5),
+    stockout_rate: Joi.number().min(0).max(1),
+    months_active: Joi.number().integer().min(1).max(600),
+  }).required(),
 });
