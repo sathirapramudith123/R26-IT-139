@@ -305,9 +305,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     ModuleTile(
                       icon: Icons.bar_chart_outlined,
-                      title: tr("Financial Statement"),
-                      subtitle: "Income statement",
-                      onTap: _openIncomeStatement,
+                      title: tr("Reports"),
+                      subtitle: "Reports & Export",
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen())),
                     ),
                     ModuleTile(
                       icon: Icons.insights_outlined,
