@@ -140,7 +140,7 @@ export default function TransactionsPage() {
         description={t("All financial transactions.")}
         action={
           <div className="flex gap-2">
-            <Link href="/dashboard/reports">
+            <Link href="/dashboard/reports?report=income">
               <Button variant="secondary">{t("📊 Income Statement")}</Button>
             </Link>
             <Link href="/dashboard/transactions/create">

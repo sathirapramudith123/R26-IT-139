@@ -75,6 +75,12 @@ export default function ReportsPage() {
   const [busy, setBusy] = useState(null); // "pdf" | "excel" while exporting
   const pdfUrlRef = useRef(null);
 
+  // links can open a specific report: /dashboard/reports?report=stock
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("report");
+    if (id && REPORTS[id]) setReportId(id);
+  }, []);
+
   const report = REPORTS[reportId];
   const period = report.usesRange ? `${range.from} → ${range.to}` : `${t("As of")} ${ymd(new Date())}`;
   const periodEn = report.usesRange ? `${range.from} to ${range.to}` : `As of ${ymd(new Date())}`;
