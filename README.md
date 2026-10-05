@@ -224,14 +224,5 @@ performance. Each model card lists its limitations.
 
 ---
 
-## What's planned next (Future work)
-
-- A pilot with real shop owners: comprehension and trust in the explanations (user study)
-- Retrain with real data — loan repayment outcomes, real shop sales, Sri Lankan agency-banking records
-- Safety stock per item instead of one error figure for all items
-- Count agency-banking commission as income in the credit score
-- Full offline mode and Tamil language support
-
----
 
 Built for real-world impact in rural Sri Lanka · Lanka-Link
