@@ -55,8 +55,22 @@ class AuthService {
     if (me is Map<String, dynamic>) profile = me;
   }
 
+  /// Other devices are signed out by the backend; this one continues with the new token.
   static Future<void> changePassword(String current, String next) async {
-    await Api.post("/auth/change-password", {"current_password": current, "new_password": next});
+    final res = await Api.post("/auth/change-password", {"current_password": current, "new_password": next});
+    final token = res is Map ? res["token"] : null;
+    if (token is String) {
+      Api.token = token;
+      try {
+        await _storage.write(key: _tokenKey, value: token);
+      } catch (_) {}
+    }
+  }
+
+  /// Ends every session of this account (all phones and browsers), then this one.
+  static Future<void> logoutAll() async {
+    await Api.post("/auth/logout-all", {});
+    await logout();
   }
 
   static Future<void> register(String fullName, String email, String password) async {

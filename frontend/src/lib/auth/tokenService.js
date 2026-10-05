@@ -4,7 +4,9 @@ const USER_KEY = "lankalink_user";
 function setCookie(name, value, days = 1) {
   if (typeof document === "undefined") return;
   const expires = new Date(Date.now() + days * 864e5).toUTCString();
-  document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires};path=/;SameSite=Strict`;
+  // Secure: only sent over HTTPS once deployed (plain http on localhost would drop it)
+  const secure = window.location.protocol === "https:" ? ";Secure" : "";
+  document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires};path=/;SameSite=Strict${secure}`;
 }
 function clearCookie(name) {
   if (typeof document === "undefined") return;

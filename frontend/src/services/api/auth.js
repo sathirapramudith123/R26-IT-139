@@ -8,4 +8,6 @@ export const authApi = {
   me: () => apiClient.get("/auth/me"),
   updateMe: (p) => apiClient.put("/auth/me", p),
   changePassword: (p) => apiClient.post("/auth/change-password", p),
+  // ends every session of this account (all browsers and phones)
+  logoutAll: () => apiClient.post("/auth/logout-all", {}),
 };

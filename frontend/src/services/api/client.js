@@ -14,6 +14,7 @@ function handleUnauthorized() {
   if (typeof window === "undefined") return;
   localStorage.removeItem("access_token");
   localStorage.removeItem("lankalink_user");
+  document.cookie = "access_token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
   window.location.href = "/auth/login";
 }
 async function request(path, options = {}) {

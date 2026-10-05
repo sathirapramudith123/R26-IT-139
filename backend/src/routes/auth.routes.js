@@ -14,4 +14,5 @@ router.post("/reset-password", authLimiter, validateBody(S.resetPassword), ctrl.
 router.get("/me", auth, ctrl.me);
 router.put("/me", auth, validateBody(S.updateProfile), ctrl.updateMe);
 router.post("/change-password", auth, authLimiter, validateBody(S.changePassword), ctrl.changePassword);
+router.post("/logout-all", auth, authLimiter, ctrl.logoutAll);
 export default router;

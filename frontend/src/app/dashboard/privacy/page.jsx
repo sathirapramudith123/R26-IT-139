@@ -1,9 +1,13 @@
 "use client";
 
-import { Database, Lock, Landmark, Bot, MapPin, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Database, Lock, Landmark, Bot, MapPin, CheckCircle2, LogOut } from "lucide-react";
 import useAuthGuard from "@/hooks/useAuthGuard";
 import PageHeader from "@/components/common/PageHeader";
 import { t } from "@/lib/i18n";
+import { authApi } from "@/services/api/auth";
+import { tokenService } from "@/lib/auth/tokenService";
 
 // How Lanka-Link handles data — every point describes what the app actually does
 // (same content as the mobile app's Privacy & Security screen).
@@ -22,6 +26,7 @@ const SECTIONS = [
     points: [
       "Passwords are never stored as text — only a bcrypt hash that cannot be turned back into the password.",
       "A login lasts 8 hours, then you are signed out automatically.",
+      "Changing or resetting your password signs you out on every other device.",
       "Password-reset links work for 1 hour and only once. Repeated wrong logins are slowed down.",
     ],
   },
@@ -53,6 +58,24 @@ const SECTIONS = [
 
 export default function PrivacyPage() {
   useAuthGuard();
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+
+  async function signOutEverywhere() {
+    if (!confirm(t("Sign out of Lanka-Link on all devices, including this one?"))) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      await authApi.logoutAll();
+      tokenService.clearToken();
+      router.replace("/auth/login");
+    } catch (e) {
+      setErr(t(e.message || "Failed"));
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="page-container">
       <PageHeader title={t("Privacy & Security")} description={t("How your data is handled")} />
@@ -75,6 +98,22 @@ export default function PrivacyPage() {
             </ul>
           </div>
         ))}
+      </div>
+
+      {/* lost a phone / used a shared computer: end every session at once */}
+      <div className="card mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="font-display font-semibold text-slate-800 dark:text-slate-100">
+            {t("Sign out of all devices")}
+          </p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {t("Lost a phone or used a shared computer? End every session of your account at once.")}
+          </p>
+          {err && <p className="mt-1 text-sm text-red-600">{err}</p>}
+        </div>
+        <button onClick={signOutEverywhere} disabled={busy} className="btn-secondary shrink-0 !text-red-600">
+          <LogOut className="h-4 w-4" /> {busy ? t("Signing out…") : t("Sign out everywhere")}
+        </button>
       </div>
     </div>
   );

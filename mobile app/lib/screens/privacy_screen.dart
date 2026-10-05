@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../core/i18n.dart';
 import '../core/theme.dart';
+import '../services/auth_service.dart';
+import 'auth/login_screen.dart';
 
 /// How Lanka-Link handles your data — every point describes what the app actually does.
 class PrivacyScreen extends StatelessWidget {
@@ -21,6 +23,7 @@ class PrivacyScreen extends StatelessWidget {
       [
         "Passwords are never stored as text — only a bcrypt hash that cannot be turned back into the password.",
         "A login lasts 8 hours; the login token is kept encrypted on this phone.",
+        "Changing or resetting your password signs you out on every other device.",
         "Password-reset links work for 1 hour and only once. Repeated wrong logins are slowed down.",
       ],
     ),
@@ -101,7 +104,83 @@ class PrivacyScreen extends StatelessWidget {
                 ),
               ),
             ),
+          const SizedBox(height: 4),
+          const _SignOutEverywhere(),
         ],
+      ),
+    );
+  }
+}
+
+/// Lost a phone / used a shared computer: end every session of the account at once.
+class _SignOutEverywhere extends StatefulWidget {
+  const _SignOutEverywhere();
+  @override
+  State<_SignOutEverywhere> createState() => _SignOutEverywhereState();
+}
+
+class _SignOutEverywhereState extends State<_SignOutEverywhere> {
+  bool busy = false;
+
+  Future<void> _run() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(tr("Sign out of all devices")),
+        content: Text(tr("Sign out of Lanka-Link on all devices, including this one?")),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr("Cancel"))),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: KadeColors.terra),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(tr("Sign out everywhere")),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => busy = true);
+    try {
+      await AuthService.logoutAll();
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => busy = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(tr(e.toString().replaceFirst("Exception: ", "")))));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(tr("Sign out of all devices"), style: text.titleSmall),
+            const SizedBox(height: 4),
+            Text(
+              tr("Lost a phone or used a shared computer? End every session of your account at once."),
+              style: text.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(foregroundColor: KadeColors.terra),
+              onPressed: busy ? null : _run,
+              icon: const Icon(Icons.logout),
+              label: Text(busy ? tr("Signing out…") : tr("Sign out everywhere")),
+            ),
+          ],
+        ),
       ),
     );
   }

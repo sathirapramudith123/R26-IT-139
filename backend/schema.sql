@@ -40,6 +40,7 @@ CREATE TABLE users (
     reset_token        VARCHAR(255),
     reset_token_expiry TIMESTAMPTZ,
     last_login_at      TIMESTAMPTZ,
+    token_version      INTEGER      NOT NULL DEFAULT 0,  -- +1 = revoke all JWTs (password change, sign out everywhere)
 
     created_at         TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     updated_at         TIMESTAMPTZ  NOT NULL DEFAULT NOW(),

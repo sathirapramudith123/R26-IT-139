@@ -1112,5 +1112,12 @@
   "days": "දින",
   "Finding address…": "ලිපිනය සොයමින්…",
   "Pinned on the map": "සිතියමේ සලකුණු කර ඇත",
-  "Open in Google Maps": "Google Maps හි විවෘත කරන්න"
+  "Open in Google Maps": "Google Maps හි විවෘත කරන්න",
+  "Changing or resetting your password signs you out on every other device.": "මුරපදය වෙනස් කළ විට හෝ යළි සැකසූ විට අනෙක් සියලු උපාංගවලින් ඔබව ඉවත් කෙරේ.",
+  "Sign out of all devices": "සියලු උපාංගවලින් ඉවත් වන්න",
+  "Sign out of Lanka-Link on all devices, including this one?": "මෙය ද ඇතුළුව සියලු උපාංගවල Lanka-Link වෙතින් ඉවත් වන්නද?",
+  "Lost a phone or used a shared computer? End every session of your account at once.": "දුරකථනයක් නැති වුණාද, නැත්නම් පොදු පරිගණකයක් භාවිතා කළාද? ඔබේ ගිණුමේ සියලු සැසි එකවර අවසන් කරන්න.",
+  "Sign out everywhere": "සෑම තැනින්ම ඉවත් වන්න",
+  "Signing out…": "ඉවත් වෙමින්…",
+  "Session ended — please sign in again": "සැසිය අවසන් විය — නැවත පිවිසෙන්න"
 }

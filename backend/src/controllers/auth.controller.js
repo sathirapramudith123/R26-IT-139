@@ -3,12 +3,15 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { supabase } from "../config/supabase.js";
 import { sendResetEmail } from "../utils/mailer.js";
+import { bumpTokenVersion } from "../utils/tokenVersion.js";
 
 // Reset tokens are stored hashed, so a leaked DB row cannot be used to reset a password
 const hashToken = (t) => crypto.createHash("sha256").update(String(t)).digest("hex");
 
-const signToken = (u) =>
-  jwt.sign({ id: u.user_id, email: u.email }, process.env.JWT_SECRET, {
+// tv = token version: bumping users.token_version revokes every older token (see utils/tokenVersion.js)
+const signToken = (u, tv = u.token_version ?? 0) =>
+  jwt.sign({ id: u.user_id, email: u.email, tv }, process.env.JWT_SECRET, {
+    algorithm: "HS256",
     expiresIn: process.env.JWT_EXPIRES_IN || "8h",
   });
 
@@ -131,6 +134,7 @@ export const resetPassword = async (req, res, next) => {
       .update({ password_hash, reset_token: null, reset_token_expiry: null })
       .eq("user_id", user.user_id);
     if (error) throw error;
+    await bumpTokenVersion(user.user_id); // anyone signed in with the old password is signed out
 
     res.json({ message: "Password reset successful" });
   } catch (e) {
@@ -176,7 +180,7 @@ export const changePassword = async (req, res, next) => {
     const { current_password, new_password } = req.body;
     const { data: user, error } = await supabase
       .from("users")
-      .select("user_id, password_hash")
+      .select("user_id, email, password_hash")
       .eq("user_id", req.user.id)
       .maybeSingle();
     if (error) throw error;
@@ -189,7 +193,21 @@ export const changePassword = async (req, res, next) => {
       .update({ password_hash, updated_at: new Date().toISOString() })
       .eq("user_id", user.user_id);
     if (upErr) throw upErr;
-    res.json({ message: "Password changed" });
+    // every other device is signed out; this one keeps working with a new token
+    const tv = await bumpTokenVersion(user.user_id);
+    res.json({ message: "Password changed", ...(tv !== null && { token: signToken(user, tv) }) });
+  } catch (e) {
+    next(e);
+  }
+};
+
+// "Sign out of all devices": every token issued so far stops working
+export const logoutAll = async (req, res, next) => {
+  try {
+    const tv = await bumpTokenVersion(req.user.id);
+    if (tv === null)
+      return res.status(501).json({ error: "Not available yet — the token_version column is missing" });
+    res.json({ message: "Signed out of all devices" });
   } catch (e) {
     next(e);
   }

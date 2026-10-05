@@ -2,6 +2,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import morgan from "morgan";
 
 import { checkSupabase } from "./src/config/supabase.js";
@@ -40,6 +41,11 @@ app.use(
     origin: (origin, cb) => cb(null, !origin || allowedOrigins.includes(origin)),
   }),
 );
+// Standard security headers (OWASP): no MIME sniffing, no framing, no Referer leaks,
+// HSTS on HTTPS, and a locked-down CSP (the API only returns JSON). "same-site" lets the
+// web app on another localhost port / sub-domain still load API responses.
+app.use(helmet({ crossOriginResourcePolicy: { policy: "same-site" } }));
+app.disable("x-powered-by");
 app.use(express.json());
 app.use(morgan("dev"));
 

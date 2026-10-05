@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { KeyRound, UserPen } from "lucide-react";
 import { authApi } from "@/services/api/auth";
+import { tokenService } from "@/lib/auth/tokenService";
 import { t } from "@/lib/i18n";
 
 // Change your name, and your password (the backend checks the current password)
@@ -37,7 +38,9 @@ export default function EditProfileCard({ name, onNameSaved }) {
     if (pw.next !== pw.confirm) return fail(t("The new passwords don't match."));
     setBusy("password");
     try {
-      await authApi.changePassword({ current_password: pw.current, new_password: pw.next }); // ggignore
+      const res = await authApi.changePassword({ current_password: pw.current, new_password: pw.next }); // ggignore
+      // other devices are signed out; this browser continues with the new token
+      if (res?.token) tokenService.setToken(res.token);
       setPw({ current: "", next: "", confirm: "" });
       setMsg({ password: { ok: true, text: t("Password changed.") } });
     } catch (err) {
