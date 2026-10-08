@@ -19,6 +19,7 @@ import predictionRoutes from "./src/routes/prediction.routes.js";
 import insightsRoutes from "./src/routes/insights.routes.js";
 import reportRoutes from "./src/routes/report.routes.js";
 import agentBankRoutes from "./src/routes/agentBank.routes.js";
+import bankAccountRoutes from "./src/routes/bankAccount.routes.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -63,6 +64,7 @@ app.use(`${API}/predict`, predictionRoutes);
 app.use(`${API}/insights`, insightsRoutes);
 app.use(`${API}/reports`, reportRoutes);
 app.use(`${API}/agent-banks`, agentBankRoutes);
+app.use(`${API}/bank-accounts`, bankAccountRoutes);
 
 app.use((req, res) => res.status(404).json({ error: "Route not found" }));
 app.use(errorHandler);

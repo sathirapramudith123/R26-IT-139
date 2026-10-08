@@ -75,6 +75,14 @@ export const NAV_ITEMS = [
   },
   {
     get label() {
+      return t("Bank Accounts");
+    },
+    href: "/dashboard/bank-accounts",
+    icon: "Wallet",
+    group: "finance",
+  },
+  {
+    get label() {
       return t("Suppliers");
     },
     href: "/dashboard/suppliers",

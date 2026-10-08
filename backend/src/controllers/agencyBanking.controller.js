@@ -10,8 +10,12 @@ import {
   postBanking,
   updateBanking,
   deleteBanking,
+  postAccountBanking,
+  deleteAccountBanking,
   bankingError,
 } from "../utils/float.js";
+import { findAccount, verifyOtp } from "./bankAccount.controller.js";
+import { agentName, sendCustomerMessage, text } from "../utils/customerAlerts.js";
 
 const TABLE = "agency_banking";
 const ID = "agency_banking_id";
@@ -72,6 +76,19 @@ const shape = (row) => {
 // checked inside the DB functions (sql/atomic_banking.sql) while the user's cash pool
 // is locked, so two requests at the same moment cannot both slip under the limit.
 const limitsFor = (type) => ({ limit: DAILY_LIMITS[type] ?? null, maxTxns: MAX_TXNS_PER_DAY[type] ?? null });
+
+// The dummy-bank account for this transaction: the account row, null when no partner bank
+// is used (or the dummy-bank tables are not installed yet), false when the number is unknown.
+async function registeredAccount(userId, payload) {
+  if (!payload.agent_bank_id) return null;
+  try {
+    await supabase.rpc("bank_accounts_seed", { p_user: userId });
+    return (await findAccount(userId, payload.agent_bank_id, payload.account_number)) || false;
+  } catch (e) {
+    if (e?.code === "42P01" || e?.code === "PGRST205" || /bank_accounts/.test(e?.message || "")) return null;
+    throw e;
+  }
+}
 
 // Required-field checks that need no DB access
 function checkRequired(payload) {
@@ -154,15 +171,41 @@ export const create = async (req, res, next) => {
     const missing = checkRequired(payload);
     if (missing) return res.status(400).json({ error: missing });
 
+    // Dummy bank: a deposit / withdrawal through a partner bank must use a registered account
+    const isCash =
+      payload.transaction_type === "CASH_DEPOSIT" || payload.transaction_type === "CASH_WITHDRAWAL";
+    const account = isCash ? await registeredAccount(req.user.id, payload) : null;
+    if (account === false)
+      return res.status(400).json({ error: "No account with this number at the selected bank." });
+    if (account && payload.transaction_type === "CASH_WITHDRAWAL") {
+      if (Number(account.balance) < payload.amount)
+        return res.status(400).json({
+          error: `Insufficient balance in the customer's account. Available: LKR ${Number(account.balance).toLocaleString("en-LK")}.`,
+        });
+      const otpError = await verifyOtp(
+        req.user.id,
+        account.account_id,
+        req.body.otp_id,
+        req.body.otp_code,
+        payload.amount,
+      );
+      if (otpError) return res.status(400).json({ error: otpError });
+    }
+
     // 1. Risk score first — the ML call must not run inside the DB transaction
     const risk = await scoreRisk(req.user.id, payload);
 
     // 2. One DB transaction: daily limits -> float / cash check -> insert -> ledger + balances
-    const { data: out, error } = await postBanking(
-      req.user.id,
-      { ...payload, is_anomaly: risk.is_anomaly, anomaly_score: risk.anomaly_score },
-      limitsFor(payload.transaction_type),
-    );
+    //    (+ the customer's account balance and statement when the account is registered)
+    const row = { ...payload, is_anomaly: risk.is_anomaly, anomaly_score: risk.anomaly_score };
+    const { data: out, error } = account
+      ? await postAccountBanking(
+          req.user.id,
+          row,
+          limitsFor(payload.transaction_type),
+          req.body.otp_id || null,
+        )
+      : await postBanking(req.user.id, row, limitsFor(payload.transaction_type));
     if (error) {
       const known = bankingError(error, payload.transaction_type);
       if (known) return res.status(known.status).json({ error: known.message });
@@ -205,8 +248,28 @@ export const create = async (req, res, next) => {
       ],
     });
 
+    // 4. Credit / debit alert to the customer (simulated SMS, + e-mail when possible)
+    if (account) {
+      const msg = {
+        account,
+        amount: data.amount,
+        balance: out.balance_after,
+        agent: await agentName(req.user.id),
+        ref: data.reference_code,
+      };
+      const credit = data.transaction_type === "CASH_DEPOSIT";
+      await sendCustomerMessage(
+        req.user.id,
+        account,
+        credit ? "CREDIT" : "DEBIT",
+        credit ? text.credit(msg) : text.debit(msg),
+      );
+    }
+
     res.status(201).json({
       ...shape(data),
+      balance_before: out.balance_before ?? null,
+      balance_after: out.balance_after ?? null,
       float_after: floatAfter,
       cash_after: cashAfter,
       float_health: health,
@@ -225,11 +288,23 @@ export const update = async (req, res, next) => {
 
     const { data: old } = await supabase
       .from(TABLE)
-      .select("created_at")
+      .select("*")
       .eq(ID, req.params.id)
       .eq("user_id", req.user.id)
       .maybeSingle();
     if (!old) return res.status(404).json({ error: "Transaction not found" });
+    // posted to a customer's account: like a real bank, the money side cannot be edited
+    if (
+      old.bank_account_id &&
+      (Number(old.amount) !== payload.amount ||
+        old.transaction_type !== payload.transaction_type ||
+        old.account_number !== payload.account_number ||
+        old.agent_bank_id !== payload.agent_bank_id)
+    )
+      return res.status(400).json({
+        error:
+          "This transaction was posted to the customer's account — amount, type, account and bank cannot be changed. Delete it to reverse it.",
+      });
 
     // original timestamp so weekday/day_of_month features stay correct on edit
     const risk = await scoreRisk(req.user.id, payload, old.created_at);
@@ -274,12 +349,44 @@ export const markSafe = async (req, res, next) => {
 
 export const remove = async (req, res, next) => {
   try {
-    // One DB transaction: undo the float / cash movement, then delete the record
-    const { error } = await deleteBanking(req.user.id, req.params.id);
+    const { data: old } = await supabase
+      .from(TABLE)
+      .select("*")
+      .eq(ID, req.params.id)
+      .eq("user_id", req.user.id)
+      .maybeSingle();
+    if (!old) return res.status(404).json({ error: "Transaction not found" });
+
+    // One DB transaction: undo the account balance (if any) and the float / cash movement,
+    // then delete the record
+    const { data: out, error } = old.bank_account_id
+      ? await deleteAccountBanking(req.user.id, req.params.id)
+      : await deleteBanking(req.user.id, req.params.id);
     if (error) {
       const known = bankingError(error);
       if (known) return res.status(known.status).json({ error: known.message });
       throw error;
+    }
+
+    if (old.bank_account_id && out?.account_id) {
+      const { data: acc } = await supabase
+        .from("bank_accounts")
+        .select("*")
+        .eq("account_id", out.account_id)
+        .maybeSingle();
+      if (acc)
+        await sendCustomerMessage(
+          req.user.id,
+          acc,
+          "REVERSAL",
+          text.reversal({
+            account: acc,
+            amount: old.amount,
+            balance: acc.balance,
+            ref: old.reference_code,
+            credit: old.transaction_type === "CASH_WITHDRAWAL",
+          }),
+        );
     }
     res.json({ message: "Transaction deleted" });
   } catch (e) {

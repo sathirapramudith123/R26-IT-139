@@ -100,6 +100,28 @@ export async function deleteBanking(userId, id) {
   });
 }
 
+// Deposit / withdrawal on a registered dummy-bank account (sql/dummy_bank.sql)
+export async function postAccountBanking(userId, row, limits = {}, otpId = null) {
+  return supabase.rpc("bank_account_post", {
+    p_user: userId,
+    p_row: row,
+    ...dayArgs(),
+    p_limit: limits.limit ?? null,
+    p_max_txns: limits.maxTxns ?? null,
+    ...POOL_DEFAULTS,
+    p_otp_id: otpId,
+  });
+}
+
+export async function deleteAccountBanking(userId, id) {
+  return supabase.rpc("bank_account_delete", {
+    p_user: userId,
+    p_id: id,
+    p_today: localDateStr(),
+    ...POOL_DEFAULTS,
+  });
+}
+
 export async function topUpFloat(userId, bankId, amount, note = "Float top-up") {
   return supabase.rpc("float_topup", {
     p_user: userId,
@@ -180,6 +202,24 @@ export function bankingError(error, type = "") {
       };
     case "BANK_NOT_FOUND":
       return { status: 400, message: "Selected bank not found." };
+    case "ACCOUNT_NOT_FOUND":
+      return { status: 400, message: "No account with this number at the selected bank." };
+    case "ACCOUNT_INACTIVE":
+      return { status: 400, message: "This account is not active." };
+    case "INSUFFICIENT_BALANCE":
+      return {
+        status: 400,
+        message: `Insufficient balance in the customer's account. Available: LKR ${lkr(d.balance)}.`,
+      };
+    case "OTP_REQUIRED":
+      return { status: 400, message: "A valid OTP from the customer is required for this withdrawal." };
+    case "UNSUPPORTED_ACCOUNT_TXN":
+      return { status: 400, message: "Only deposits and withdrawals can be posted to a customer account." };
+    case "CANNOT_UNDO_ACCOUNT":
+      return {
+        status: 400,
+        message: `Cannot undo this deposit — the customer's balance (LKR ${lkr(d.balance)}) is less than LKR ${lkr(d.amount)}.`,
+      };
     case "NOT_FOUND":
       return { status: 404, message: "Transaction not found" };
     default:

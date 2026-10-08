@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   X,
   Package,
@@ -15,9 +15,13 @@ import {
   Phone,
   MapPin,
   Boxes,
+  PackagePlus,
+  TrendingUp,
+  Loader2,
 } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { useReadableLocation } from "@/lib/geo";
+import { inventoryApi } from "@/services/api/inventory";
 
 /*
  * "View one record" dialog — same look as the mobile details screens:
@@ -366,6 +370,143 @@ function Inventory({ d }) {
         <Row label={t("Supplier")} value={hasText(d.supplier_name) ? d.supplier_name : "—"} />
         <Row label={t("Lead Time")} value={`${qty(d.lead_time_days ?? 1)} ${t("days")}`} />
         {hasText(d.received_at) && <Row label={t("Last Received")} value={dateOf(d.received_at)} />}
+      </Section>
+      {d.id && <InventoryHistory id={d.id} unit={unitOf(d.unit)} />}
+    </>
+  );
+}
+
+// Purchases (each one a batch: when, how many, at what cost), stock left per cost,
+// and units sold today / last 7 days / last 30 days / a chosen date range.
+function InventoryHistory({ id, unit }) {
+  const today = dateOf(new Date());
+  const monthAgo = dateOf(new Date(Date.now() - 29 * 86400000));
+  const [range, setRange] = useState({ from: monthAgo, to: today });
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    inventoryApi
+      .insights(id, range.from, range.to)
+      .then((r) => alive && (setData(r), setErr(null)))
+      .catch((e) => alive && setErr(e.message || t("Failed")));
+    return () => {
+      alive = false;
+    };
+  }, [id, range.from, range.to]);
+
+  if (err) return <p className="px-1 text-sm text-red-600">{err}</p>;
+  if (!data)
+    return (
+      <div className="flex justify-center py-6 text-slate-400">
+        <Loader2 className="h-5 w-5 animate-spin" />
+      </div>
+    );
+
+  const s = data.sales;
+  const tiles = [
+    [t("Today"), s.today],
+    [t("Last 7 days"), s.last_7_days],
+    [t("Last 30 days"), s.last_30_days],
+  ];
+  const input =
+    "rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100";
+
+  return (
+    <>
+      <Section title={t("Units sold")} icon={TrendingUp}>
+        <div className="grid grid-cols-3 gap-2">
+          {tiles.map(([label, v]) => (
+            <div key={label} className="rounded-xl bg-slate-50 p-3 text-center dark:bg-slate-800">
+              <p className="text-[11px] text-slate-500">{label}</p>
+              <p className="font-display text-xl font-bold text-slate-900 dark:text-slate-100">
+                {qty(v.units)}
+                <span className="text-xs font-medium text-slate-400">{unit}</span>
+              </p>
+              <p className="text-[11px] text-emerald-600">{money(v.revenue)}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            <span>{t("From")}</span>
+            <input
+              type="date"
+              className={input}
+              value={range.from}
+              max={range.to}
+              onChange={(e) => e.target.value && setRange((r) => ({ ...r, from: e.target.value }))}
+            />
+            <span>{t("To")}</span>
+            <input
+              type="date"
+              className={input}
+              value={range.to}
+              min={range.from}
+              max={today}
+              onChange={(e) => e.target.value && setRange((r) => ({ ...r, to: e.target.value }))}
+            />
+          </div>
+          <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
+            <b>
+              {qty(s.range.units)}
+              {unit}
+            </b>{" "}
+            {t("sold in")} {s.range.sales} {t("sales")} · {money(s.range.revenue)}
+          </p>
+        </div>
+      </Section>
+
+      <Section title={t("Purchases (batches)")} icon={PackagePlus}>
+        {data.purchases.length === 0 ? (
+          <p className="text-sm text-slate-500">{t("No purchases recorded yet.")}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-slate-500">
+                  <th className="py-1.5 pr-2 font-medium">{t("Bought on")}</th>
+                  <th className="py-1.5 pr-2 text-right font-medium">{t("Qty")}</th>
+                  <th className="py-1.5 pr-2 text-right font-medium">{t("Unit Cost")}</th>
+                  <th className="py-1.5 text-right font-medium">{t("Total")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.purchases.map((p, i) => (
+                  <tr key={i} className="border-t border-slate-100 dark:border-slate-800">
+                    <td className="py-2 pr-2">
+                      <p className="font-medium text-slate-800 dark:text-slate-100">{dateOf(p.date)}</p>
+                      <p className="text-[11px] text-slate-400">
+                        {t(p.source)}
+                        {p.ref ? ` · ${p.ref}` : ""}
+                        {p.estimated ? ` · ${t("estimated")}` : ""}
+                      </p>
+                    </td>
+                    <td className="py-2 pr-2 text-right">
+                      {qty(p.quantity)}
+                      {unit}
+                    </td>
+                    <td className="py-2 pr-2 text-right">{money(p.unit_cost)}</td>
+                    <td className="py-2 text-right font-semibold">{money(p.total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Section>
+
+      <Section title={t("In stock now (by cost)")} icon={Boxes}>
+        {data.batches.map((b, i) => (
+          <Line
+            key={i}
+            title={`${b.batch_no || `${t("Batch")} ${i + 1}`} · ${money(b.unit_cost)}`}
+            detail={`${t("Received")} ${dateOf(b.received_at)}`}
+            trailing={`${qty(b.remaining)}${unit} ${t("left")}`}
+          />
+        ))}
+        <p className="mt-1 text-[11px] text-slate-400">{t("Sales use the oldest stock first (FIFO).")}</p>
       </Section>
     </>
   );

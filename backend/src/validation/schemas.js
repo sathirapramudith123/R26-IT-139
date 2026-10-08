@@ -152,6 +152,13 @@ export const agencyBanking = Joi.object({
   created_offline: Joi.boolean(),
   status: bankingStatus,
   banking_status: bankingStatus,
+  // withdrawal from a registered account: the OTP the customer received
+  otp_id: Joi.string().trim().guid().allow("", null),
+  otp_code: Joi.string()
+    .trim()
+    .pattern(/^[0-9]{6}$/)
+    .allow("", null)
+    .messages({ "string.pattern.base": "OTP must be 6 digits" }),
 });
 
 // ── Agent banks ────────────────────────────────────────────────

@@ -3,6 +3,7 @@ import '../../core/i18n.dart';
 import '../../core/theme.dart';
 import '../procurement/procurement_details_screen.dart';
 import '../suppliers/supplier_route_screen.dart';
+import '../inventory/inventory_history.dart';
 import 'record_details.dart';
 
 /// The details screen for one record of a module, or null to fall back to the plain dialog.
@@ -112,6 +113,8 @@ Widget _inventory(Map<String, dynamic> i) {
           if (hasText(i["received_at"])) DetailRow(tr("Last Received"), dateOf(i["received_at"])),
         ],
       ),
+      // purchases (batches), stock left per cost and units sold
+      if (i["id"] != null) InventoryHistory(id: "${i["id"]}", unit: unit),
     ],
   );
 }

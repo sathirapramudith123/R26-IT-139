@@ -1,19 +1,17 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme.dart';
 import '../../services/crud_service.dart';
 import '../../services/agent_bank_service.dart';
+import '../../services/bank_account_service.dart';
 import '../inventory/inventory_form_screen.dart' show fieldLabel, errorBox, saveButton;
 import '../../core/i18n.dart';
 
 /// Tiered CBSL daily limits (LKR) — keep identical to the backend
 /// agencyBanking.controller.js TIER_LIMITS. `null` = no limit.
 // Rural agent build: fixed LOW-tier daily limits (no KYC dropdown).
-const Map<String, num?> kDailyLimits = {
-  "cash_deposit": 50000,
-  "cash_withdrawal": 25000,
-  "fund_transfer": 50000,
-};
+const Map<String, num?> kDailyLimits = {"cash_deposit": 50000, "cash_withdrawal": 25000, "fund_transfer": 50000};
 
 const List<Map<String, String>> kSourceOfFunds = [
   {"value": "SALARY", "label": "Salary"},
@@ -56,6 +54,17 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
   String? agentBankId; // NEW
   bool loadingBanks = true;
 
+  // Dummy bank: the customer's registered account, the withdrawal OTP and a balance inquiry
+  Map<String, dynamic>? account;
+  bool lookingUp = false;
+  String? lookupError;
+  Map<String, dynamic>? otp; // { otp_id, expires_at, sent_to }
+  final otpCtrl = TextEditingController();
+  bool otpBusy = false;
+  String? notice;
+  Timer? _ticker;
+  bool get lockedToAccount => isEdit && widget.item?["bank_account_id"] != null;
+
   static const types = ["cash_deposit", "cash_withdrawal", "fund_transfer"];
   static const statuses = ["completed", "pending", "failed"];
 
@@ -82,6 +91,91 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
     nicCtrl.text = it?["customer_nic"]?.toString() ?? "";
     agentBankId = it?["agent_bank_id"]?.toString();
     _loadBanks();
+    // a new account number needs a new lookup (and a new OTP)
+    accountCtrl.addListener(() {
+      if (account != null && account!["account_number"] != accountCtrl.text.trim()) _resetAccount();
+    });
+    // OTP countdown
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (otp != null && mounted) setState(() {});
+    });
+  }
+
+  void _resetAccount() => setState(() {
+    account = null;
+    lookupError = null;
+    otp = null;
+    otpCtrl.clear();
+  });
+
+  int get _otpLeft {
+    final exp = DateTime.tryParse("${otp?["expires_at"] ?? ""}");
+    if (exp == null) return 0;
+    final left = exp.difference(DateTime.now()).inSeconds;
+    return left < 0 ? 0 : left;
+  }
+
+  Future<void> _verifyAccount() async {
+    if (agentBankId == null || accountCtrl.text.trim().isEmpty) {
+      setState(() => lookupError = tr("Select a bank and enter the account number."));
+      return;
+    }
+    setState(() {
+      lookingUp = true;
+      lookupError = null;
+      notice = null;
+    });
+    try {
+      final a = await BankAccountService.lookup(agentBankId!, accountCtrl.text.trim());
+      if (!mounted) return;
+      setState(() {
+        account = a;
+        // the account holder's details come from the bank
+        customerCtrl.text = "${a["holder_name"] ?? ""}";
+        phoneCtrl.text = "${a["phone"] ?? ""}";
+        nicCtrl.text = "${a["holder_nic"] ?? ""}";
+      });
+    } catch (e) {
+      if (mounted) setState(() => lookupError = e.toString().replaceFirst("Exception: ", ""));
+    } finally {
+      if (mounted) setState(() => lookingUp = false);
+    }
+  }
+
+  Future<void> _balanceInquiry() async {
+    if (account == null) return;
+    try {
+      final a = await BankAccountService.balanceInquiry("${account!["id"]}");
+      if (!mounted) return;
+      setState(() {
+        account = a;
+        notice = "${tr("Balance sent to the customer by SMS")} (${a["phone_masked"]}).";
+      });
+    } catch (e) {
+      if (mounted) setState(() => notice = e.toString().replaceFirst("Exception: ", ""));
+    }
+  }
+
+  Future<void> _sendOtp() async {
+    final amt = num.tryParse(amountCtrl.text.trim()) ?? 0;
+    if (account == null || amt <= 0) return;
+    setState(() {
+      otpBusy = true;
+      notice = null;
+    });
+    try {
+      final o = await BankAccountService.sendOtp("${account!["id"]}", amt);
+      if (!mounted) return;
+      setState(() {
+        otp = o;
+        otpCtrl.clear();
+        notice = "${tr("OTP sent to the customer's phone")} ${o["sent_to"]}.";
+      });
+    } catch (e) {
+      if (mounted) setState(() => error = e.toString().replaceFirst("Exception: ", ""));
+    } finally {
+      if (mounted) setState(() => otpBusy = false);
+    }
   }
 
   Future<void> _loadBanks() async {
@@ -136,6 +230,8 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
     accountCtrl.dispose();
     sourceOtherCtrl.dispose();
     amountCtrl.dispose();
+    otpCtrl.dispose();
+    _ticker?.cancel();
     feeCtrl.dispose();
     commissionCtrl.dispose();
     super.dispose();
@@ -160,6 +256,10 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
   }
 
   void _onAmountChanged(String val) {
+    if (otp != null) {
+      otp = null;
+      otpCtrl.clear();
+    }
     final amt = num.tryParse(val.trim()) ?? 0;
     if (!isEdit && amt > 0) {
       final fee = (amt * 0.002) < 20 ? 20.0 : (amt * 0.002);
@@ -169,12 +269,109 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
     setState(() {}); // refresh live float panel
   }
 
+  // the customer's account at the dummy bank: balance, balance inquiry and the withdrawal OTP
+  Widget _accountCard() {
+    final a = account!;
+    final bal = ((a["balance"] as num?) ?? 0).toDouble();
+    final amt = num.tryParse(amountCtrl.text.trim()) ?? 0;
+    final after = txType == "cash_deposit" ? bal + amt : bal - amt;
+    final soft = Theme.of(context).textTheme.bodySmall;
+    final left = _otpLeft;
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: KadeColors.success.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(KadeRadius.md),
+        border: Border.all(color: KadeColors.success.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.verified_user_outlined, size: 16, color: KadeColors.success),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  "${tr("Account verified")} · ${a["bank_name"]}",
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: KadeColors.success),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text("${a["holder_name"]}", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          Text("A/C ${a["account_number"]} · ${a["phone_masked"]}", style: soft),
+          const SizedBox(height: 8),
+          Text(tr("Available balance"), style: soft),
+          Text(
+            "LKR ${_money(bal)}",
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: KadeColors.success),
+          ),
+          if (amt > 0 && (txType == "cash_deposit" || txType == "cash_withdrawal"))
+            Text(
+              "${tr("After this transaction:")} LKR ${_money(after)}",
+              style: soft?.copyWith(color: after < 0 ? KadeColors.terra : null, fontWeight: FontWeight.w600),
+            ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _balanceInquiry,
+            icon: const Icon(Icons.sms_outlined, size: 16),
+            label: Text(tr("Balance inquiry (SMS to customer)")),
+          ),
+          if (notice != null) Text(notice!, style: const TextStyle(fontSize: 12, color: KadeColors.success)),
+          if (txType == "cash_withdrawal") ...[
+            const Divider(height: 20),
+            Text(
+              tr("Customer OTP required for withdrawals"),
+              style: const TextStyle(fontWeight: FontWeight.w600, color: KadeColors.amber),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: KadeColors.amber),
+                  onPressed: otpBusy || amt <= 0 || amt > bal ? null : _sendOtp,
+                  child: Text(otpBusy ? tr("Sending…") : (otp != null ? tr("Resend OTP") : tr("Send OTP"))),
+                ),
+                if (otp != null) ...[
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 120,
+                    child: TextField(
+                      controller: otpCtrl,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      textAlign: TextAlign.center,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      style: const TextStyle(fontSize: 18, letterSpacing: 4, fontWeight: FontWeight.w700),
+                      decoration: const InputDecoration(hintText: "••••••", counterText: "", isDense: true),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            if (otp != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  left > 0
+                      ? "${tr("Expires in")} ${left ~/ 60}:${(left % 60).toString().padLeft(2, "0")}"
+                      : tr("Expired"),
+                  style: TextStyle(fontSize: 12, color: left > 0 ? null : KadeColors.terra),
+                ),
+              ),
+            if (amt <= 0) _hint(tr("Enter the amount first.")),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _hint(String text) => Padding(
     padding: const EdgeInsets.only(top: 6, left: 2),
-    child: Text(
-      tr(text),
-      style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
-    ),
+    child: Text(tr(text), style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
   );
 
   Widget _floatPanel() {
@@ -235,9 +432,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
       margin: const EdgeInsets.only(top: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark
-            ? Colors.white10
-            : Colors.black.withValues(alpha: 0.03),
+        color: Theme.of(context).brightness == Brightness.dark ? Colors.white10 : Colors.black.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -319,6 +514,37 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
       }
     }
 
+    // registered account rules (new deposits / withdrawals through a partner bank)
+    final cashTxn = txType == "cash_deposit" || txType == "cash_withdrawal";
+    if (!isEdit && cashTxn && agentBankId != null) {
+      if (account == null) {
+        setState(() => error = tr("Verify the customer's account first."));
+        return;
+      }
+      if (txType == "cash_withdrawal") {
+        final amt = num.tryParse(amountCtrl.text.trim()) ?? 0;
+        if (amt > ((account!["balance"] as num?) ?? 0)) {
+          setState(
+            () =>
+                error = "${tr("Insufficient balance. Available:")} LKR ${_money((account!["balance"] as num?) ?? 0)}.",
+          );
+          return;
+        }
+        if (otp == null) {
+          setState(() => error = tr("Send an OTP to the customer first."));
+          return;
+        }
+        if (_otpLeft <= 0) {
+          setState(() => error = tr("The OTP has expired — send a new one."));
+          return;
+        }
+        if (!RegExp(r'^[0-9]{6}$').hasMatch(otpCtrl.text.trim())) {
+          setState(() => error = tr("Enter the 6-digit OTP the customer received."));
+          return;
+        }
+      }
+    }
+
     num parseNum(String s) => s.trim().isEmpty ? 0 : (num.tryParse(s.trim()) ?? 0);
 
     final payload = <String, dynamic>{
@@ -338,6 +564,8 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
       "channel": "pos_terminal",
       "created_offline": false,
       "tx_hour": DateTime.now().hour,
+      "otp_id": otp?["otp_id"],
+      "otp_code": otpCtrl.text.trim().isEmpty ? null : otpCtrl.text.trim(),
     };
 
     setState(() {
@@ -392,7 +620,12 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
                       ),
                     ),
                   ],
-                  onChanged: saving ? null : (val) => setState(() => agentBankId = val),
+                  onChanged: saving
+                      ? null
+                      : (val) {
+                          setState(() => agentBankId = val);
+                          _resetAccount();
+                        },
                 ),
               if (_selectedBank != null) _floatPanel(),
               const SizedBox(height: 16),
@@ -439,6 +672,8 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
                         if (val != null) {
                           setState(() {
                             txType = val;
+                            otp = null;
+                            otpCtrl.clear();
                           });
                         }
                       },
@@ -447,13 +682,42 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
 
               // NEW: Account Number (mandatory)
               fieldLabel(tr("Account Number *")),
-              TextField(
-                controller: accountCtrl,
-                enabled: !saving,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(hintText: "e.g. 8001234567"),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: accountCtrl,
+                      enabled: !saving && !lockedToAccount,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: const InputDecoration(hintText: "e.g. 8001234567"),
+                      onSubmitted: (_) => _verifyAccount(),
+                    ),
+                  ),
+                  if (agentBankId != null && !lockedToAccount) ...[
+                    const SizedBox(width: 8),
+                    FilledButton.tonalIcon(
+                      onPressed: lookingUp ? null : _verifyAccount,
+                      icon: lookingUp
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.search, size: 18),
+                      label: Text(tr("Verify")),
+                    ),
+                  ],
+                ],
               ),
+              if (lookupError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(lookupError!, style: const TextStyle(color: KadeColors.terra, fontSize: 12)),
+                ),
+              if (account != null) _accountCard(),
+              if (lockedToAccount)
+                _hint(
+                  tr(
+                    "Posted to the customer's account — amount, type, account and bank cannot be changed. Delete the transaction to reverse it.",
+                  ),
+                ),
               const SizedBox(height: 16),
 
               // NEW: Source of Funds — deposits only (mandatory dropdown + Other text)
@@ -504,9 +768,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
                 inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
                 decoration: InputDecoration(hintText: "0.00", prefixText: tr("LKR ")),
               ),
-              _hint(
-                isEdit ? tr("Charged to the customer") : tr("Auto-filled from amount — you can change it"),
-              ),
+              _hint(isEdit ? tr("Charged to the customer") : tr("Auto-filled from amount — you can change it")),
 
               const SizedBox(height: 16),
               fieldLabel(tr("Commission (LKR)")),
@@ -526,9 +788,7 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
                   initialValue: statuses.contains(status) ? status : statuses.first,
                   decoration: const InputDecoration(),
                   items: statuses
-                      .map(
-                        (s) => DropdownMenuItem(value: s, child: Text(s[0].toUpperCase() + s.substring(1))),
-                      )
+                      .map((s) => DropdownMenuItem(value: s, child: Text(s[0].toUpperCase() + s.substring(1))))
                       .toList(),
                   onChanged: saving ? null : (val) => setState(() => status = val ?? status),
                 ),
