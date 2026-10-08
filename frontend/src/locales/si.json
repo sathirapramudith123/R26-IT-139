@@ -1166,5 +1166,16 @@
   "Batch": "තොගය",
   "left": "ඉතිරි",
   "Bought on": "මිලදී ගත් දිනය",
-  "Sales use the oldest stock first (FIFO).": "විකුණුම් සඳහා පැරණිම තොගය මුලින් භාවිත වේ (FIFO)."
+  "Sales use the oldest stock first (FIFO).": "විකුණුම් සඳහා පැරණිම තොගය මුලින් භාවිත වේ (FIFO).",
+  "Ledger": "ලෙජරය",
+  "Debit (Dr)": "හර (Dr)",
+  "Credit (Cr)": "බැර (Cr)",
+  "Nil": "ශුන්‍යයි",
+  "Nil balance": "ශේෂය ශුන්‍යයි",
+  "No entries": "සටහන් නැත",
+  "transactions": "ගනුදෙනු",
+  "Asset": "වත්කම",
+  "Liability": "වගකීම",
+  "Income": "ආදායම",
+  "Balances cover the selected date range only. Dr = debit balance, Cr = credit balance.": "ශේෂයන් තෝරාගත් දින පරාසයට පමණි. Dr = හර ශේෂය, Cr = බැර ශේෂය."
 }

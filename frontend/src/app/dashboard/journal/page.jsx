@@ -12,6 +12,7 @@ import {
   Package,
   FileText,
   Scale,
+  Library,
 } from "lucide-react";
 
 import { t } from "@/lib/i18n";
@@ -22,6 +23,13 @@ const TABS = [
       return t("Journal");
     },
     icon: FileText,
+  },
+  {
+    key: "ledger",
+    get label() {
+      return t("Ledger");
+    },
+    icon: Library,
   },
   {
     key: "goods",
@@ -77,6 +85,7 @@ export default function JournalPage() {
   const days = data?.days || [];
   const goods = data?.goods;
   const pnl = data?.profit_loss;
+  const ledger = data?.ledger || [];
 
   return (
     <div className="page-container space-y-5">
@@ -168,6 +177,8 @@ export default function JournalPage() {
         <Empty text={t("No data for this range.")} />
       ) : tab === "journal" ? (
         <JournalTab days={days} totals={totals} />
+      ) : tab === "ledger" ? (
+        <LedgerTab ledger={ledger} />
       ) : tab === "goods" ? (
         <GoodsTab goods={goods} />
       ) : (
@@ -239,6 +250,148 @@ function JournalTab({ days, totals }) {
           </table>
         </div>
       ))}
+    </div>
+  );
+}
+
+/* ---------------- Ledger tab: one T-account per account ---------------- */
+const CLASS_TONE = {
+  Asset: "bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300",
+  Liability: "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
+  Income: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
+  Expense: "bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300",
+  Other: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+};
+
+function LedgerTab({ ledger }) {
+  const [picked, setPicked] = useState(null);
+  if (!ledger.length) return <Empty text={t("No journal entries in this range.")} />;
+  const acc = ledger.find((a) => a.account === picked) || ledger[0];
+
+  return (
+    <div className="space-y-4">
+      {/* every account with its debit / credit totals and balance */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {ledger.map((a) => {
+          const active = a.account === acc.account;
+          return (
+            <button
+              key={a.account}
+              onClick={() => setPicked(a.account)}
+              className={`rounded-2xl border p-4 text-left transition-all ${
+                active
+                  ? "border-brand-500 bg-brand-50/60 ring-2 ring-brand-500/30 dark:bg-brand-950/40"
+                  : "border-slate-200 bg-white hover:border-brand-300 dark:border-slate-800 dark:bg-slate-900"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-semibold text-slate-800 dark:text-slate-100">{a.account}</span>
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${CLASS_TONE[a.class]}`}>
+                  {t(a.class)}
+                </span>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                <div>
+                  <p className="text-slate-500">{t("Debit")}</p>
+                  <p className="font-mono font-semibold text-slate-800 dark:text-slate-200">
+                    {formatCurrency(a.total_debit)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-slate-500">{t("Credit")}</p>
+                  <p className="font-mono font-semibold text-slate-800 dark:text-slate-200">
+                    {formatCurrency(a.total_credit)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-slate-500">{t("Balance")}</p>
+                  <p
+                    className={`font-mono font-bold ${a.balance_side === "Dr" ? "text-sky-600" : a.balance_side === "Cr" ? "text-emerald-600" : "text-slate-500"}`}
+                  >
+                    {a.balance_side === "Nil" ? t("Nil") : `${formatCurrency(a.balance)} ${a.balance_side}`}
+                  </p>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* the selected account as a T-account */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 px-4 py-3 dark:bg-slate-800">
+          <span className="font-display text-lg font-bold text-slate-900 dark:text-slate-100">
+            {acc.account}
+          </span>
+          <span className="text-xs text-slate-500">
+            {acc.count} {t("transactions")} ·{" "}
+            {acc.balance_side === "Nil"
+              ? t("Nil balance")
+              : `${t("Balance")} ${formatCurrency(acc.balance)} ${acc.balance_side}`}
+          </span>
+        </div>
+        <div className="grid md:grid-cols-2 md:divide-x divide-slate-200 dark:divide-slate-800">
+          <LedgerSide
+            title={t("Debit (Dr)")}
+            entries={acc.debits}
+            total={acc.total_debit}
+            tone="text-sky-600"
+          />
+          <LedgerSide
+            title={t("Credit (Cr)")}
+            entries={acc.credits}
+            total={acc.total_credit}
+            tone="text-emerald-600"
+          />
+        </div>
+      </div>
+      <p className="text-xs text-slate-500">
+        {t("Balances cover the selected date range only. Dr = debit balance, Cr = credit balance.")}
+      </p>
+    </div>
+  );
+}
+
+function LedgerSide({ title, entries, total, tone }) {
+  return (
+    <div className="flex flex-col border-t border-slate-200 md:border-t-0 dark:border-slate-800">
+      <div className={`px-4 py-2 text-xs font-bold uppercase tracking-wide ${tone}`}>{title}</div>
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-slate-500">
+            <th className="px-4 py-1.5 text-left font-medium">{t("Date")}</th>
+            <th className="px-2 py-1.5 text-left font-medium">{t("Particulars")}</th>
+            <th className="px-4 py-1.5 text-right font-medium">{t("Amount")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {entries.length === 0 && (
+            <tr>
+              <td colSpan={3} className="px-4 py-4 text-center text-xs text-slate-400">
+                {t("No entries")}
+              </td>
+            </tr>
+          )}
+          {entries.map((e, i) => (
+            <tr key={i} className="border-t border-slate-100 align-top dark:border-slate-800">
+              <td className="whitespace-nowrap px-4 py-2 text-xs text-slate-500">{ymd(new Date(e.date))}</td>
+              <td className="px-2 py-2">
+                <p className="font-medium text-slate-800 dark:text-slate-200">{e.particulars}</p>
+                <p className="text-[11px] text-slate-500">
+                  {e.code ? `${e.code} · ` : ""}
+                  {e.transaction_type}
+                  {e.note ? ` · ${e.note}` : ""}
+                </p>
+              </td>
+              <td className="whitespace-nowrap px-4 py-2 text-right font-mono">{formatCurrency(e.amount)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="mt-auto flex justify-between border-t-2 border-slate-200 px-4 py-2 text-sm font-bold dark:border-slate-700">
+        <span>{t("Total")}</span>
+        <span className="font-mono">{formatCurrency(total)}</span>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { supabase } from "../config/supabase.js";
 import { toClient, toClientList, up } from "../utils/mappers.js";
 import { consumeStock, receiveStock, hasEnoughStock } from "../utils/stock.js";
-import { buildJournal, journalTotals, buildGoodsSummary, buildProfitAndLoss } from "../utils/doubleEntry.js";
+import { buildJournal, journalTotals, buildGoodsSummary, buildProfitAndLoss, buildLedger } from "../utils/doubleEntry.js";
 import { localDayStart, localDateStr, addDays } from "../utils/time.js";
 
 const TABLE = "transactions";
@@ -121,6 +121,7 @@ export const journal = async (req, res, next) => {
     const fullTxns = data || [];
     const txns = fullTxns.map((t) => ({
       id: t.transaction_id,
+      transaction_code: t.transaction_code,
       created_at: t.created_at,
       transaction_type: t.transaction_type,
       payment_method: t.payment_method,
@@ -180,6 +181,7 @@ export const journal = async (req, res, next) => {
       months, // available months (only when no filter)
       goods, // { items:[{item, sold_qty, bought_qty, net_qty, ...}], totals }
       profit_loss: profitLoss, // Trading + P&L with account names
+      ledger: buildLedger(rows), // per account: debits[], credits[], totals, balance
     });
   } catch (e) {
     next(e);

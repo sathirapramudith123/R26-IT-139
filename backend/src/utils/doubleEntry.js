@@ -92,6 +92,7 @@ export function buildJournal(transactions) {
     const ref = t.id || t.transaction_id;
     rows.push({
       journal_ref: ref,
+      code: t.transaction_code || null,
       date,
       account: line.debit_account,
       direction: "DR",
@@ -104,6 +105,7 @@ export function buildJournal(transactions) {
     });
     rows.push({
       journal_ref: ref,
+      code: t.transaction_code || null,
       date,
       account: line.credit_account,
       direction: "CR",
@@ -225,4 +227,63 @@ export function buildProfitAndLoss(transactions) {
     // extra context
     total_purchases: +purchases.toFixed(2),
   };
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Ledger — one T-account per account: what was debited and what was credited */
+/* -------------------------------------------------------------------------- */
+// Account class (DEAD CLIC) decides on which side its balance normally sits
+function accountClass(account) {
+  if (/^(Cash|Bank|Trade Receivables) A\/C$/.test(account)) return "Asset";
+  if (account === "Trade Payables A/C") return "Liability";
+  if (account === "Sales A/C") return "Income";
+  if (account === "Purchases A/C" || / Expense A\/C$/.test(account)) return "Expense";
+  return "Other";
+}
+const CLASS_ORDER = { Asset: 0, Liability: 1, Income: 2, Expense: 3, Other: 4 };
+
+/**
+ * Group journal rows (from buildJournal) by account. Each debit line names the account it
+ * was credited from ("To ...") and each credit line the account debited ("By ..."), as in a
+ * hand-written ledger. Balance = total debit − total credit (Dr when positive, Cr otherwise).
+ */
+export function buildLedger(rows) {
+  const map = {};
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    // rows come in DR/CR pairs that share a journal_ref
+    const other = r.direction === "DR" ? rows[i + 1] : rows[i - 1];
+    const a = (map[r.account] ||= {
+      account: r.account,
+      class: accountClass(r.account),
+      debits: [],
+      credits: [],
+    });
+    const entry = {
+      ref: r.journal_ref,
+      code: r.code || null,
+      date: r.date,
+      particulars: `${r.direction === "DR" ? "To" : "By"} ${other?.account || "—"}`,
+      amount: r.direction === "DR" ? num(r.debit) : num(r.credit),
+      note: r.note,
+      transaction_type: r.transaction_type,
+      payment_method: r.payment_method,
+    };
+    (r.direction === "DR" ? a.debits : a.credits).push(entry);
+  }
+  return Object.values(map)
+    .map((a) => {
+      const dr = a.debits.reduce((s, e) => s + e.amount, 0);
+      const cr = a.credits.reduce((s, e) => s + e.amount, 0);
+      const bal = dr - cr;
+      return {
+        ...a,
+        total_debit: +dr.toFixed(2),
+        total_credit: +cr.toFixed(2),
+        balance: +Math.abs(bal).toFixed(2),
+        balance_side: Math.abs(bal) < 0.005 ? "Nil" : bal > 0 ? "Dr" : "Cr",
+        count: a.debits.length + a.credits.length,
+      };
+    })
+    .sort((x, y) => CLASS_ORDER[x.class] - CLASS_ORDER[y.class] || y.count - x.count);
 }

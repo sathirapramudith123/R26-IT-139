@@ -16,7 +16,8 @@ class _JournalScreenState extends State<JournalScreen> {
   // default range = current month (device timezone, i.e. Sri Lanka days)
   late DateTime from = DateTime(DateTime.now().year, DateTime.now().month, 1);
   DateTime to = DateTime.now();
-  int tab = 0; // 0 journal, 1 goods, 2 profit & loss
+  int tab = 0; // 0 journal, 1 ledger, 2 goods, 3 profit & loss
+  String? ledgerAccount; // account open in the Ledger tab
   bool loading = true;
   Map<String, dynamic>? data;
 
@@ -97,6 +98,8 @@ class _JournalScreenState extends State<JournalScreen> {
             else if (tab == 0)
               ..._journalTab()
             else if (tab == 1)
+              ..._ledgerTab()
+            else if (tab == 2)
               ..._goodsTab()
             else
               ..._pnlTab(),
@@ -194,6 +197,7 @@ class _JournalScreenState extends State<JournalScreen> {
   Widget _tabs() {
     final items = [
       (tr("Journal"), Icons.description_outlined),
+      (tr("Ledger"), Icons.account_balance_wallet_outlined),
       (tr("Goods Movement"), Icons.inventory_2_outlined),
       (tr("Profit & Loss"), Icons.balance_outlined),
     ];
@@ -225,10 +229,11 @@ class _JournalScreenState extends State<JournalScreen> {
                       Text(
                         items[i].$1,
                         textAlign: TextAlign.center,
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 11,
+                          height: 1.15,
                           fontWeight: FontWeight.w600,
                           color: tab == i ? _primary : Colors.grey,
                         ),
@@ -418,6 +423,199 @@ class _JournalScreenState extends State<JournalScreen> {
       ),
     );
   }
+
+  /* ---------------------------------- Ledger tab -------------------------------- */
+
+  // one T-account per account: what was debited and what was credited
+  List<Widget> _ledgerTab() {
+    final ledger = (data!["ledger"] is List) ? (data!["ledger"] as List).whereType<Map>().toList() : <Map>[];
+    if (ledger.isEmpty) return [_empty(tr("No journal entries in this range."))];
+    final acc = ledger.firstWhere((a) => a["account"] == ledgerAccount, orElse: () => ledger.first);
+    final debits = (acc["debits"] as List? ?? []).whereType<Map>().toList();
+    final credits = (acc["credits"] as List? ?? []).whereType<Map>().toList();
+    return [
+      // account cards size to their content (no fixed height — large fonts would overflow)
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < ledger.length; i++) ...[
+                if (i > 0) const SizedBox(width: 8),
+                _accountChip(ledger[i], ledger[i]["account"] == acc["account"]),
+              ],
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 12),
+      Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(colors: KadeColors.headerGradient),
+          borderRadius: BorderRadius.circular(KadeRadius.lg),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "${acc["account"]}",
+              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+            Text(
+              "${tr("${acc["class"]}")} · ${acc["count"]} ${tr("transactions")}",
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                _heroFigure(tr("Debit"), money(acc["total_debit"])),
+                const SizedBox(width: 12),
+                _heroFigure(tr("Credit"), money(acc["total_credit"])),
+              ],
+            ),
+            const Divider(color: Colors.white24, height: 20),
+            Text(tr("Balance"), style: const TextStyle(color: Colors.white70, fontSize: 11)),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                _balanceText(acc),
+                style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 12),
+      _ledgerSide(tr("Debit (Dr)"), debits, acc["total_debit"], KadeColors.teal),
+      const SizedBox(height: 12),
+      _ledgerSide(tr("Credit (Cr)"), credits, acc["total_credit"], KadeColors.success),
+      const SizedBox(height: 8),
+      Text(
+        tr("Balances cover the selected date range only. Dr = debit balance, Cr = credit balance."),
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+    ];
+  }
+
+  String _balanceText(Map a) => a["balance_side"] == "Nil" ? tr("Nil") : "${money(a["balance"])} ${a["balance_side"]}";
+
+  Widget _heroFigure(String label, String value) => Expanded(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            value,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _accountChip(Map a, bool active) => GestureDetector(
+    onTap: () => setState(() => ledgerAccount = "${a["account"]}"),
+    child: Container(
+      width: 180,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(KadeRadius.md),
+        border: Border.all(color: active ? _primary : Colors.grey.withValues(alpha: 0.25), width: active ? 2 : 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "${a["account"]}",
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          Text("${tr("Dr")} ${money(a["total_debit"])}", style: const TextStyle(fontSize: 11)),
+          Text("${tr("Cr")} ${money(a["total_credit"])}", style: const TextStyle(fontSize: 11)),
+          Text(
+            _balanceText(a),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: a["balance_side"] == "Dr"
+                  ? KadeColors.teal
+                  : a["balance_side"] == "Cr"
+                  ? KadeColors.success
+                  : Colors.grey,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Widget _ledgerSide(String title, List<Map> entries, dynamic total, Color tone) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title.toUpperCase(),
+            style: TextStyle(color: tone, fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: 0.5),
+          ),
+          const SizedBox(height: 6),
+          if (entries.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Text(tr("No entries"), style: const TextStyle(color: Colors.grey)),
+            ),
+          for (final e in entries)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text("${e["particulars"]}", style: const TextStyle(fontWeight: FontWeight.w600)),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(money(e["amount"]), style: const TextStyle(fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                  // date · code · type · note get the full width
+                  Text(
+                    [
+                      _ymd(DateTime.tryParse("${e["date"]}")?.toLocal() ?? DateTime.now()),
+                      if (e["code"] != null) "${e["code"]}",
+                      "${e["transaction_type"]}",
+                      if ("${e["note"] ?? ""}".isNotEmpty) "${e["note"]}",
+                    ].join(" · "),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          const Divider(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: Text(tr("Total"), style: const TextStyle(fontWeight: FontWeight.w800)),
+              ),
+              Text(money(total), style: const TextStyle(fontWeight: FontWeight.w800)),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
 
   /* ---------------------------------- Goods tab --------------------------------- */
 
