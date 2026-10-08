@@ -407,7 +407,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
               {/* Float */}
               <div className="flex items-center justify-between">
                 <span className="text-slate-500 dark:text-slate-400">{t("Current float")}</span>
-                <span className="font-semibold text-slate-900 dark:text-slate-100">
+                <span className="whitespace-nowrap font-semibold text-slate-900 dark:text-slate-100">
                   {formatCurrency(selectedBank.float_balance)}
                 </span>
               </div>
@@ -417,7 +417,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
                     {t("Float after")} {v.transaction_type === "cash_deposit" ? "↓" : "↑"}
                   </span>
                   <span
-                    className={`font-semibold ${floatAfter < Number(selectedBank.float_floor) ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}
+                    className={`whitespace-nowrap font-semibold ${floatAfter < Number(selectedBank.float_floor) ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}
                   >
                     {formatCurrency(floatAfter)}
                   </span>
@@ -427,7 +427,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
               {/* Cash on hand (shared global pool) */}
               <div className="flex items-center justify-between">
                 <span className="text-slate-500 dark:text-slate-400">{t("Cash on hand (pool)")}</span>
-                <span className="font-semibold text-slate-900 dark:text-slate-100">
+                <span className="whitespace-nowrap font-semibold text-slate-900 dark:text-slate-100">
                   {cashPool ? formatCurrency(cashPool.cash_on_hand) : "—"}
                 </span>
               </div>
@@ -437,7 +437,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
                     {t("Cash after")} {v.transaction_type === "cash_deposit" ? "↑" : "↓"}
                   </span>
                   <span
-                    className={`font-semibold ${cashAfter < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}
+                    className={`whitespace-nowrap font-semibold ${cashAfter < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}
                   >
                     {formatCurrency(cashAfter)}
                   </span>
@@ -447,7 +447,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
               <div className="flex items-center justify-between">
                 <span className="text-slate-500 dark:text-slate-400">{t("Health")}</span>
                 <span
-                  className={`font-semibold ${HEALTH_COLORS[selectedBank.float_health] || "text-slate-600 dark:text-slate-300"}`}
+                  className={`whitespace-nowrap font-semibold ${HEALTH_COLORS[selectedBank.float_health] || "text-slate-600 dark:text-slate-300"}`}
                 >
                   {t((selectedBank.float_health || "—").replace("_", " "))}
                 </span>

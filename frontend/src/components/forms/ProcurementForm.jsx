@@ -246,7 +246,16 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
           }));
 
   const totalItems = items.length;
-  const totalQuantity = items.reduce((sum, it) => sum + (Number(it.quantity) || 0), 0);
+  // shown per unit ("1700.25 kg · 48 pcs") — adding kg and pcs together meant nothing
+  const totalQtyByUnit = Object.entries(
+    items.reduce((m, it) => {
+      const u = it.unit || "unit";
+      m[u] = (m[u] || 0) + (Number(it.quantity) || 0);
+      return m;
+    }, {}),
+  )
+    .map(([u, q]) => `${+q.toFixed(2)} ${t(u)}`)
+    .join(" · ");
   // Grand total cost = sum of qty × unit_cost over all items
   const totalCost = items.reduce(
     (sum, it) => sum + (Number(it.quantity) || 0) * (Number(it.unit_cost) || 0),
@@ -608,7 +617,7 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
                     {t("Total Items:")} {totalItems}
                   </span>
                   <span>
-                    {t("Total Quantity:")} {totalQuantity}
+                    {t("Total Quantity:")} {totalQtyByUnit || 0}
                   </span>
                 </div>
                 <div className="flex items-center justify-between border-t border-slate-200 pt-2 dark:border-slate-800">

@@ -105,7 +105,11 @@ ListRow? rowFor(String path, Map it) {
           if (multi) "${money(it["cost_min"])}–${money(it["cost_max"])}",
         ]),
         figure: money(it["cost_price"]),
-        badge: low ? (tr("Running out"), KadeColors.terra) : null,
+        badge: numOf(it["quantity"]) <= 0
+            ? (tr("Out of stock"), KadeColors.terra)
+            : low
+            ? (tr("Running out"), KadeColors.terra)
+            : null,
       );
     case "/suppliers":
       final n = it["items_supplied"] is List ? (it["items_supplied"] as List).length : 0;
@@ -130,7 +134,10 @@ ListRow? rowFor(String path, Map it) {
         title: name,
         subtitle: _join([
           "${it["procurement_no"] ?? ""}",
-          "${tr("Qty")} ${qtyOf(it["quantity"])}",
+          items.length > 1
+              ? "${items.length} ${tr("items")}"
+              : "${tr("Qty")} ${qtyOf(items.isEmpty ? it["quantity"] : items.first["quantity"])}"
+                    "${hasText((items.isEmpty ? it : items.first)["unit"]) ? " ${tr("${(items.isEmpty ? it : items.first)["unit"]}")}" : ""}",
           hasText(it["selected_supplier_name"]) ? "${it["selected_supplier_name"]}" : "",
         ]),
         figure: money(it["total_cost"]),

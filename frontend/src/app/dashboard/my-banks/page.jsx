@@ -47,7 +47,7 @@ function useCountUp(target, duration = 1200) {
 /* Small animated currency number for the summary cards. */
 function CountCurrency({ value, className = "" }) {
   const v = useCountUp(value);
-  return <span className={className}>{formatCurrency(Math.round(v))}</span>;
+  return <span className={className}>{formatCurrency(v)}</span>;
 }
 
 const RISK_TIERS = [
@@ -509,7 +509,9 @@ function TopupModal({ bank, cashPool, onClose, onSaved }) {
         {Number(amount) > 0 && (
           <div className="mt-1 flex justify-between">
             <span className="text-slate-500">{t("Float after top-up")}</span>
-            <span className="font-semibold text-brand-600 dark:text-brand-400">{formatCurrency(newFloat)}</span>
+            <span className="font-semibold text-brand-600 dark:text-brand-400">
+              {formatCurrency(newFloat)}
+            </span>
           </div>
         )}
       </div>
@@ -556,7 +558,14 @@ function LedgerModal({ bank, onClose }) {
       .finally(() => setLoading(false));
   }, [bank.id]);
 
-  const label = { DEPOSIT: "Customer deposit", WITHDRAWAL: "Customer withdrawal", TOPUP: "Float top-up" };
+  // every float event the backend writes (sql/atomic_banking.sql) — reversals showed raw
+  const label = {
+    DEPOSIT: t("Customer deposit"),
+    WITHDRAWAL: t("Customer withdrawal"),
+    TOPUP: t("Float top-up"),
+    DEPOSIT_REVERSAL: t("Deposit reversed"),
+    WITHDRAWAL_REVERSAL: t("Withdrawal reversed"),
+  };
 
   return (
     <Modal title={`Float statement — ${bank.bank_name}`} onClose={onClose}>
@@ -599,15 +608,15 @@ function LedgerModal({ bank, onClose }) {
                     <p className="text-[11px] text-slate-400">{new Date(e.date).toLocaleString()}</p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="shrink-0 text-right">
                   <p
-                    className={`text-sm font-bold ${inflow ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}
+                    className={`whitespace-nowrap text-sm font-bold ${inflow ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}
                   >
                     {inflow ? "+" : "−"}
                     {formatCurrency(e.amount)}
                   </p>
                   {e.balance_after != null && (
-                    <p className="text-[11px] text-slate-400">
+                    <p className="whitespace-nowrap text-[11px] text-slate-400">
                       {t("Bal:")} {formatCurrency(e.balance_after)}
                     </p>
                   )}

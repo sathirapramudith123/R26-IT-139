@@ -4,6 +4,7 @@ import '../../core/theme.dart';
 import '../../core/api.dart';
 import '../../services/crud_service.dart';
 import '../../core/i18n.dart';
+import '../common/record_details.dart' show money;
 
 const List<Map<String, String>> _txTypes = [
   {"value": "sale", "label": "Sale"},
@@ -476,14 +477,18 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       _label(tr(itemLabel)),
       DropdownButtonFormField<String>(
         initialValue: names.contains(pickItem) ? pickItem : null,
+        isExpanded: true, // long item names overflowed the field
         hint: Text(
           loadingInventory
               ? tr("Loading...")
-              : (names.isEmpty ? "No inventory items yet" : tr("Select an item…")),
+              : (names.isEmpty ? tr("No inventory items yet") : tr("Select an item…")),
         ),
         items: names.map((o) {
           final inv = _findItem(o);
-          return DropdownMenuItem(value: o, child: Text("$o (${inv["quantity"] ?? 0} in stock)"));
+          return DropdownMenuItem(
+            value: o,
+            child: Text("$o (${inv["quantity"] ?? 0} ${tr("in stock")})", overflow: TextOverflow.ellipsis),
+          );
         }).toList(),
         onChanged: saving ? null : _onPickItem,
       ),
@@ -555,14 +560,14 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                           children: [
                             Text("${l["item_name"]}", style: const TextStyle(fontWeight: FontWeight.w700)),
                             Text(
-                              "${q.toString()} × LKR ${up.toStringAsFixed(2)}",
+                              "${q.toString()} × ${money(up)}",
                               style: const TextStyle(fontSize: 12, color: Colors.grey),
                             ),
                           ],
                         ),
                       ),
                       Text(
-                        "LKR ${amt.toStringAsFixed(2)}",
+                        money(amt),
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                       IconButton(
@@ -579,7 +584,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               children: [
                 Text(tr("Total"), style: TextStyle(fontWeight: FontWeight.w800)),
                 Text(
-                  "LKR ${cartTotal.toStringAsFixed(2)}",
+                  money(cartTotal),
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
               ],

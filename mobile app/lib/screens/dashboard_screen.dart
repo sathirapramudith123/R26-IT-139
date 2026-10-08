@@ -414,19 +414,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(tr(title(type)), style: const TextStyle(fontWeight: FontWeight.w600)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        tr(title(type)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    Text(when, style: TextStyle(fontSize: 11, color: soft)),
+                  ],
+                ),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "${isIn ? "+" : "-"} ${_fmtMoney(amount)}",
+                    style: TextStyle(fontWeight: FontWeight.w700, color: color),
+                  ),
+                ),
                 Text(
-                  "${cat.isNotEmpty ? cat : tr(title("${tx["payment_method"] ?? ""}"))} · $when",
+                  cat.isNotEmpty ? cat : tr(title("${tx["payment_method"] ?? ""}")),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 11, color: soft),
                 ),
               ],
             ),
-          ),
-          Text(
-            "${isIn ? "+" : "-"} ${_fmtMoney(amount)}",
-            style: TextStyle(fontWeight: FontWeight.w700, color: color),
           ),
         ],
       ),
@@ -445,8 +461,9 @@ const _moduleCaptions = {
 
 String _fmtMoney(double v, {bool isCount = false}) {
   if (isCount) return v.round().toString();
-  final s = v.round().abs().toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',');
-  return "${v < 0 ? "-" : ""}LKR $s";
+  final parts = v.abs().toStringAsFixed(2).split(".");
+  final s = parts[0].replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',');
+  return "${v < 0 ? "-" : ""}LKR $s.${parts[1]}";
 }
 
 /// Number that counts up from 0 to [value] on load.

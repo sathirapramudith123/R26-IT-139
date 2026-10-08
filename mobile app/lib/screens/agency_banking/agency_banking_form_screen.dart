@@ -248,11 +248,11 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
         .join(' ');
   }
 
+  // always two decimals, like money() and the web ("100,000.00", not "100,000")
   String _money(num n) {
-    final fixed = n == n.roundToDouble() ? n.toStringAsFixed(0) : n.toStringAsFixed(2);
-    final parts = fixed.split('.');
+    final parts = n.toStringAsFixed(2).split('.');
     final intPart = parts[0].replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',');
-    return parts.length > 1 ? "$intPart.${parts[1]}" : intPart;
+    return "$intPart.${parts[1]}";
   }
 
   void _onAmountChanged(String val) {

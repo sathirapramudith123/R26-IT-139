@@ -57,7 +57,8 @@ export default function AlertsPage() {
   const rows = (data.running_out || []).map((item) => ({
     ...item,
     quantity: <span className="font-semibold text-red-600">{item.quantity}</span>,
-    unit_price: formatCurrency(item.unit_price),
+    // items carry cost_price (unit_price only on old rows) — showed LKR 0.00 before
+    unit_price: formatCurrency(item.cost_price ?? item.unit_price),
     actions: (
       <Link href={`/dashboard/inventory/${item.id}/edit`}>
         <Button variant="primary" size="sm">

@@ -382,7 +382,7 @@ class _JournalScreenState extends State<JournalScreen> {
   }
 
   // amount without the "LKR " prefix — the table columns are narrow
-  String _amount(dynamic v) => money(v).replaceFirst("LKR ", "");
+  String _amount(dynamic v) => money(v).replaceFirst(RegExp(r"LKR\s"), "");
 
   Widget _balanceBanner(Map t, String label) {
     final ok = t["balanced"] == true;

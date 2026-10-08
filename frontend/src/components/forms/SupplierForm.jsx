@@ -55,6 +55,16 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
   const [supplyItemErrors, setSupplyItemErrors] = useState({});
 
   const totalAvailableQuantity = suppliedItems.reduce((sum, it) => sum + (Number(it.quantity) || 0), 0);
+  // shown per unit — adding kg and pcs together meant nothing ("648.25")
+  const totalByUnit = Object.entries(
+    suppliedItems.reduce((m, it) => {
+      const u = it.unit || "unit";
+      m[u] = (m[u] || 0) + (Number(it.quantity) || 0);
+      return m;
+    }, {}),
+  )
+    .map(([u, q]) => `${+q.toFixed(2)} ${t(u)}`)
+    .join(" · ");
 
   function setSupplyItemField(k, val) {
     setSupplyItem((p) => ({ ...p, [k]: val }));
@@ -398,7 +408,7 @@ export default function SupplierForm({ initialData = {}, supplierId = null }) {
           </div>
 
           <div className="text-right text-sm font-bold text-blue-700 dark:text-blue-300">
-            {t("Total Available Quantity:")} {totalAvailableQuantity}
+            {t("Total Available Quantity:")} {totalByUnit || 0}
           </div>
         </div>
       </div>

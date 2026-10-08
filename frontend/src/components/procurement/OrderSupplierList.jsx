@@ -1,6 +1,7 @@
 "use client";
 
 import { t } from "@/lib/i18n";
+import { formatLkr } from "@/lib/procurement";
 
 // Best supplier(s) for the whole order: ranked by how many of the items they carry,
 // nearest first as a tiebreaker once a delivery point is picked.
@@ -47,7 +48,7 @@ export default function OrderSupplierList({
                 </span>
               </div>
               <p className="mt-0.5 text-slate-500">
-                LKR {s.totalPrice.toLocaleString("en-LK", { minimumFractionDigits: 2 })}
+                LKR {formatLkr(s.totalPrice)}
                 {!s.fullMatch ? t("(for items they carry)") : ""}
               </p>
               {s.missing.length > 0 && (

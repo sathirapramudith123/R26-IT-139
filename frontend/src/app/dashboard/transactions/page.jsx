@@ -107,7 +107,7 @@ export default function TransactionsPage() {
       ),
       amount: (
         <span
-          className={`font-semibold ${isCredit ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+          className={`whitespace-nowrap font-semibold ${isCredit ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
         >
           {isCredit ? "+" : "-"} {formatCurrency(item.amount)}
         </span>

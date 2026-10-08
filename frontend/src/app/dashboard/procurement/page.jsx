@@ -69,30 +69,43 @@ export default function ProcurementPage() {
       : items.filter((i) => [i.item_name, i.selected_supplier_name].join(" ").toLowerCase().includes(kw));
   }, [items, search]);
 
-  const rows = filtered.map((item) => ({
-    ...item,
-    total_cost: (
-      <span className="font-medium text-slate-800 dark:text-slate-200">
-        {formatCurrency(item.total_cost)}
-      </span>
-    ),
-    status: <StatusBadge status={item.status} />,
-    actions: (
-      <div className="flex gap-2">
-        <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => setViewItem(item)}>
-          {t("View")}
-        </Button>
-        <Link href={`/dashboard/procurement/${item.id}/edit`}>
-          <Button variant="secondary" size="sm">
-            {t("Edit")}
+  const rows = filtered.map((item) => {
+    // an order can hold several items — show "Rice +2" and "3 items" (adding kg and pcs meant nothing)
+    const lines = Array.isArray(item.items) && item.items.length ? item.items : null;
+    const first = lines ? lines[0] : item;
+    return {
+      ...item,
+      item_name:
+        lines && lines.length > 1
+          ? `${first.item_name} +${lines.length - 1}`
+          : first.item_name || item.item_name,
+      quantity:
+        lines && lines.length > 1
+          ? `${lines.length} ${t("items")}`
+          : `${Number(first.quantity ?? item.quantity) || 0}${first.unit ? ` ${t(first.unit)}` : ""}`,
+      total_cost: (
+        <span className="whitespace-nowrap font-medium text-slate-800 dark:text-slate-200">
+          {formatCurrency(item.total_cost)}
+        </span>
+      ),
+      status: <StatusBadge status={item.status} />,
+      actions: (
+        <div className="flex gap-2">
+          <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => setViewItem(item)}>
+            {t("View")}
           </Button>
-        </Link>
-        <Button variant="danger" size="sm" onClick={() => handleDelete(item.id)}>
-          {t("Delete")}
-        </Button>
-      </div>
-    ),
-  }));
+          <Link href={`/dashboard/procurement/${item.id}/edit`}>
+            <Button variant="secondary" size="sm">
+              {t("Edit")}
+            </Button>
+          </Link>
+          <Button variant="danger" size="sm" onClick={() => handleDelete(item.id)}>
+            {t("Delete")}
+          </Button>
+        </div>
+      ),
+    };
+  });
 
   return (
     <div className="page-container">

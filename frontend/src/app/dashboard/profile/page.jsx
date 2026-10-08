@@ -95,7 +95,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-3">
         {/* ===== Account details ===== */}
         <div className="lg:col-span-2">
           <h2 className="mb-3 font-display text-lg font-bold text-slate-900 dark:text-slate-100">

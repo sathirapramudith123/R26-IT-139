@@ -13,8 +13,11 @@ const _soft = PdfColor.fromInt(0xFF8A94A6);
 const _good = PdfColor.fromInt(0xFF22B573);
 const _bad = PdfColor.fromInt(0xFFE5484D);
 
+// The PDF's built-in font has no ✓ / ✗ glyphs (they print as a box) — leave them out
+String _pdfSafe(String s) => s.replaceAll(RegExp("[✓✔✗✘]"), "").trim();
+
 String _kpiText(Kpi k) {
-  if (k.value is! num) return "${k.value}";
+  if (k.value is! num) return _pdfSafe("${k.value}");
   final v = formatCell(k.value, k.type == ColType.money ? ColType.money : ColType.number);
   return k.type == ColType.money ? "LKR $v" : v;
 }
@@ -141,16 +144,21 @@ Future<Uint8List> buildReportPdf(
                                 style: const pw.TextStyle(color: _soft, fontSize: 7.5),
                               ),
                               pw.SizedBox(height: 4),
-                              pw.Text(
-                                _kpiText(model.kpis[i]),
-                                style: pw.TextStyle(
-                                  fontSize: 12.5,
-                                  fontWeight: pw.FontWeight.bold,
-                                  color: model.kpis[i].tone == "good"
-                                      ? _good
-                                      : model.kpis[i].tone == "bad"
-                                      ? _bad
-                                      : _ink,
+                              // one line: scale down to fit (with cents, 4 cards wrapped "LKR" / amount)
+                              pw.FittedBox(
+                                fit: pw.BoxFit.scaleDown,
+                                alignment: pw.Alignment.centerLeft,
+                                child: pw.Text(
+                                  _kpiText(model.kpis[i]),
+                                  style: pw.TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: pw.FontWeight.bold,
+                                    color: model.kpis[i].tone == "good"
+                                        ? _good
+                                        : model.kpis[i].tone == "bad"
+                                        ? _bad
+                                        : _ink,
+                                  ),
                                 ),
                               ),
                             ],
@@ -189,7 +197,7 @@ pw.Widget _table(ReportSection s) {
         padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 5),
         alignment: c.right ? pw.Alignment.centerRight : pw.Alignment.centerLeft,
         child: pw.Text(
-          text,
+          _pdfSafe(text),
           style: pw.TextStyle(fontSize: 8.5, color: ink, fontWeight: bold ? pw.FontWeight.bold : null),
         ),
       );

@@ -1,4 +1,5 @@
-export function formatCurrency(value = 0, decimals = false) {
+// LKR 1,250.75 — cents everywhere (pass false for whole rupees)
+export function formatCurrency(value = 0, decimals = true) {
   const n = Number(value) || 0;
   return (
     "LKR " +

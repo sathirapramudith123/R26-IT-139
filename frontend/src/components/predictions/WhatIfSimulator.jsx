@@ -176,7 +176,7 @@ export default function WhatIfSimulator({ features, baseScore, baseStatus, baseL
             {chip.label}
           </span>
           <p className="mt-1 text-[11px] text-white/80">
-            {t("Loan limit")}: <b>{formatCurrency(limit || 0)}</b>
+            {t("Loan limit")}: <b className="whitespace-nowrap">{formatCurrency(limit || 0)}</b>
           </p>
         </div>
       </div>
@@ -189,10 +189,10 @@ export default function WhatIfSimulator({ features, baseScore, baseStatus, baseL
           const moved = values[f.key] !== start[f.key];
           return (
             <label key={f.key} className="block">
-              <span className="flex items-center justify-between text-xs">
+              <span className="flex items-center justify-between gap-2 text-xs">
                 <span className="font-medium text-slate-600 dark:text-slate-300">{f.label}</span>
                 <span
-                  className={`font-semibold ${moved ? "text-brand-600 dark:text-brand-400" : "text-slate-500"}`}
+                  className={`whitespace-nowrap font-semibold ${moved ? "text-brand-600 dark:text-brand-400" : "text-slate-500"}`}
                 >
                   {f.fmt(values[f.key])}
                 </span>

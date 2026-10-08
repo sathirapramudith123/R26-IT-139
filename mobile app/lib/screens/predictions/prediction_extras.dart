@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../core/i18n.dart';
+import '../common/record_details.dart' show money;
 import '../../core/theme.dart';
 import '../../services/insights_service.dart';
 import 'prediction_widgets.dart';
@@ -46,10 +47,8 @@ const modelTrust = {
 
 const demandMae = 11.0; // typical weekly forecast error (test MAE, units)
 
-String _money(num v) {
-  final s = v.abs().round().toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ",");
-  return "${v < 0 ? "-" : ""}LKR $s";
-}
+// two decimals, like every other amount in the app
+String _money(num v) => money(v);
 
 /// One line under a prediction card: how the model behind it was tested
 class TrustLine extends StatelessWidget {

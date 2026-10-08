@@ -7,6 +7,7 @@ import '../../services/crud_service.dart';
 import '../inventory/inventory_form_screen.dart' show fieldLabel, errorBox, saveButton;
 import '../common/location_picker_map.dart';
 import '../../core/i18n.dart';
+import '../common/record_details.dart' show qtyOf;
 import '../../core/geo.dart';
 
 const List<String> _units = ["kg", "g", "l", "ml", "unit", "box", "carton"];
@@ -110,6 +111,16 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
   double get totalCost =>
       items.fold(0.0, (s, l) => s + (l["quantity"] as num).toDouble() * (l["unit_cost"] as num).toDouble());
   double get totalQty => items.fold(0.0, (s, l) => s + (l["quantity"] as num).toDouble());
+
+  // shown per unit ("1,700.25 kg · 48 pcs") — adding kg and pcs together meant nothing
+  String get totalQtyByUnit {
+    final byUnit = <String, double>{};
+    for (final l in items) {
+      final u = "${l["unit"] ?? "unit"}";
+      byUnit[u] = (byUnit[u] ?? 0) + (l["quantity"] as num).toDouble();
+    }
+    return byUnit.entries.map((e) => "${qtyOf(e.value)} ${tr(e.key)}").join(" · ");
+  }
 
   @override
   void initState() {
@@ -418,6 +429,7 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
             fieldLabel(tr("Item *")),
             DropdownButtonFormField<String>(
               initialValue: names.contains(pickItem) ? pickItem : null,
+              isExpanded: true, // long item names overflowed the field
               hint: Text(
                 loadingInventory
                     ? tr("Loading...")
@@ -426,7 +438,7 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
               items: names.map((o) {
                 final inv = _findItem(o);
                 final stock = inv.isEmpty ? "" : " (${inv["quantity"] ?? 0} ${tr("in stock)")}";
-                return DropdownMenuItem(value: o, child: Text("$o$stock"));
+                return DropdownMenuItem(value: o, child: Text("$o$stock", overflow: TextOverflow.ellipsis));
               }).toList(),
               onChanged: saving ? null : _onPickItem,
             ),
@@ -552,18 +564,18 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
                       );
                     }),
                   const Divider(),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "${tr("Total Quantity:")} ${totalQty.toStringAsFixed(totalQty == totalQty.roundToDouble() ? 0 : 2)}",
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      Text(
-                        "${tr("Total Cost")}: LKR ${_money(totalCost)}",
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                    ],
+                  // two lines: side by side they ran off the card with large amounts
+                  Text(
+                    "${tr("Total Quantity:")} $totalQtyByUnit",
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 2),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      "${tr("Total Cost")}: LKR ${_money(totalCost)}",
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
                   ),
                 ],
               ),
@@ -687,16 +699,19 @@ class _ProcurementFormScreenState extends State<ProcurementFormScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(child: Text(c.name, style: text.titleSmall)),
-                          if (identical(c, best)) _tag(tr("🏆 Best overall"), KadeColors.success),
-                          if (identical(c, cheapest)) ...[
-                            const SizedBox(width: 4),
-                            _tag(tr("💰 Cheapest"), KadeColors.amber),
+                      Text(c.name, style: text.titleSmall),
+                      // tags on their own line — beside the name they squeezed it to one word per line
+                      if (identical(c, best) || identical(c, cheapest)) ...[
+                        const SizedBox(height: 4),
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: [
+                            if (identical(c, best)) _tag(tr("🏆 Best overall"), KadeColors.success),
+                            if (identical(c, cheapest)) _tag(tr("💰 Cheapest"), KadeColors.amber),
                           ],
-                        ],
-                      ),
+                        ),
+                      ],
                       const SizedBox(height: 4),
                       Text(
                         "${c.matchedCount}/${items.length} ${tr("items")} · LKR ${_money(c.totalPrice)}"

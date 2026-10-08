@@ -80,9 +80,13 @@ export default function InventoryPage() {
     if (!multi) return avg;
     return (
       <div className="leading-tight">
-        <div>{avg}</div>
+        <div className="whitespace-nowrap">{avg}</div>
+        {/* the range on its own line so an amount never breaks in the middle */}
+        <div className="whitespace-nowrap text-xs text-slate-400">
+          {formatCurrency(item.cost_min)} – {formatCurrency(item.cost_max)}
+        </div>
         <div className="text-xs text-slate-400">
-          {formatCurrency(item.cost_min)}–{formatCurrency(item.cost_max)} · {item.batch_count} batches
+          {item.batch_count} {t("batches")}
         </div>
       </div>
     );

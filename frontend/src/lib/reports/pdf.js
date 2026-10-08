@@ -12,24 +12,32 @@ const GOOD = [34, 181, 115];
 const BAD = [229, 72, 77];
 
 let logoPromise = null;
-// the app logo as a data URL (loaded once; the PDF still builds if it fails)
+// the app logo as a data URL (loaded once; the PDF still builds if it fails).
+// Scaled down to 144×144 px first — jsPDF stores PNGs as raw pixels, so the full
+// 1536×1024 logo made every one-page report ~4.7 MB. It is drawn at 36×36 pt (4× sharp).
+const LOGO_PX = 144;
 function loadLogo() {
-  logoPromise ??= fetch("/images/lankalinklogo.png")
-    .then((r) => r.blob())
-    .then(
-      (b) =>
-        new Promise((resolve) => {
-          const fr = new FileReader();
-          fr.onload = () => resolve(fr.result);
-          fr.readAsDataURL(b);
-        }),
-    )
-    .catch(() => null);
+  logoPromise ??= new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement("canvas");
+      c.width = c.height = LOGO_PX;
+      c.getContext("2d").drawImage(img, 0, 0, LOGO_PX, LOGO_PX);
+      resolve(c.toDataURL("image/png"));
+    };
+    img.onerror = () => resolve(null);
+    img.src = "/images/lankalinklogo.png";
+  });
   return logoPromise;
 }
 
+// jsPDF's built-in fonts have no ✓ / ✗ glyphs (they print as stray symbols) — leave them out
+const pdfSafe = (s) =>
+  String(s)
+    .replace(/[✓✔✗✘]/g, "")
+    .trim();
 const kpiText = (k) =>
-  typeof k.value === "number" ? formatCell(k.value, k.type || "number") : String(k.value);
+  typeof k.value === "number" ? formatCell(k.value, k.type || "number") : pdfSafe(k.value);
 
 /**
  * @param model   report model from REPORTS[id].load(range, english)
@@ -83,9 +91,13 @@ export async function buildReportPdf(model, { title, period, business }) {
       doc.text(k.label.toUpperCase(), x + 12, y + 20, { maxWidth: cw - 24 });
       doc.setTextColor(...(k.tone === "good" ? GOOD : k.tone === "bad" ? BAD : INK));
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(14);
       const prefix = k.type === "money" ? "LKR " : "";
-      doc.text(`${prefix}${kpiText(k)}`, x + 12, y + 42, { maxWidth: cw - 24 });
+      const value = `${prefix}${kpiText(k)}`;
+      // one line: shrink the font until it fits the card (with cents, 4 cards wrapped "LKR" / amount)
+      let size = 14;
+      doc.setFontSize(size);
+      while (size > 8 && doc.getTextWidth(value) > cw - 24) doc.setFontSize((size -= 0.5));
+      doc.text(value, x + 12, y + 42);
     });
     y += 80;
   }
@@ -105,7 +117,7 @@ export async function buildReportPdf(model, { title, period, business }) {
     const body = section.rows.length
       ? section.rows.map((r) =>
           section.columns.map((c) => ({
-            content: formatCell(r[c.key], c.type),
+            content: pdfSafe(formatCell(r[c.key], c.type)),
             styles: {
               fontStyle: r._bold ? "bold" : "normal",
               ...(r._tone === "bad" && c.key === "status" ? { textColor: BAD } : {}),

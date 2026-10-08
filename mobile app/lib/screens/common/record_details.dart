@@ -223,7 +223,8 @@ String money(dynamic v) {
   final n = numOf(v);
   final parts = n.abs().toStringAsFixed(2).split(".");
   final whole = parts[0].replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ",");
-  return "${n < 0 ? "-" : ""}LKR $whole.${parts[1]}";
+  // non-breaking space: "LKR" never ends a line on its own ("Commission LKR / 6,172.84")
+  return "${n < 0 ? "-" : ""}LKR\u00A0$whole.${parts[1]}";
 }
 
 String qtyOf(dynamic v) {

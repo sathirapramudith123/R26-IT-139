@@ -9,6 +9,7 @@ import { inventoryApi } from "@/services/api/inventory";
 import { TRANSACTION_TYPES, PAYMENT_METHODS } from "@/lib/constants";
 
 import { t } from "@/lib/i18n";
+import { formatCurrency } from "@/lib/formatters";
 // 1. Config for Transaction Modes
 const TYPE_CONFIG = {
   sale: { mode: "items" },
@@ -419,16 +420,16 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
               ) : (
                 <ul className="divide-y divide-slate-200">
                   {cart.map((line, idx) => (
-                    <li key={idx} className="flex items-center justify-between py-2 text-sm">
-                      <div>
+                    <li key={idx} className="flex items-center justify-between gap-3 py-2 text-sm">
+                      <div className="min-w-0">
                         <p className="font-medium text-slate-800">{line.item_name}</p>
                         <p className="text-xs text-slate-500">
-                          {line.quantity} {t("× LKR")} {(line.unit_price || 0).toFixed(2)}
+                          {line.quantity} × {formatCurrency(line.unit_price || 0)}
                         </p>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="font-semibold text-slate-800">
-                          LKR {(line.amount || 0).toFixed(2)}
+                      <div className="flex shrink-0 items-center gap-3">
+                        <span className="whitespace-nowrap font-semibold text-slate-800">
+                          {formatCurrency(line.amount || 0)}
                         </span>
                         <button
                           type="button"
@@ -445,7 +446,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
               )}
               <div className="mt-3 flex justify-between border-t border-slate-200 pt-3 text-sm font-semibold text-slate-800">
                 <span>{t("Total")}</span>
-                <span>LKR {total.toFixed(2)}</span>
+                <span className="whitespace-nowrap">{formatCurrency(total)}</span>
               </div>
             </div>
           </div>

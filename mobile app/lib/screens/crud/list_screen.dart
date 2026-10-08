@@ -545,8 +545,9 @@ class _ListScreenState extends State<ListScreen> {
                   ),
                 ],
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              // Wrap, not Row: the Sinhala labels are long and overflowed narrow phones
+              Wrap(
+                alignment: WrapAlignment.end,
                 children: [
                   TextButton.icon(
                     style: TextButton.styleFrom(visualDensity: VisualDensity.compact),

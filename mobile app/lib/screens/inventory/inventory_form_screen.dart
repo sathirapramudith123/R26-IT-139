@@ -4,6 +4,7 @@ import '../../core/theme.dart';
 import '../../core/api.dart';
 import '../../services/crud_service.dart';
 import '../../core/i18n.dart';
+import '../common/record_details.dart' show money, qtyOf;
 
 // Standardized categories (mirror web ITEM_CATEGORIES) — feed the AI model.
 const List<String> kItemCategories = [
@@ -205,12 +206,15 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
             fieldLabel(tr("Supplier")),
             DropdownButtonFormField<String>(
               initialValue: supplierOptions.contains(supplierName) ? supplierName : null,
+              isExpanded: true, // long supplier names overflowed the field
               hint: Text(
                 loadingSuppliers
                     ? tr("Loading...")
                     : (supplierOptions.isEmpty ? tr("No suppliers available") : tr("Select a supplier")),
               ),
-              items: supplierOptions.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
+              items: supplierOptions
+                  .map((o) => DropdownMenuItem(value: o, child: Text(o, overflow: TextOverflow.ellipsis)))
+                  .toList(),
               onChanged: saving ? null : (v) => setState(() => supplierName = v),
             ),
             const SizedBox(height: 16),
@@ -310,14 +314,14 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                "LKR ${_totalCost.toStringAsFixed(2)}",
+                money(_totalCost),
                 style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
               ),
             ),
             Padding(
               padding: const EdgeInsets.only(top: 6, left: 2),
               child: Text(
-                "${tr("Unit Cost × Quantity")}  =  ${(double.tryParse(costPriceCtrl.text.trim()) ?? 0).toStringAsFixed(2)} × ${(double.tryParse(quantityCtrl.text.trim()) ?? 0).toStringAsFixed(0)}",
+                "${tr("Unit Cost × Quantity")}  =  ${(double.tryParse(costPriceCtrl.text.trim()) ?? 0).toStringAsFixed(2)} × ${qtyOf(double.tryParse(quantityCtrl.text.trim()) ?? 0)}",
                 style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
               ),
             ),

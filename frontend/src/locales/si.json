@@ -1177,5 +1177,15 @@
   "Asset": "වත්කම",
   "Liability": "වගකීම",
   "Income": "ආදායම",
-  "Balances cover the selected date range only. Dr = debit balance, Cr = credit balance.": "ශේෂයන් තෝරාගත් දින පරාසයට පමණි. Dr = හර ශේෂය, Cr = බැර ශේෂය."
+  "Balances cover the selected date range only. Dr = debit balance, Cr = credit balance.": "ශේෂයන් තෝරාගත් දින පරාසයට පමණි. Dr = හර ශේෂය, Cr = බැර ශේෂය.",
+  "in stock": "තොගයේ ඇත",
+  "batches": "තොග කාණ්ඩ",
+  "Customer deposit": "පාරිභෝගික තැන්පතුව",
+  "Customer withdrawal": "පාරිභෝගික ආපසු ගැනීම",
+  "Float top-up": "float ශේෂය පිරවීම",
+  "Deposit reversed": "තැන්පතුව ආපසු හැරවිණි",
+  "Withdrawal reversed": "ආපසු ගැනීම ආපසු හැරවිණි",
+  "Deposit reversal": "තැන්පතුව ආපසු හැරවීම",
+  "Withdrawal reversal": "ආපසු ගැනීම ආපසු හැරවීම",
+  "Opening": "ආරම්භක ශේෂය"
 }

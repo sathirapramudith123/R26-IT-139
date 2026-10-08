@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { transactionApi } from "@/services/api/transaction";
 import { formatCurrency } from "@/lib/formatters";
 import {
@@ -151,7 +151,7 @@ export default function JournalPage() {
       </div>
 
       {/* tabs */}
-      <div className="flex gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
+      <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1 sm:flex dark:bg-slate-800">
         {TABS.map((t) => {
           const Icon = t.icon;
           const active = tab === t.key;
@@ -265,6 +265,7 @@ const CLASS_TONE = {
 
 function LedgerTab({ ledger }) {
   const [picked, setPicked] = useState(null);
+  const detailRef = useRef(null);
   if (!ledger.length) return <Empty text={t("No journal entries in this range.")} />;
   const acc = ledger.find((a) => a.account === picked) || ledger[0];
 
@@ -277,7 +278,14 @@ function LedgerTab({ ledger }) {
           return (
             <button
               key={a.account}
-              onClick={() => setPicked(a.account)}
+              onClick={() => {
+                setPicked(a.account);
+                // on a phone the T-account is below every card — bring it into view
+                if (window.innerWidth < 768)
+                  requestAnimationFrame(() =>
+                    detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+                  );
+              }}
               className={`rounded-2xl border p-4 text-left transition-all ${
                 active
                   ? "border-brand-500 bg-brand-50/60 ring-2 ring-brand-500/30 dark:bg-brand-950/40"
@@ -318,7 +326,10 @@ function LedgerTab({ ledger }) {
       </div>
 
       {/* the selected account as a T-account */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
+      <div
+        ref={detailRef}
+        className="scroll-mt-20 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800"
+      >
         <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 px-4 py-3 dark:bg-slate-800">
           <span className="font-display text-lg font-bold text-slate-900 dark:text-slate-100">
             {acc.account}

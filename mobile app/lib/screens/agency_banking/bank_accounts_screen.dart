@@ -10,6 +10,12 @@ String _money(num n) {
   return "${n < 0 ? "-" : ""}LKR $whole.${parts[1]}";
 }
 
+// DEPOSIT -> "Deposit", WITHDRAWAL_REVERSAL -> "Withdrawal reversal" (as on the web), translated
+String _entryLabel(String type) {
+  final s = type.replaceAll("_", " ").toLowerCase();
+  return tr(s.isEmpty ? s : "${s[0].toUpperCase()}${s.substring(1)}");
+}
+
 String _time(dynamic v) {
   final d = DateTime.tryParse("${v ?? ""}")?.toLocal();
   if (d == null) return "";
@@ -100,7 +106,7 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
                       children: [
                         const Icon(Icons.account_balance_outlined, size: 18, color: KadeColors.teal),
                         const SizedBox(width: 6),
-                        Text(bank, style: Theme.of(context).textTheme.titleSmall),
+                        Expanded(child: Text(bank, style: Theme.of(context).textTheme.titleSmall)),
                       ],
                     ),
                     const SizedBox(height: 6),
@@ -264,7 +270,7 @@ class _BankAccountDetailScreenState extends State<BankAccountDetailScreen> {
                   for (final e in entries)
                     ListTile(
                       dense: true,
-                      title: Text("${e["entry_type"]}".replaceAll("_", " ")),
+                      title: Text(_entryLabel("${e["entry_type"]}")),
                       subtitle: Text("${_time(e["created_at"])}  ${e["note"] ?? ""}"),
                       trailing: Column(
                         mainAxisAlignment: MainAxisAlignment.center,

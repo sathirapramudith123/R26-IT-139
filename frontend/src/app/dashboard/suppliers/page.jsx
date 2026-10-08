@@ -87,7 +87,8 @@ export default function SuppliersPage() {
     return {
       ...item,
       company_name: item.company_name ?? "—",
-      items_summary: itemCount > 0 ? `${itemCount} ${t("items")}` : "—",
+      items_summary:
+        itemCount > 0 ? <span className="whitespace-nowrap">{`${itemCount} ${t("items")}`}</span> : "—",
       status: <StatusBadge status={item.status} />,
       actions: (
         <div className="flex gap-2">

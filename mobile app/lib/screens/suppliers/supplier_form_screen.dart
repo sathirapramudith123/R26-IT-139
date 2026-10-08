@@ -76,6 +76,15 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
   bool get isEdit => widget.item != null;
   double get totalAvailable => suppliedItems.fold(0, (s, it) => s + it.quantity);
 
+  // Shown per unit — adding kg and pcs together ("648.25") meant nothing
+  String get totalByUnit {
+    final byUnit = <String, double>{};
+    for (final it in suppliedItems) {
+      byUnit[it.unit] = (byUnit[it.unit] ?? 0) + it.quantity;
+    }
+    return byUnit.entries.map((e) => "${_num(e.value)} ${tr(e.key)}").join(" · ");
+  }
+
   @override
   void initState() {
     super.initState();
@@ -376,17 +385,16 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
                     onChanged: saving ? null : (u) => setState(() => itemUnit = u ?? "kg"),
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: itemPriceCtrl,
-                    enabled: !saving,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: money,
-                    decoration: InputDecoration(labelText: tr("Unit Price (LKR)"), hintText: "0.00"),
-                  ),
-                ),
               ],
+            ),
+            const SizedBox(height: 10),
+            // own row: three fields side by side cut the labels to "Qua…" / "Unit …"
+            TextField(
+              controller: itemPriceCtrl,
+              enabled: !saving,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: money,
+              decoration: InputDecoration(labelText: tr("Unit Price (LKR)"), hintText: "0.00"),
             ),
             if (itemError != null) ...[
               const SizedBox(height: 6),
@@ -432,7 +440,7 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
             Align(
               alignment: Alignment.centerRight,
               child: Text(
-                "${tr("Total Available Quantity:")} ${_num(totalAvailable)}",
+                "${tr("Total Available Quantity:")} $totalByUnit",
                 style: text.titleSmall?.copyWith(color: teal),
               ),
             ),

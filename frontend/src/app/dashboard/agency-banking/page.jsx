@@ -76,7 +76,7 @@ function useCountUp(target, duration = 1200) {
 /* Animated stat value — money=true formats as currency, else plain integer. */
 function CountStat({ value, money, className = "" }) {
   const v = useCountUp(value);
-  const shown = money ? formatCurrency(Math.round(v)) : Math.round(v).toLocaleString();
+  const shown = money ? formatCurrency(v) : Math.round(v).toLocaleString();
   return <span className={className}>{shown}</span>;
 }
 
@@ -111,8 +111,9 @@ export default function AgencyBankingPage() {
   const rows = filtered.map((item) => ({
     ...item,
     transaction_type: t(titleCase(item.transaction_type || "")),
-    amount: formatCurrency(item.amount),
-    commission: formatCurrency(item.commission),
+    // nowrap: "LKR" and the number split onto two lines in the narrow column
+    amount: <span className="whitespace-nowrap">{formatCurrency(item.amount)}</span>,
+    commission: <span className="whitespace-nowrap">{formatCurrency(item.commission)}</span>,
     status: <StatusBadge status={item.status} />,
     actions: (
       <div className="flex gap-2">

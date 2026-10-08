@@ -134,7 +134,10 @@ function Row({ label, value, color }) {
   return (
     <div className="flex items-start justify-between gap-4 py-1.5">
       <span className="w-36 shrink-0 text-xs text-slate-500 dark:text-slate-400">{label}</span>
-      <span className={`text-right text-sm font-semibold text-slate-800 dark:text-slate-100 ${color || ""}`}>
+      {/* min-w-0 + anywhere: a long e-mail address ran out of the dialog */}
+      <span
+        className={`min-w-0 text-right text-sm font-semibold text-slate-800 [overflow-wrap:anywhere] dark:text-slate-100 ${color || ""}`}
+      >
         {value}
       </span>
     </div>
@@ -362,7 +365,15 @@ function Inventory({ d }) {
       <Section title={t("Cost")} icon={Wallet}>
         <Row label={t("Avg. Unit Cost")} value={money(d.cost_price)} />
         {maxCost > 0 && minCost !== maxCost && (
-          <Row label={t("Cost Range")} value={`${money(minCost)} – ${money(maxCost)}`} />
+          <Row
+            label={t("Cost Range")}
+            value={
+              <>
+                <span className="whitespace-nowrap">{money(minCost)}</span> –{" "}
+                <span className="whitespace-nowrap">{money(maxCost)}</span>
+              </>
+            }
+          />
         )}
         <Row label={t("Total Stock Value")} value={money(totalValue)} />
       </Section>
@@ -416,7 +427,8 @@ function InventoryHistory({ id, unit }) {
   return (
     <>
       <Section title={t("Units sold")} icon={TrendingUp}>
-        <div className="grid grid-cols-3 gap-2">
+        {/* one tile per row on phones — three side by side broke "LKR 130,759.31" */}
+        <div className="grid grid-cols-1 gap-2 min-[440px]:grid-cols-3">
           {tiles.map(([label, v]) => (
             <div key={label} className="rounded-xl bg-slate-50 p-3 text-center dark:bg-slate-800">
               <p className="text-[11px] text-slate-500">{label}</p>
@@ -424,7 +436,7 @@ function InventoryHistory({ id, unit }) {
                 {qty(v.units)}
                 <span className="text-xs font-medium text-slate-400">{unit}</span>
               </p>
-              <p className="text-[11px] text-emerald-600">{money(v.revenue)}</p>
+              <p className="whitespace-nowrap text-[11px] text-emerald-600">{money(v.revenue)}</p>
             </div>
           ))}
         </div>
@@ -483,12 +495,12 @@ function InventoryHistory({ id, unit }) {
                         {p.estimated ? ` · ${t("estimated")}` : ""}
                       </p>
                     </td>
-                    <td className="py-2 pr-2 text-right">
+                    <td className="whitespace-nowrap py-2 pr-2 text-right">
                       {qty(p.quantity)}
                       {unit}
                     </td>
-                    <td className="py-2 pr-2 text-right">{money(p.unit_cost)}</td>
-                    <td className="py-2 text-right font-semibold">{money(p.total)}</td>
+                    <td className="whitespace-nowrap py-2 pr-2 text-right">{money(p.unit_cost)}</td>
+                    <td className="whitespace-nowrap py-2 text-right font-semibold">{money(p.total)}</td>
                   </tr>
                 ))}
               </tbody>

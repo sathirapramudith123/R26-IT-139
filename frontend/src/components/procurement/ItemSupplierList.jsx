@@ -1,6 +1,7 @@
 "use client";
 
 import { t } from "@/lib/i18n";
+import { formatLkr } from "@/lib/procurement";
 
 // Suppliers that carry the selected item, ranked by a combined score of price (incl. delivery fee),
 // distance to the delivery point and delivery lead time.
@@ -60,7 +61,7 @@ export default function ItemSupplierList({
                   </span>
                 </div>
                 <p className="mt-0.5 text-slate-500">
-                  LKR {s.estimatedCost.toLocaleString("en-LK", { minimumFractionDigits: 2 })}
+                  LKR {formatLkr(s.estimatedCost)}
                   {" · "}
                   {s.leadTimeDays}
                   {t("-day delivery")}

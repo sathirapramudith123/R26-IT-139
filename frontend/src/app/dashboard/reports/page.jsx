@@ -361,13 +361,14 @@ function ReportTable({ model }) {
   if (!model) return null;
   return (
     <div className="space-y-6">
+      {/* as many KPI columns as fit — a fixed 4 squeezed "LKR 1,337,833.65" onto two lines */}
       {model.kpis?.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(13rem,1fr))] gap-3">
           {model.kpis.map((k) => (
             <div key={k.label} className="rounded-2xl bg-brand-50 p-4 dark:bg-brand-950">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{k.label}</p>
               <p
-                className={`mt-1 font-display text-xl font-semibold ${
+                className={`mt-1 whitespace-nowrap font-display text-lg font-semibold ${
                   k.tone === "good"
                     ? "text-emerald-600 dark:text-emerald-400"
                     : k.tone === "bad"

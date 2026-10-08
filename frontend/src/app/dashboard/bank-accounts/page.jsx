@@ -99,7 +99,7 @@ export default function BankAccountsPage() {
           )}
         </div>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[1fr_1.15fr]">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[1fr_1.15fr]">
           {/* accounts */}
           <div className="space-y-5">
             {banks.map((bank) => (

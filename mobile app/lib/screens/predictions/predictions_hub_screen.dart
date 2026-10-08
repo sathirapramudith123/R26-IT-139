@@ -4,9 +4,10 @@ import '../../services/insights_service.dart';
 import 'prediction_widgets.dart';
 import 'prediction_extras.dart';
 import '../../core/i18n.dart';
+import '../common/record_details.dart' show money;
 
-String _lkr(num v) =>
-    "LKR ${v.round().toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ",")}";
+// two decimals, like every other amount in the app
+String _lkr(num v) => money(v);
 
 class PredictionsHubScreen extends StatefulWidget {
   const PredictionsHubScreen({super.key});

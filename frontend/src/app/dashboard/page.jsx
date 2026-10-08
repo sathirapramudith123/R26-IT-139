@@ -198,7 +198,7 @@ export default function DashboardPage() {
       get caption() {
         return t("money in");
       },
-      value: formatCurrency(Math.round(aIncome)),
+      value: formatCurrency(aIncome),
       icon: TrendingUp,
       tint: STAT.income,
     },
@@ -210,7 +210,7 @@ export default function DashboardPage() {
       get caption() {
         return t("money out");
       },
-      value: formatCurrency(Math.round(aExpense)),
+      value: formatCurrency(aExpense),
       icon: TrendingDown,
       tint: STAT.expense,
     },
@@ -222,7 +222,7 @@ export default function DashboardPage() {
       get caption() {
         return t("Income minus expenses");
       },
-      value: formatCurrency(Math.round(aProfit)),
+      value: formatCurrency(aProfit),
       icon: Wallet,
       tint: m.profit < 0 ? STAT.loss : STAT.profit,
     },
@@ -338,24 +338,29 @@ export default function DashboardPage() {
                           <ArrowUpRight className="h-4 w-4 text-rose-600 dark:text-rose-400" />
                         )}
                       </div>
+                      {/* amount on its own line — with cents it no longer fits beside the name */}
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium capitalize text-slate-800 dark:text-slate-200">
-                          {t(titleCase(tx.transaction_type || ""))}
+                        <div className="flex items-baseline justify-between gap-2">
+                          <p className="truncate text-sm font-medium capitalize text-slate-800 dark:text-slate-200">
+                            {t(titleCase(tx.transaction_type || ""))}
+                          </p>
+                          <span className="shrink-0 text-[11px] text-slate-400">
+                            {new Date(tx.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p
+                          className={`whitespace-nowrap text-sm font-semibold ${
+                            isIncome
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-rose-600 dark:text-rose-400"
+                          }`}
+                        >
+                          {isIncome ? "+" : "-"} {formatCurrency(tx.amount)}
                         </p>
                         <p className="truncate text-[11px] text-slate-400">
-                          {tx.category || t(titleCase(tx.payment_method || "")) || "—"} ·{" "}
-                          {new Date(tx.created_at).toLocaleDateString()}
+                          {tx.category || t(titleCase(tx.payment_method || "")) || "—"}
                         </p>
                       </div>
-                      <span
-                        className={`shrink-0 text-sm font-semibold ${
-                          isIncome
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : "text-rose-600 dark:text-rose-400"
-                        }`}
-                      >
-                        {isIncome ? "+" : "-"} {formatCurrency(tx.amount)}
-                      </span>
                     </li>
                   );
                 })}

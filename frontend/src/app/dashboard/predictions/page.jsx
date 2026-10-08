@@ -367,7 +367,8 @@ export default function PredictionsDashboard() {
                 <div>
                   <p className="text-xs text-slate-500 dark:text-slate-400">{t("Most recent transaction")}</p>
                   <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                    {anomaly.customer} · {formatCurrency(anomaly.amount)}
+                    {anomaly.customer} ·{" "}
+                    <span className="whitespace-nowrap">{formatCurrency(anomaly.amount)}</span>
                   </p>
                 </div>
                 <span

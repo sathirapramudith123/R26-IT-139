@@ -42,11 +42,11 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
     }
   }
 
+  // always two decimals, like money() and the web ("100,000.00", not "100,000")
   String _money(num n) {
-    final fixed = n == n.roundToDouble() ? n.toStringAsFixed(0) : n.toStringAsFixed(2);
-    final parts = fixed.split('.');
+    final parts = n.toStringAsFixed(2).split('.');
     final intPart = parts[0].replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',');
-    return parts.length > 1 ? "$intPart.${parts[1]}" : intPart;
+    return "$intPart.${parts[1]}";
   }
 
   Color _healthColor(String h) {
@@ -525,11 +525,11 @@ class _AddCashSheetState extends State<_AddCashSheet> {
   bool saving = false;
   String? error;
 
+  // always two decimals, like money() and the web ("100,000.00", not "100,000")
   String _money(num n) {
-    final fixed = n == n.roundToDouble() ? n.toStringAsFixed(0) : n.toStringAsFixed(2);
-    final parts = fixed.split('.');
+    final parts = n.toStringAsFixed(2).split('.');
     final intPart = parts[0].replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',');
-    return parts.length > 1 ? "$intPart.${parts[1]}" : intPart;
+    return "$intPart.${parts[1]}";
   }
 
   @override
@@ -654,11 +654,11 @@ class _TopupSheetState extends State<_TopupSheet> {
   bool saving = false;
   String? error;
 
+  // always two decimals, like money() and the web ("100,000.00", not "100,000")
   String _money(num n) {
-    final fixed = n == n.roundToDouble() ? n.toStringAsFixed(0) : n.toStringAsFixed(2);
-    final parts = fixed.split('.');
+    final parts = n.toStringAsFixed(2).split('.');
     final intPart = parts[0].replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',');
-    return parts.length > 1 ? "$intPart.${parts[1]}" : intPart;
+    return "$intPart.${parts[1]}";
   }
 
   @override
@@ -813,25 +813,22 @@ class _LedgerSheetState extends State<_LedgerSheet> {
     }
   }
 
+  // always two decimals, like money() and the web ("100,000.00", not "100,000")
   String _money(num n) {
-    final fixed = n == n.roundToDouble() ? n.toStringAsFixed(0) : n.toStringAsFixed(2);
-    final parts = fixed.split('.');
+    final parts = n.toStringAsFixed(2).split('.');
     final intPart = parts[0].replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',');
-    return parts.length > 1 ? "$intPart.${parts[1]}" : intPart;
+    return "$intPart.${parts[1]}";
   }
 
-  String _label(String type) {
-    switch (type) {
-      case "DEPOSIT":
-        return "Customer deposit";
-      case "WITHDRAWAL":
-        return "Customer withdrawal";
-      case "TOPUP":
-        return "Float top-up";
-      default:
-        return type;
-    }
-  }
+  // every float event the backend writes (sql/atomic_banking.sql), translated
+  String _label(String type) => switch (type) {
+    "DEPOSIT" => tr("Customer deposit"),
+    "WITHDRAWAL" => tr("Customer withdrawal"),
+    "TOPUP" => tr("Float top-up"),
+    "DEPOSIT_REVERSAL" => tr("Deposit reversed"),
+    "WITHDRAWAL_REVERSAL" => tr("Withdrawal reversed"),
+    _ => type.replaceAll("_", " "),
+  };
 
   @override
   Widget build(BuildContext context) {
