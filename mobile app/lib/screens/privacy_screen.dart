@@ -1,0 +1,187 @@
+import 'package:flutter/material.dart';
+import '../core/i18n.dart';
+import '../core/theme.dart';
+import '../services/auth_service.dart';
+import 'auth/login_screen.dart';
+
+/// How Lanka-Link handles your data — every point describes what the app actually does.
+class PrivacyScreen extends StatelessWidget {
+  const PrivacyScreen({super.key});
+
+  static const _sections = [
+    (
+      Icons.storage_outlined,
+      "Where your data is kept",
+      [
+        "Your sales, stock, suppliers and banking records are stored in a secure cloud database.",
+        "Every request is checked against your login, so you only ever see your own shop's data.",
+      ],
+    ),
+    (
+      Icons.lock_outline,
+      "Login and passwords",
+      [
+        "Passwords are never stored as text — only a bcrypt hash that cannot be turned back into the password.",
+        "A login lasts 8 hours; the login token is kept encrypted on this phone.",
+        "Changing or resetting your password signs you out on every other device.",
+        "Password-reset links work for 1 hour and only once. Repeated wrong logins are slowed down.",
+      ],
+    ),
+    (
+      Icons.account_balance_outlined,
+      "Banking safety",
+      [
+        "CBSL daily limits for agent banking are always enforced — over-limit transactions are refused.",
+        "Float and cash updates run as one database transaction, so two actions at the same moment cannot corrupt a balance.",
+      ],
+    ),
+    (
+      Icons.insights_outlined,
+      "AI predictions",
+      [
+        "The AI models only receive figures worked out from your records (for example monthly sales or stock-out rate), and only through our own server.",
+        "Every prediction shows the reasons behind it, so you can check it.",
+      ],
+    ),
+    (
+      Icons.place_outlined,
+      "Location and maps",
+      [
+        "Your location is read only when you tap \"Use my location\" or a route map.",
+        "Map searches and routes are sent to Google Maps to find places and distances.",
+      ],
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Scaffold(
+      appBar: AppBar(title: Text(tr("Privacy & Security"))),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Text(tr("How your data is handled"), style: text.bodySmall),
+          const SizedBox(height: 10),
+          for (final (icon, title, points) in _sections)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 17,
+                            backgroundColor: KadeColors.teal.withValues(alpha: 0.1),
+                            child: Icon(icon, size: 18, color: KadeColors.teal),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(child: Text(tr(title), style: text.titleSmall)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      for (final p in points)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Padding(
+                                padding: EdgeInsets.only(top: 2),
+                                child: Icon(Icons.check_circle, size: 15, color: KadeColors.success),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text(tr(p), style: text.bodyMedium)),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          const SizedBox(height: 4),
+          const _SignOutEverywhere(),
+        ],
+      ),
+    );
+  }
+}
+
+/// Lost a phone / used a shared computer: end every session of the account at once.
+class _SignOutEverywhere extends StatefulWidget {
+  const _SignOutEverywhere();
+  @override
+  State<_SignOutEverywhere> createState() => _SignOutEverywhereState();
+}
+
+class _SignOutEverywhereState extends State<_SignOutEverywhere> {
+  bool busy = false;
+
+  Future<void> _run() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(tr("Sign out of all devices")),
+        content: Text(tr("Sign out of Lanka-Link on all devices, including this one?")),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr("Cancel"))),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: KadeColors.terra),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(tr("Sign out everywhere")),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => busy = true);
+    try {
+      await AuthService.logoutAll();
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => busy = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(tr(e.toString().replaceFirst("Exception: ", "")))));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(tr("Sign out of all devices"), style: text.titleSmall),
+            const SizedBox(height: 4),
+            Text(
+              tr("Lost a phone or used a shared computer? End every session of your account at once."),
+              style: text.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(foregroundColor: KadeColors.terra),
+              onPressed: busy ? null : _run,
+              icon: const Icon(Icons.logout),
+              label: Text(busy ? tr("Signing out…") : tr("Sign out everywhere")),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

@@ -9,21 +9,28 @@ import '../screens/profile_screen.dart';
 
 // Module screens (shown inside the Menu grid, not on the bar).
 import '../screens/agency_banking/agency_banking_form_screen.dart';
+import '../screens/agency_banking/my_banks_screen.dart';
+import '../screens/agency_banking/bank_accounts_screen.dart';
 import '../screens/inventory/inventory_form_screen.dart';
 import '../screens/procurement/procurement_form_screen.dart';
 import '../screens/suppliers/supplier_form_screen.dart';
 import '../screens/transactions/transaction_form_screen.dart';
-import '../screens/reports/income_statement_screen.dart';
+import '../screens/reports/reports_screen.dart';
+import '../screens/journal/journal_screen.dart';
+import '../core/i18n.dart';
 
 class MainNavigation extends StatefulWidget {
-  const MainNavigation({super.key});
+  const MainNavigation({super.key, this.initialIndex = 0});
+
+  /// Tab to open first (Settings reopens itself after a language change).
+  final int initialIndex;
 
   @override
   State<MainNavigation> createState() => _MainNavigationState();
 }
 
 class _MainNavigationState extends State<MainNavigation> {
-  int _currentIndex = 0;
+  late int _currentIndex = widget.initialIndex;
 
   // IndexedStack keeps each tab's state alive when switching.
   late final List<Widget> _screens = const [
@@ -37,39 +44,35 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
-        onDestinationSelected: (index) =>
-            setState(() => _currentIndex = index),
-        destinations: const [
+        onDestinationSelected: (index) => setState(() => _currentIndex = index),
+        destinations: [
           NavigationDestination(
             icon: Icon(Icons.dashboard_outlined),
             selectedIcon: Icon(Icons.dashboard),
-            label: 'Dashboard',
+            label: tr('Dashboard'),
           ),
           NavigationDestination(
             icon: Icon(Icons.insights_outlined),
             selectedIcon: Icon(Icons.insights),
-            label: 'Predictions',
+            label: tr('Predictions'),
           ),
           NavigationDestination(
             icon: Icon(Icons.grid_view_outlined),
             selectedIcon: Icon(Icons.grid_view),
-            label: 'Menu',
+            label: tr('Menu'),
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),
             selectedIcon: Icon(Icons.settings),
-            label: 'Settings',
+            label: tr('Settings'),
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),
-            label: 'Profile',
+            label: tr('Profile'),
           ),
         ],
       ),
@@ -85,40 +88,19 @@ class MenuScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = <_MenuItem>[
-      _MenuItem(
-        'Agency Banking',
-        Icons.account_balance_outlined,
-        () => const AgencyBankingFormScreen(),
-      ),
-      _MenuItem(
-        'Inventory',
-        Icons.inventory_2_outlined,
-        () => const InventoryFormScreen(),
-      ),
-      _MenuItem(
-        'Procurement',
-        Icons.shopping_cart_outlined,
-        () => const ProcurementFormScreen(),
-      ),
-      _MenuItem(
-        'Suppliers',
-        Icons.handshake_outlined,
-        () => const SupplierFormScreen(),
-      ),
-      _MenuItem(
-        'Transactions',
-        Icons.receipt_long_outlined,
-        () => const TransactionFormScreen(),
-      ),
-      _MenuItem(
-        'Reports',
-        Icons.bar_chart_outlined,
-        () => const IncomeStatementScreen(),
-      ),
+      _MenuItem(tr('Agency Banking'), Icons.account_balance_outlined, () => const AgencyBankingFormScreen()),
+      _MenuItem(tr('My Banks'), Icons.account_balance_wallet_outlined, () => const MyBanksScreen()),
+      _MenuItem(tr('Bank Accounts'), Icons.savings_outlined, () => const BankAccountsScreen()),
+      _MenuItem(tr('Inventory'), Icons.inventory_2_outlined, () => const InventoryFormScreen()),
+      _MenuItem(tr('Procurement'), Icons.shopping_cart_outlined, () => const ProcurementFormScreen()),
+      _MenuItem(tr('Suppliers'), Icons.handshake_outlined, () => const SupplierFormScreen()),
+      _MenuItem(tr('Transactions'), Icons.receipt_long_outlined, () => const TransactionFormScreen()),
+      _MenuItem(tr('Journal'), Icons.menu_book_outlined, () => const JournalScreen()),
+      _MenuItem(tr('Reports'), Icons.bar_chart_outlined, () => const ReportsScreen()),
     ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Menu')),
+      appBar: AppBar(title: Text(tr('Menu'))),
       body: GridView.count(
         crossAxisCount: 2,
         padding: const EdgeInsets.all(16),
@@ -132,9 +114,7 @@ class MenuScreen extends StatelessWidget {
           return Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => item.builder()),
-              ),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => item.builder())),
               borderRadius: BorderRadius.circular(16),
               child: Container(
                 padding: const EdgeInsets.all(16),
@@ -156,10 +136,7 @@ class MenuScreen extends StatelessWidget {
                       child: Icon(item.icon, size: 20, color: teal),
                     ),
                     const Spacer(),
-                    Text(
-                      item.label,
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
+                    Text(tr(item.label), style: Theme.of(context).textTheme.titleSmall),
                   ],
                 ),
               ),

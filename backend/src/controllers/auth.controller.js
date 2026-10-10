@@ -2,10 +2,17 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { supabase } from "../config/supabase.js";
+import { sendResetEmail } from "../utils/mailer.js";
+import { bumpTokenVersion } from "../utils/tokenVersion.js";
 
-const signToken = (u) =>
-  jwt.sign({ id: u.user_id, email: u.email }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || "15min",
+// Reset tokens are stored hashed, so a leaked DB row cannot be used to reset a password
+const hashToken = (t) => crypto.createHash("sha256").update(String(t)).digest("hex");
+
+// tv = token version: bumping users.token_version revokes every older token (see utils/tokenVersion.js)
+const signToken = (u, tv = u.token_version ?? 0) =>
+  jwt.sign({ id: u.user_id, email: u.email, tv }, process.env.JWT_SECRET, {
+    algorithm: "HS256",
+    expiresIn: process.env.JWT_EXPIRES_IN || "8h",
   });
 
 const publicUser = (u) => ({
@@ -21,42 +28,49 @@ export const register = async (req, res, next) => {
     const { email, password } = req.body;
     if (!name || !email || !password)
       return res.status(400).json({ error: "fullName, email and password are required" });
-    if (password.length < 6)
-      return res.status(400).json({ error: "Password must be at least 6 characters" });
+    if (password.length < 6) return res.status(400).json({ error: "Password must be at least 6 characters" });
 
     const { data: existing } = await supabase
-      .from("users").select("user_id").eq("email", email).maybeSingle();
+      .from("users")
+      .select("user_id")
+      .eq("email", email)
+      .maybeSingle();
     if (existing) return res.status(409).json({ error: "Email already registered" });
 
     const password_hash = await bcrypt.hash(password, 10);
     const { data, error } = await supabase
-      .from("users").insert([{ full_name: name, email, password_hash }])
-      .select().single();
+      .from("users")
+      .insert([{ full_name: name, email, password_hash }])
+      .select()
+      .single();
     if (error) throw error;
 
     res.status(201).json({ message: "Account created", user: publicUser(data) });
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password)
-      return res.status(400).json({ error: "Email and password are required" });
+    if (!email || !password) return res.status(400).json({ error: "Email and password are required" });
 
-    const { data: user } = await supabase
-      .from("users").select("*").eq("email", email).maybeSingle();
+    const { data: user } = await supabase.from("users").select("*").eq("email", email).maybeSingle();
     if (!user) return res.status(401).json({ error: "Invalid email or password" });
 
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) return res.status(401).json({ error: "Invalid email or password" });
 
-    await supabase.from("users")
+    await supabase
+      .from("users")
       .update({ last_login_at: new Date().toISOString() })
       .eq("user_id", user.user_id);
 
     res.json({ token: signToken(user), user: publicUser(user) });
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 export const forgotPassword = async (req, res, next) => {
@@ -65,43 +79,136 @@ export const forgotPassword = async (req, res, next) => {
     if (!email) return res.status(400).json({ error: "Email is required" });
 
     const { data: user } = await supabase
-      .from("users").select("user_id").eq("email", email).maybeSingle();
-    if (!user)
-      return res.json({ message: "If that email exists, a reset token was generated" });
+      .from("users")
+      .select("user_id, email")
+      .eq("email", email)
+      .maybeSingle();
+    // Same response whether or not the email exists, and the token is never
+    // returned to the caller — it must reach the user by email only.
+    const GENERIC = { message: "If that email exists, a reset link has been sent" };
+    if (!user) return res.json(GENERIC);
 
-    const reset_token = crypto.randomBytes(32).toString("hex");
+    const rawToken = crypto.randomBytes(32).toString("hex"); // sent by email only
+    const reset_token = hashToken(rawToken); // stored in the DB
     const reset_token_expiry = new Date(Date.now() + 3600_000).toISOString();
 
-    await supabase.from("users")
+    const { error } = await supabase
+      .from("users")
       .update({ reset_token, reset_token_expiry })
       .eq("user_id", user.user_id);
+    if (error) throw error;
 
-    res.json({
-      message: "If that email exists, a reset token was generated",
-      resetToken: reset_token, 
-    });
-  } catch (e) { next(e); }
+    const frontend = (process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/$/, "");
+    const link = `${frontend}/auth/reset-password?token=${rawToken}`;
+    try {
+      await sendResetEmail(user.email, link);
+    } catch (mailErr) {
+      // Don't reveal mail failures to the caller (would leak whether the email exists)
+      console.error("[mail] reset email failed:", mailErr.message);
+    }
+
+    res.json(GENERIC);
+  } catch (e) {
+    next(e);
+  }
 };
 
 export const resetPassword = async (req, res, next) => {
   try {
     const { token, password } = req.body;
-    if (!token || !password)
-      return res.status(400).json({ error: "token and password are required" });
-    if (password.length < 6)
-      return res.status(400).json({ error: "Password must be at least 6 characters" });
+    if (!token || !password) return res.status(400).json({ error: "token and password are required" });
+    if (password.length < 6) return res.status(400).json({ error: "Password must be at least 6 characters" });
 
     const { data: user } = await supabase
-      .from("users").select("*").eq("reset_token", token).maybeSingle();
+      .from("users")
+      .select("*")
+      .eq("reset_token", hashToken(token))
+      .maybeSingle();
 
     if (!user || !user.reset_token_expiry || new Date(user.reset_token_expiry) < new Date())
       return res.status(400).json({ error: "Invalid or expired reset token" });
 
     const password_hash = await bcrypt.hash(password, 10);
-    await supabase.from("users")
+    const { error } = await supabase
+      .from("users")
       .update({ password_hash, reset_token: null, reset_token_expiry: null })
       .eq("user_id", user.user_id);
+    if (error) throw error;
+    await bumpTokenVersion(user.user_id); // anyone signed in with the old password is signed out
 
     res.json({ message: "Password reset successful" });
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
+};
+
+/* -------------------------------------------------------------------------- */
+/*  Signed-in user's own profile                                               */
+/* -------------------------------------------------------------------------- */
+export const me = async (req, res, next) => {
+  try {
+    const { data: user, error } = await supabase
+      .from("users")
+      .select("user_id, user_code, full_name, email")
+      .eq("user_id", req.user.id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json(publicUser(user));
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const updateMe = async (req, res, next) => {
+  try {
+    const { data: user, error } = await supabase
+      .from("users")
+      .update({ full_name: req.body.full_name.trim(), updated_at: new Date().toISOString() })
+      .eq("user_id", req.user.id)
+      .select("user_id, user_code, full_name, email")
+      .single();
+    if (error) throw error;
+    res.json(publicUser(user));
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const changePassword = async (req, res, next) => {
+  try {
+    const { current_password, new_password } = req.body;
+    const { data: user, error } = await supabase
+      .from("users")
+      .select("user_id, email, password_hash")
+      .eq("user_id", req.user.id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!user || !(await bcrypt.compare(current_password, user.password_hash)))
+      return res.status(400).json({ error: "Current password is incorrect" });
+
+    const password_hash = await bcrypt.hash(new_password, 10);
+    const { error: upErr } = await supabase
+      .from("users")
+      .update({ password_hash, updated_at: new Date().toISOString() })
+      .eq("user_id", user.user_id);
+    if (upErr) throw upErr;
+    // every other device is signed out; this one keeps working with a new token
+    const tv = await bumpTokenVersion(user.user_id);
+    res.json({ message: "Password changed", ...(tv !== null && { token: signToken(user, tv) }) });
+  } catch (e) {
+    next(e);
+  }
+};
+
+// "Sign out of all devices": every token issued so far stops working
+export const logoutAll = async (req, res, next) => {
+  try {
+    const tv = await bumpTokenVersion(req.user.id);
+    if (tv === null)
+      return res.status(501).json({ error: "Not available yet — the token_version column is missing" });
+    res.json({ message: "Signed out of all devices" });
+  } catch (e) {
+    next(e);
+  }
 };

@@ -2,10 +2,10 @@ import os
 import joblib
 
 FILES = {
-    'credit': 'models/component1_sales_financial_model.pkl',
-    'procurement': 'models/component2_procurement_model.pkl',
-    'demand': 'models/component3_demand_forecast_model.pkl',
-    'anomaly': 'models/component4_banking_anomaly_model.pkl',
+    "credit": "models/credit_readiness_model.pkl",
+    "procurement": "models/procurement_buy_wait_model.pkl",
+    "demand": "models/weekly_demand_forecast_model.pkl",
+    "anomaly": "models/banking_anomaly_model.pkl",
 }
 
 
@@ -13,17 +13,17 @@ def extract_expected_columns(model_or_bundle):
     """Recursively extracts feature column names safely from Estimators, Pipelines, or Bundle Dicts."""
     # 1. Handle Dictionary Bundles (Joblib saved dicts)
     if isinstance(model_or_bundle, dict):
-        if 'raw_feature_names' in model_or_bundle:
-            return model_or_bundle['raw_feature_names']
-        if 'feature_names' in model_or_bundle:
-            return model_or_bundle['feature_names']
-        
+        if "raw_feature_names" in model_or_bundle:
+            return model_or_bundle["raw_feature_names"]
+        if "feature_names" in model_or_bundle:
+            return model_or_bundle["feature_names"]
+
         # Check contained estimators inside dict
         target_estimator = (
-            model_or_bundle.get('classifier_pipeline')
-            or model_or_bundle.get('classifier_model')
-            or model_or_bundle.get('regressor_pipeline')
-            or model_or_bundle.get('regressor_model')
+            model_or_bundle.get("classifier_pipeline")
+            or model_or_bundle.get("classifier_model")
+            or model_or_bundle.get("regressor_pipeline")
+            or model_or_bundle.get("regressor_model")
         )
         if target_estimator:
             return extract_expected_columns(target_estimator)

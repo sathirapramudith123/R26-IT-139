@@ -7,6 +7,7 @@ import Button from "@/components/ui/Button";
 import { isValidEmail, isRequired } from "@/lib/validators";
 import { User, Mail, Lock, AlertCircle } from "lucide-react";
 
+import { t } from "@/lib/i18n";
 export default function AuthForm({ mode = "login", onSubmit, loading, error }) {
   const isLogin = mode === "login";
   const isRegister = mode === "register";
@@ -14,8 +15,8 @@ export default function AuthForm({ mode = "login", onSubmit, loading, error }) {
   const [values, setValues] = useState({ full_name: "", email: "", password: "" });
 
   function set(k, v) {
-    setValues(p => ({ ...p, [k]: v }));
-    setFieldErrors(p => ({ ...p, [k]: undefined }));
+    setValues((p) => ({ ...p, [k]: v }));
+    setFieldErrors((p) => ({ ...p, [k]: undefined }));
   }
 
   function validate() {
@@ -38,11 +39,11 @@ export default function AuthForm({ mode = "login", onSubmit, loading, error }) {
     await onSubmit({ email: values.email, password: values.password, full_name: values.full_name });
   }
 
-  const getInputClass = k =>
-    `w-full rounded-xl border bg-slate-950/50 pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 transition-all ${
+  const getInputClass = (k) =>
+    `w-full rounded-xl border bg-white pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-all dark:bg-slate-950/50 dark:text-slate-100 dark:placeholder:text-slate-500 ${
       fieldErrors[k]
         ? "border-red-500/50 focus:border-red-500 focus:ring-red-500/20"
-        : "border-slate-800 focus:border-teal-500/50 focus:ring-teal-500/20"
+        : "border-slate-300 focus:border-brand-500 focus:ring-brand-500/20 dark:border-slate-800 dark:focus:border-brand-500/50"
     }`;
 
   return (
@@ -55,36 +56,36 @@ export default function AuthForm({ mode = "login", onSubmit, loading, error }) {
       )}
 
       {isRegister && (
-        <FormField label="Full Name" error={fieldErrors.full_name} required>
+        <FormField label={t("Full Name")} error={fieldErrors.full_name} required>
           <div className="relative">
             <User className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             <input
               className={getInputClass("full_name")}
               value={values.full_name}
-              onChange={e => set("full_name", e.target.value)}
-              placeholder="Your full name"
+              onChange={(e) => set("full_name", e.target.value)}
+              placeholder={t("Your full name")}
             />
           </div>
         </FormField>
       )}
 
-      <FormField label="Email Address" error={fieldErrors.email} required>
+      <FormField label={t("Email Address")} error={fieldErrors.email} required>
         <div className="relative">
           <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
           <input
             className={getInputClass("email")}
             type="email"
             value={values.email}
-            onChange={e => set("email", e.target.value)}
-            placeholder="you@example.com"
+            onChange={(e) => set("email", e.target.value)}
+            placeholder={t("you@example.com")}
           />
         </div>
       </FormField>
 
       <FormField
-        label="Password"
+        label={t("Password")}
         error={fieldErrors.password}
-        hint={isRegister ? "Minimum 6 characters." : undefined}
+        hint={isRegister ? t("Minimum 6 characters.") : undefined}
         required
       >
         <div className="relative">
@@ -93,8 +94,8 @@ export default function AuthForm({ mode = "login", onSubmit, loading, error }) {
             className={getInputClass("password")}
             type="password"
             value={values.password}
-            onChange={e => set("password", e.target.value)}
-            placeholder={isRegister ? "Create a password" : "Your password"}
+            onChange={(e) => set("password", e.target.value)}
+            placeholder={isRegister ? t("Create a password") : t("Your password")}
           />
         </div>
       </FormField>
@@ -103,9 +104,9 @@ export default function AuthForm({ mode = "login", onSubmit, loading, error }) {
         <div className="flex justify-end">
           <Link
             href="/auth/forgot-password"
-            className="text-xs text-teal-400 hover:text-teal-300 transition-colors"
+            className="text-xs text-brand-400 hover:text-brand-300 transition-colors"
           >
-            Forgot password?
+            {t("Forgot password?")}
           </Link>
         </div>
       )}
@@ -113,36 +114,36 @@ export default function AuthForm({ mode = "login", onSubmit, loading, error }) {
       <Button
         type="submit"
         disabled={loading}
-        className="w-full justify-center bg-teal-600 hover:bg-teal-500 text-white font-semibold py-2.5 rounded-xl transition-all shadow-lg shadow-teal-600/20 disabled:opacity-50"
+        className="w-full justify-center bg-brand-600 hover:bg-brand-500 text-white font-semibold py-2.5 rounded-xl transition-all shadow-lg shadow-brand-600/20 disabled:opacity-50"
       >
         {loading
           ? isLogin
-            ? "Signing in…"
-            : "Creating account…"
+            ? t("Signing in…")
+            : t("Creating account…")
           : isLogin
-          ? "Sign In"
-          : "Create Account"}
+            ? t("Sign In")
+            : t("Create Account")}
       </Button>
 
       <p className="text-center text-sm text-slate-400">
         {isLogin ? (
           <>
-            New here?{" "}
+            {t("New here?")}{" "}
             <Link
               href="/auth/register"
-              className="font-medium text-teal-400 hover:text-teal-300 hover:underline transition-colors"
+              className="font-medium text-brand-400 hover:text-brand-300 hover:underline transition-colors"
             >
-              Create account
+              {t("Create account")}
             </Link>
           </>
         ) : (
           <>
-            Already have an account?{" "}
+            {t("Already have an account?")}{" "}
             <Link
               href="/auth/login"
-              className="font-medium text-teal-400 hover:text-teal-300 hover:underline transition-colors"
+              className="font-medium text-brand-400 hover:text-brand-300 hover:underline transition-colors"
             >
-              Sign in
+              {t("Sign in")}
             </Link>
           </>
         )}

@@ -8,13 +8,13 @@ export async function queueOperation(operation) {
   await dbSet(STORE, {
     ...operation,
     queued_at: new Date().toISOString(),
-    status:    "pending",
+    status: "pending",
   });
 }
 
 export async function getPendingOperations() {
   const all = await dbGetAll(STORE);
-  return all.filter(op => op.status === "pending");
+  return all.filter((op) => op.status === "pending");
 }
 
 export async function runSync() {
@@ -26,13 +26,13 @@ export async function runSync() {
   const pending = await getPendingOperations();
   if (pending.length === 0) return { synced: 0, failed: 0, skipped: false };
 
-  const operations = pending.map(op => ({
-    operation_id:   String(op.id),
+  const operations = pending.map((op) => ({
+    operation_id: String(op.id),
     operation_type: op.operation_type,
-    entity_type:    op.entity_type,
-    entity_id:      op.entity_id ?? null,
-    payload:        op.payload ?? {},
-    timestamp:      op.queued_at,
+    entity_type: op.entity_type,
+    entity_id: op.entity_id ?? null,
+    payload: op.payload ?? {},
+    timestamp: op.queued_at,
   }));
 
   try {
@@ -42,7 +42,7 @@ export async function runSync() {
     let failed = 0;
 
     for (const op of pending) {
-      const res = result?.results?.find(r => r.operation_id === String(op.id));
+      const res = result?.results?.find((r) => r.operation_id === String(op.id));
       if (res?.status === "queued" || res?.status === "applied") {
         await dbDelete(STORE, op.id);
         synced++;

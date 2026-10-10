@@ -1,22 +1,62 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { transactionApi } from "@/services/api/transaction";
 import { formatCurrency } from "@/lib/formatters";
 import {
-  BookOpen, CheckCircle2, AlertTriangle, TrendingUp, TrendingDown,
-  Package, FileText, Scale,
+  BookOpen,
+  CheckCircle2,
+  AlertTriangle,
+  TrendingUp,
+  TrendingDown,
+  Package,
+  FileText,
+  Scale,
+  Library,
 } from "lucide-react";
 
+import { t } from "@/lib/i18n";
 const TABS = [
-  { key: "journal", label: "Journal", icon: FileText },
-  { key: "goods",   label: "Goods Movement", icon: Package },
-  { key: "pnl",     label: "Profit & Loss", icon: Scale },
+  {
+    key: "journal",
+    get label() {
+      return t("Journal");
+    },
+    icon: FileText,
+  },
+  {
+    key: "ledger",
+    get label() {
+      return t("Ledger");
+    },
+    icon: Library,
+  },
+  {
+    key: "goods",
+    get label() {
+      return t("Goods Movement");
+    },
+    icon: Package,
+  },
+  {
+    key: "pnl",
+    get label() {
+      return t("Profit & Loss");
+    },
+    icon: Scale,
+  },
 ];
 
 // default range = current month
-const firstOfMonth = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10); };
-const todayStr = () => new Date().toISOString().slice(0, 10);
+// YYYY-MM-DD in the browser's own timezone (toISOString() would give the UTC date,
+// i.e. the previous day in Sri Lanka before 05:30, and Aug 31 for "1 September").
+const ymd = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const firstOfMonth = () => {
+  const d = new Date();
+  return ymd(new Date(d.getFullYear(), d.getMonth(), 1));
+};
+const todayStr = () => ymd(new Date());
 
 export default function JournalPage() {
   const [tab, setTab] = useState("journal");
@@ -30,59 +70,101 @@ export default function JournalPage() {
     try {
       const d = await transactionApi.journal({ from, to });
       setData(d);
-    } catch { setData(null); }
-    finally { setLoading(false); }
+    } catch {
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
   }, [from, to]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const totals = data?.totals;
   const days = data?.days || [];
   const goods = data?.goods;
   const pnl = data?.profit_loss;
+  const ledger = data?.ledger || [];
 
   return (
     <div className="page-container space-y-5">
       {/* header */}
       <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 dark:bg-teal-950">
-          <BookOpen className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-950">
+          <BookOpen className="h-5 w-5 text-brand-600 dark:text-brand-400" />
         </div>
         <div>
-          <h1 className="font-outfit text-2xl font-bold text-slate-900 dark:text-slate-100">General Journal &amp; Reports</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Double-entry records, goods movement and profit / loss.</p>
+          <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-100">
+            {t("General Journal & Reports")}
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {t("Double-entry records, goods movement and profit / loss.")}
+          </p>
         </div>
       </div>
 
       {/* date range filter */}
       <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-500">From</label>
-          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
-            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950" />
+          <label className="mb-1 block text-xs font-medium text-slate-500">{t("From")}</label>
+          <input
+            type="date"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+          />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-500">To</label>
-          <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
-            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950" />
+          <label className="mb-1 block text-xs font-medium text-slate-500">{t("To")}</label>
+          <input
+            type="date"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+          />
         </div>
-        <button onClick={load}
-          className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500">Apply</button>
+        <button
+          onClick={load}
+          className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-500"
+        >
+          {t("Apply")}
+        </button>
         <div className="ml-auto flex gap-2 text-xs">
-          <QuickRange label="This month" onClick={() => { setFrom(firstOfMonth()); setTo(todayStr()); }} />
-          <QuickRange label="Last 7 days" onClick={() => { const d = new Date(); d.setDate(d.getDate() - 6); setFrom(d.toISOString().slice(0,10)); setTo(todayStr()); }} />
+          <QuickRange
+            label={t("This month")}
+            onClick={() => {
+              setFrom(firstOfMonth());
+              setTo(todayStr());
+            }}
+          />
+          <QuickRange
+            label={t("Last 7 days")}
+            onClick={() => {
+              const d = new Date();
+              d.setDate(d.getDate() - 6);
+              setFrom(ymd(d));
+              setTo(todayStr());
+            }}
+          />
         </div>
       </div>
 
       {/* tabs */}
-      <div className="flex gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
+      <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1 sm:flex dark:bg-slate-800">
         {TABS.map((t) => {
           const Icon = t.icon;
           const active = tab === t.key;
           return (
-            <button key={t.key} onClick={() => setTab(t.key)}
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
               className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-all ${
-                active ? "bg-white text-teal-700 shadow-sm dark:bg-slate-900 dark:text-teal-400" : "text-slate-500"}`}>
+                active
+                  ? "bg-white text-brand-700 shadow-sm dark:bg-slate-900 dark:text-brand-400"
+                  : "text-slate-500"
+              }`}
+            >
               <Icon className="h-4 w-4" /> {t.label}
             </button>
           );
@@ -90,11 +172,13 @@ export default function JournalPage() {
       </div>
 
       {loading ? (
-        <div className="py-16 text-center text-slate-400">Loading…</div>
+        <div className="py-16 text-center text-slate-400">{t("Loading…")}</div>
       ) : !data ? (
-        <Empty text="No data for this range." />
+        <Empty text={t("No data for this range.")} />
       ) : tab === "journal" ? (
         <JournalTab days={days} totals={totals} />
+      ) : tab === "ledger" ? (
+        <LedgerTab ledger={ledger} />
       ) : tab === "goods" ? (
         <GoodsTab goods={goods} />
       ) : (
@@ -106,8 +190,10 @@ export default function JournalPage() {
 
 function QuickRange({ label, onClick }) {
   return (
-    <button onClick={onClick}
-      className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300">
+    <button
+      onClick={onClick}
+      className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300"
+    >
       {label}
     </button>
   );
@@ -115,33 +201,49 @@ function QuickRange({ label, onClick }) {
 
 /* ---------------- Journal tab ---------------- */
 function JournalTab({ days, totals }) {
-  if (!days.length) return <Empty text="No journal entries in this range." />;
+  if (!days.length) return <Empty text={t("No journal entries in this range.")} />;
   return (
     <div className="space-y-4">
-      {totals && <BalanceBanner totals={totals} label="Range total" />}
+      {totals && <BalanceBanner totals={totals} label={t("Range total")} />}
       {days.map((d) => (
-        <div key={d.date} className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
+        <div
+          key={d.date}
+          className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800"
+        >
           <div className="flex items-center justify-between bg-slate-50 px-4 py-2.5 dark:bg-slate-800">
             <span className="font-semibold text-slate-800 dark:text-slate-200">{d.date}</span>
-            <span className="text-xs text-slate-500">Dr {formatCurrency(d.total_debit)} · Cr {formatCurrency(d.total_credit)}</span>
+            <span className="text-xs text-slate-500">
+              {t("Dr")} {formatCurrency(d.total_debit)} {t("· Cr")} {formatCurrency(d.total_credit)}
+            </span>
           </div>
           <table className="w-full text-sm">
             <thead>
               <tr className="text-slate-500">
-                <th className="px-4 py-2 text-left font-medium">Particulars</th>
-                <th className="px-4 py-2 text-right font-medium">Debit</th>
-                <th className="px-4 py-2 text-right font-medium">Credit</th>
+                <th className="px-4 py-2 text-left font-medium">{t("Particulars")}</th>
+                <th className="px-4 py-2 text-right font-medium">{t("Debit")}</th>
+                <th className="px-4 py-2 text-right font-medium">{t("Credit")}</th>
               </tr>
             </thead>
             <tbody>
               {d.entries.map((e, i) => (
-                <tr key={i} className={`border-t border-slate-100 dark:border-slate-800 ${i % 2 === 0 && i > 0 ? "border-t-2" : ""}`}>
-                  <td className={`px-4 py-2 ${e.direction === "CR" ? "pl-10 italic text-slate-500" : "font-medium text-slate-800 dark:text-slate-200"}`}>
+                <tr
+                  key={i}
+                  className={`border-t border-slate-100 dark:border-slate-800 ${i % 2 === 0 && i > 0 ? "border-t-2" : ""}`}
+                >
+                  <td
+                    className={`px-4 py-2 ${e.direction === "CR" ? "pl-10 italic text-slate-500" : "font-medium text-slate-800 dark:text-slate-200"}`}
+                  >
                     {e.particulars}
-                    {i % 2 === 0 && <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] uppercase text-slate-500 dark:bg-slate-800">{e.transaction_type}</span>}
+                    {i % 2 === 0 && (
+                      <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] uppercase text-slate-500 dark:bg-slate-800">
+                        {e.transaction_type}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-2 text-right font-mono">{e.debit ? formatCurrency(e.debit) : ""}</td>
-                  <td className="px-4 py-2 text-right font-mono">{e.credit ? formatCurrency(e.credit) : ""}</td>
+                  <td className="px-4 py-2 text-right font-mono">
+                    {e.credit ? formatCurrency(e.credit) : ""}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -152,23 +254,176 @@ function JournalTab({ days, totals }) {
   );
 }
 
+/* ---------------- Ledger tab: one T-account per account ---------------- */
+const CLASS_TONE = {
+  Asset: "bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300",
+  Liability: "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
+  Income: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
+  Expense: "bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300",
+  Other: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+};
+
+function LedgerTab({ ledger }) {
+  const [picked, setPicked] = useState(null);
+  const detailRef = useRef(null);
+  if (!ledger.length) return <Empty text={t("No journal entries in this range.")} />;
+  const acc = ledger.find((a) => a.account === picked) || ledger[0];
+
+  return (
+    <div className="space-y-4">
+      {/* every account with its debit / credit totals and balance */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {ledger.map((a) => {
+          const active = a.account === acc.account;
+          return (
+            <button
+              key={a.account}
+              onClick={() => {
+                setPicked(a.account);
+                // on a phone the T-account is below every card — bring it into view
+                if (window.innerWidth < 768)
+                  requestAnimationFrame(() =>
+                    detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+                  );
+              }}
+              className={`rounded-2xl border p-4 text-left transition-all ${
+                active
+                  ? "border-brand-500 bg-brand-50/60 ring-2 ring-brand-500/30 dark:bg-brand-950/40"
+                  : "border-slate-200 bg-white hover:border-brand-300 dark:border-slate-800 dark:bg-slate-900"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-semibold text-slate-800 dark:text-slate-100">{a.account}</span>
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${CLASS_TONE[a.class]}`}>
+                  {t(a.class)}
+                </span>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                <div>
+                  <p className="text-slate-500">{t("Debit")}</p>
+                  <p className="font-mono font-semibold text-slate-800 dark:text-slate-200">
+                    {formatCurrency(a.total_debit)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-slate-500">{t("Credit")}</p>
+                  <p className="font-mono font-semibold text-slate-800 dark:text-slate-200">
+                    {formatCurrency(a.total_credit)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-slate-500">{t("Balance")}</p>
+                  <p
+                    className={`font-mono font-bold ${a.balance_side === "Dr" ? "text-sky-600" : a.balance_side === "Cr" ? "text-emerald-600" : "text-slate-500"}`}
+                  >
+                    {a.balance_side === "Nil" ? t("Nil") : `${formatCurrency(a.balance)} ${a.balance_side}`}
+                  </p>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* the selected account as a T-account */}
+      <div
+        ref={detailRef}
+        className="scroll-mt-20 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 px-4 py-3 dark:bg-slate-800">
+          <span className="font-display text-lg font-bold text-slate-900 dark:text-slate-100">
+            {acc.account}
+          </span>
+          <span className="text-xs text-slate-500">
+            {acc.count} {t("transactions")} ·{" "}
+            {acc.balance_side === "Nil"
+              ? t("Nil balance")
+              : `${t("Balance")} ${formatCurrency(acc.balance)} ${acc.balance_side}`}
+          </span>
+        </div>
+        <div className="grid md:grid-cols-2 md:divide-x divide-slate-200 dark:divide-slate-800">
+          <LedgerSide
+            title={t("Debit (Dr)")}
+            entries={acc.debits}
+            total={acc.total_debit}
+            tone="text-sky-600"
+          />
+          <LedgerSide
+            title={t("Credit (Cr)")}
+            entries={acc.credits}
+            total={acc.total_credit}
+            tone="text-emerald-600"
+          />
+        </div>
+      </div>
+      <p className="text-xs text-slate-500">
+        {t("Balances cover the selected date range only. Dr = debit balance, Cr = credit balance.")}
+      </p>
+    </div>
+  );
+}
+
+function LedgerSide({ title, entries, total, tone }) {
+  return (
+    <div className="flex flex-col border-t border-slate-200 md:border-t-0 dark:border-slate-800">
+      <div className={`px-4 py-2 text-xs font-bold uppercase tracking-wide ${tone}`}>{title}</div>
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-slate-500">
+            <th className="px-4 py-1.5 text-left font-medium">{t("Date")}</th>
+            <th className="px-2 py-1.5 text-left font-medium">{t("Particulars")}</th>
+            <th className="px-4 py-1.5 text-right font-medium">{t("Amount")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {entries.length === 0 && (
+            <tr>
+              <td colSpan={3} className="px-4 py-4 text-center text-xs text-slate-400">
+                {t("No entries")}
+              </td>
+            </tr>
+          )}
+          {entries.map((e, i) => (
+            <tr key={i} className="border-t border-slate-100 align-top dark:border-slate-800">
+              <td className="whitespace-nowrap px-4 py-2 text-xs text-slate-500">{ymd(new Date(e.date))}</td>
+              <td className="px-2 py-2">
+                <p className="font-medium text-slate-800 dark:text-slate-200">{e.particulars}</p>
+                <p className="text-[11px] text-slate-500">
+                  {e.code ? `${e.code} · ` : ""}
+                  {e.transaction_type}
+                  {e.note ? ` · ${e.note}` : ""}
+                </p>
+              </td>
+              <td className="whitespace-nowrap px-4 py-2 text-right font-mono">{formatCurrency(e.amount)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="mt-auto flex justify-between border-t-2 border-slate-200 px-4 py-2 text-sm font-bold dark:border-slate-700">
+        <span>{t("Total")}</span>
+        <span className="font-mono">{formatCurrency(total)}</span>
+      </div>
+    </div>
+  );
+}
+
 /* ---------------- Goods tab ---------------- */
 function GoodsTab({ goods }) {
-  if (!goods?.items?.length) return <Empty text="No goods movement in this range." />;
+  if (!goods?.items?.length) return <Empty text={t("No goods movement in this range.")} />;
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
-        <StatBox label="Total Sold" value={`${goods.total_sold_qty} units`} tone="down" />
-        <StatBox label="Total Bought" value={`${goods.total_bought_qty} units`} tone="up" />
+        <StatBox label={t("Total Sold")} value={`${goods.total_sold_qty} units`} tone="down" />
+        <StatBox label={t("Total Bought")} value={`${goods.total_bought_qty} units`} tone="up" />
       </div>
       <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-              <th className="px-4 py-3 text-left font-semibold">Item</th>
-              <th className="px-4 py-3 text-right font-semibold">Sold</th>
-              <th className="px-4 py-3 text-right font-semibold">Bought</th>
-              <th className="px-4 py-3 text-right font-semibold">Net change</th>
+              <th className="px-4 py-3 text-left font-semibold">{t("Item")}</th>
+              <th className="px-4 py-3 text-right font-semibold">{t("Sold")}</th>
+              <th className="px-4 py-3 text-right font-semibold">{t("Bought")}</th>
+              <th className="px-4 py-3 text-right font-semibold">{t("Net change")}</th>
             </tr>
           </thead>
           <tbody>
@@ -177,7 +432,9 @@ function GoodsTab({ goods }) {
                 <td className="px-4 py-2.5 font-medium text-slate-800 dark:text-slate-200">{g.item}</td>
                 <td className="px-4 py-2.5 text-right text-rose-600">{g.sold_qty || "—"}</td>
                 <td className="px-4 py-2.5 text-right text-emerald-600">{g.bought_qty || "—"}</td>
-                <td className={`px-4 py-2.5 text-right font-semibold ${g.net_qty > 0 ? "text-emerald-600" : g.net_qty < 0 ? "text-rose-600" : "text-slate-500"}`}>
+                <td
+                  className={`px-4 py-2.5 text-right font-semibold ${g.net_qty > 0 ? "text-emerald-600" : g.net_qty < 0 ? "text-rose-600" : "text-slate-500"}`}
+                >
                   {g.net_qty > 0 ? "▲" : g.net_qty < 0 ? "▼" : ""} {Math.abs(g.net_qty)}
                 </td>
               </tr>
@@ -185,17 +442,28 @@ function GoodsTab({ goods }) {
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-slate-400">▲ stock increased (bought more than sold) · ▼ stock decreased (sold more than bought)</p>
+      <p className="text-xs text-slate-400">
+        {t("▲ stock increased (bought more than sold) · ▼ stock decreased (sold more than bought)")}
+      </p>
     </div>
   );
 }
 
 /* ---------------- Profit & Loss tab ---------------- */
 function PnLTab({ pnl }) {
-  if (!pnl) return <Empty text="No data for profit / loss." />;
+  if (!pnl) return <Empty text={t("No data for profit / loss.")} />;
   const row = (label, value, opts = {}) => (
-    <div key={opts.rowKey ?? label} className={`flex items-center justify-between px-4 py-2.5 ${opts.bold ? "font-bold" : ""} ${opts.border ? "border-t border-slate-200 dark:border-slate-700" : ""}`}>
-      <span className={opts.indent ? "pl-4 text-slate-600 dark:text-slate-400" : "text-slate-700 dark:text-slate-300"}>{label}</span>
+    <div
+      key={opts.rowKey ?? label}
+      className={`flex items-center justify-between px-4 py-2.5 ${opts.bold ? "font-bold" : ""} ${opts.border ? "border-t border-slate-200 dark:border-slate-700" : ""}`}
+    >
+      <span
+        className={
+          opts.indent ? "pl-4 text-slate-600 dark:text-slate-400" : "text-slate-700 dark:text-slate-300"
+        }
+      >
+        {label}
+      </span>
       <span className={`font-mono ${opts.color || ""}`}>{formatCurrency(value)}</span>
     </div>
   );
@@ -204,35 +472,59 @@ function PnLTab({ pnl }) {
     <div className="space-y-4">
       {/* Trading account */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
-        <div className="bg-slate-50 px-4 py-2.5 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">Trading Account</div>
+        <div className="bg-slate-50 px-4 py-2.5 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+          {t("Trading Account")}
+        </div>
         {row("Sales A/C", pnl.sales, { rowKey: "sales" })}
         {row("Less: Cost of Goods Sold", pnl.cost_of_goods, { indent: true, rowKey: "cogs" })}
-        {row("Gross Profit", pnl.gross_profit, { rowKey: "gp", bold: true, border: true, color: pnl.gross_profit >= 0 ? "text-emerald-600" : "text-rose-600" })}
+        {row("Gross Profit", pnl.gross_profit, {
+          rowKey: "gp",
+          bold: true,
+          border: true,
+          color: pnl.gross_profit >= 0 ? "text-emerald-600" : "text-rose-600",
+        })}
       </div>
 
       {/* P&L account */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
-        <div className="bg-slate-50 px-4 py-2.5 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">Profit &amp; Loss Account</div>
+        <div className="bg-slate-50 px-4 py-2.5 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+          {t("Profit & Loss Account")}
+        </div>
         {row("Gross Profit b/d", pnl.gross_profit, { rowKey: "gpbd" })}
         {pnl.expenses.length === 0 ? (
-          <div className="px-4 py-2.5 text-sm text-slate-400">No expenses recorded.</div>
+          <div className="px-4 py-2.5 text-sm text-slate-400">{t("No expenses recorded.")}</div>
         ) : (
           <>
-            <div className="px-4 pt-2 text-xs font-semibold uppercase text-slate-400">Less: Expenses</div>
+            <div className="px-4 pt-2 text-xs font-semibold uppercase text-slate-400">
+              {t("Less: Expenses")}
+            </div>
             {pnl.expenses.map((e, i) => row(e.account, e.amount, { indent: true, rowKey: `exp-${i}` }))}
             {row("Total Expenses", pnl.total_expenses, { border: true, rowKey: "totexp" })}
           </>
         )}
-        {row(pnl.is_profit ? "Net Profit" : "Net Loss", Math.abs(pnl.net_profit), {
-          rowKey: "net", bold: true, border: true, color: pnl.is_profit ? "text-emerald-600" : "text-rose-600",
+        {row(pnl.is_profit ? t("Net Profit") : t("Net Loss"), Math.abs(pnl.net_profit), {
+          rowKey: "net",
+          bold: true,
+          border: true,
+          color: pnl.is_profit ? "text-emerald-600" : "text-rose-600",
         })}
       </div>
 
-      <div className={`flex items-center gap-2 rounded-xl border px-4 py-3 ${
-        pnl.is_profit ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40"
-                      : "border-rose-200 bg-rose-50 dark:border-rose-900 dark:bg-rose-950/40"}`}>
-        {pnl.is_profit ? <TrendingUp className="h-5 w-5 text-emerald-600" /> : <TrendingDown className="h-5 w-5 text-rose-600" />}
-        <span className="font-semibold">{pnl.is_profit ? "Net Profit" : "Net Loss"}: {formatCurrency(Math.abs(pnl.net_profit))}</span>
+      <div
+        className={`flex items-center gap-2 rounded-xl border px-4 py-3 ${
+          pnl.is_profit
+            ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40"
+            : "border-rose-200 bg-rose-50 dark:border-rose-900 dark:bg-rose-950/40"
+        }`}
+      >
+        {pnl.is_profit ? (
+          <TrendingUp className="h-5 w-5 text-emerald-600" />
+        ) : (
+          <TrendingDown className="h-5 w-5 text-rose-600" />
+        )}
+        <span className="font-semibold">
+          {pnl.is_profit ? t("Net Profit") : t("Net Loss")}: {formatCurrency(Math.abs(pnl.net_profit))}
+        </span>
       </div>
     </div>
   );
@@ -243,7 +535,7 @@ function StatBox({ label, value, tone }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
       <p className="text-xs font-medium text-slate-500">{label}</p>
-      <p className={`mt-1 font-outfit text-xl font-bold ${color}`}>{value}</p>
+      <p className={`mt-1 font-display text-xl font-bold ${color}`}>{value}</p>
     </div>
   );
 }
@@ -251,17 +543,31 @@ function StatBox({ label, value, tone }) {
 function BalanceBanner({ totals, label }) {
   const ok = totals.balanced;
   return (
-    <div className={`flex flex-wrap items-center justify-between gap-2 rounded-xl border px-4 py-3 text-sm ${
-      ok ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40"
-         : "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40"}`}>
+    <div
+      className={`flex flex-wrap items-center justify-between gap-2 rounded-xl border px-4 py-3 text-sm ${
+        ok
+          ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40"
+          : "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40"
+      }`}
+    >
       <span className="flex items-center gap-2 font-medium">
-        {ok ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <AlertTriangle className="h-4 w-4 text-amber-600" />}
+        {ok ? (
+          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+        ) : (
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+        )}
         {label}
       </span>
       <span className="flex items-center gap-4">
-        <span>Total Debit: <b>{formatCurrency(totals.total_debit)}</b></span>
-        <span>Total Credit: <b>{formatCurrency(totals.total_credit)}</b></span>
-        <span className={ok ? "text-emerald-600" : "text-amber-600"}>{ok ? "Balanced ✓" : "Not balanced"}</span>
+        <span>
+          {t("Total Debit:")} <b>{formatCurrency(totals.total_debit)}</b>
+        </span>
+        <span>
+          {t("Total Credit:")} <b>{formatCurrency(totals.total_credit)}</b>
+        </span>
+        <span className={ok ? "text-emerald-600" : "text-amber-600"}>
+          {ok ? t("Balanced ✓") : t("Not balanced")}
+        </span>
       </span>
     </div>
   );

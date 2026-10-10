@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
+import '../core/i18n.dart';
 
 /// A square-ish tile in the dashboard's module grid (Transactions,
 /// Inventory, Predictions, etc). Set [highlight] for a tinted "featured"
@@ -7,6 +8,7 @@ import '../core/theme.dart';
 class ModuleTile extends StatelessWidget {
   final IconData icon;
   final String title;
+  final String? subtitle;
   final VoidCallback onTap;
   final bool highlight;
 
@@ -15,6 +17,7 @@ class ModuleTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.onTap,
+    this.subtitle,
     this.highlight = false,
   });
 
@@ -27,13 +30,22 @@ class ModuleTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(KadeRadius.lg),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: highlight ? teal.withOpacity(isDark ? 0.20 : 0.08) : Theme.of(context).cardTheme.color,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: isDark ? KadeColors.borderDark : KadeColors.borderLight),
+            gradient: highlight
+                ? const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: KadeColors.headerGradient,
+                  )
+                : null,
+            color: highlight ? null : Theme.of(context).cardTheme.color,
+            borderRadius: BorderRadius.circular(KadeRadius.lg),
+            boxShadow: isDark
+                ? null
+                : const [BoxShadow(color: KadeColors.cardShadow, blurRadius: 16, offset: Offset(0, 6))],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,16 +54,25 @@ class ModuleTile extends StatelessWidget {
                 height: 40,
                 width: 40,
                 decoration: BoxDecoration(
-                  color: highlight ? teal.withOpacity(0.16) : (isDark ? Colors.white10 : KadeColors.surfaceMutedLight),
-                  borderRadius: BorderRadius.circular(10),
+                  color: highlight ? Colors.white.withValues(alpha: 0.2) : teal.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
                 ),
-                child: Icon(icon, size: 20, color: teal),
+                child: Icon(icon, size: 20, color: highlight ? Colors.white : teal),
               ),
               const Spacer(),
               Text(
-                title,
-                style: Theme.of(context).textTheme.titleSmall,
+                tr(title),
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(color: highlight ? Colors.white : null),
               ),
+              if (subtitle != null)
+                Text(
+                  tr(subtitle!),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(fontSize: 11, color: highlight ? Colors.white70 : null),
+                ),
             ],
           ),
         ),

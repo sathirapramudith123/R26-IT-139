@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@react-google-maps/api": "^2.20.8",
+    "exceljs": "^4.4.0",
     "i18next": "^26.0.8",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",

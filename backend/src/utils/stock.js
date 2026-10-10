@@ -4,50 +4,68 @@ import { notify } from "../controllers/notification.controller.js";
 const num = (v) => Number(v || 0);
 const now = () => new Date().toISOString();
 
-// Per-batch status. Aggregate (RUNNING_OUT) එක item level එකේ ගණන් හැදෙනවා.
+// Per-batch status. The item-level status (RUNNING_OUT) is computed across batches.
 const batchStatus = (qty) => (qty <= 0 ? "OUT_OF_STOCK" : "AVAILABLE");
 
-// එක item එකක සියලුම batches — FIFO පිළිවෙළට (පරණ received_at මුලින්)
-// item_name එක case-insensitive + trimmed ලෙස match කරනවා — "Salt", "salt",
-// "Salt " වගේ ඒවා එකම item එකක් ලෙස සලකනවා (duplicate items වළක්වයි).
-const normName = (s) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
+// All batches of one item in FIFO order (oldest received_at first)
+// item_name is matched case-insensitively and trimmed, so "Salt", "salt" and "Salt " are the
+// same item (prevents duplicate items).
+const normName = (s) =>
+  String(s || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
 
 async function itemBatches(userId, itemName) {
   const target = normName(itemName);
   if (!target) return [];
   const { data } = await supabase
-    .from("inventory").select("*")
+    .from("inventory")
+    .select("*")
     .eq("user_id", userId)
     .order("received_at", { ascending: true });
-  return (data || [])
-    .filter((b) => normName(b.item_name) === target);
+  return (data || []).filter((b) => normName(b.item_name) === target);
 }
 
 const totalQty = (batches) => batches.reduce((s, b) => s + num(b.quantity), 0);
 
 async function notifyStock(userId, itemName, totalBefore, totalAfter, reorder, unit, reason) {
-  const justRanOut  = totalAfter <= 0 && totalBefore > 0;
+  const justRanOut = totalAfter <= 0 && totalBefore > 0;
   const justWentLow = totalAfter > 0 && totalAfter <= reorder && totalBefore > reorder;
   if (justRanOut) {
     await notify(userId, {
       title: "Out of stock",
       message: `${itemName} is now out of stock.${reason ? ` (${reason})` : ""}`,
-      type: "ALERT", category: "INVENTORY", link: "/dashboard/inventory",
+      type: "ALERT",
+      category: "INVENTORY",
+      link: "/dashboard/inventory",
+      details: [
+        ["Item", itemName],
+        ["Stock now", `0 ${unit}`],
+        ["Reorder level", `${reorder} ${unit}`],
+      ],
     });
   } else if (justWentLow) {
     await notify(userId, {
       title: "Low stock alert",
       message: `${itemName} is down to ${totalAfter} ${unit} — at or below your reorder level of ${reorder}.`,
-      type: "WARNING", category: "INVENTORY", link: "/dashboard/inventory/alerts",
+      type: "WARNING",
+      category: "INVENTORY",
+      link: "/dashboard/inventory/alerts",
+      details: [
+        ["Item", itemName],
+        ["Stock now", `${totalAfter} ${unit}`],
+        ["Reorder level", `${reorder} ${unit}`],
+      ],
     });
   }
 }
 
-// ── ප්‍රමාණවත් stock තිබේද? (සියලු batches එකතුව) ──────────────────────
+// ── Is there enough stock? (all batches together) ──────────────────────
 export async function hasEnoughStock(userId, itemName, qty) {
   if (!itemName || !qty) return { ok: true };
   const batches = await itemBatches(userId, itemName);
-  if (!batches.length) return { ok: true }; // inventory එකේ නැති item -> block කරන්නෙ නෑ
+  if (!batches.length) return { ok: true }; // item not in inventory -> do not block
   const total = totalQty(batches);
   if (total < num(qty)) {
     const unit = String(batches[0].unit || "unit").toLowerCase();
@@ -56,7 +74,7 @@ export async function hasEnoughStock(userId, itemName, qty) {
   return { ok: true };
 }
 
-// ── SALE: FIFO consume — පරණ batch එකෙන් මුලින් අඩු, COGS return ──────
+// ── SALE: FIFO consume — oldest batch first, returns the COGS ──────
 export async function consumeStock(userId, itemName, qty, reason = "") {
   const need = num(qty);
   if (!itemName || need <= 0) return { ok: true, cogs: 0 };
@@ -67,7 +85,11 @@ export async function consumeStock(userId, itemName, qty, reason = "") {
   const totalBefore = totalQty(batches);
   const unit = String(batches[0].unit || "unit").toLowerCase();
   if (totalBefore < need) {
-    return { ok: false, cogs: 0, message: `Not enough stock. Only ${totalBefore} ${unit} of ${itemName} available.` };
+    return {
+      ok: false,
+      cogs: 0,
+      message: `Not enough stock. Only ${totalBefore} ${unit} of ${itemName} available.`,
+    };
   }
 
   const reorder = num(batches[0].reorder_level);
@@ -80,9 +102,10 @@ export async function consumeStock(userId, itemName, qty, reason = "") {
     if (avail <= 0) continue;
     const take = Math.min(avail, remaining);
     const newQty = avail - take;
-    cogs += take * num(b.cost_price ?? b.unit_price);   // ඒ batch එකේ cost එකෙන්
+    cogs += take * num(b.cost_price ?? b.unit_price); // at that batch's cost
     remaining -= take;
-    await supabase.from("inventory")
+    await supabase
+      .from("inventory")
       .update({ quantity: newQty, item_status: batchStatus(newQty), updated_at: now() })
       .eq("inventory_id", b.inventory_id);
   }
@@ -91,7 +114,7 @@ export async function consumeStock(userId, itemName, qty, reason = "") {
   return { ok: true, cogs: +cogs.toFixed(2) };
 }
 
-// ── PURCHASE / stock-in: cost එක වෙනස් නම් අලුත් batch, එකම නම් merge ──
+// ── PURCHASE / stock-in: new batch if the cost differs, merge if it is the same ──
 export async function receiveStock(userId, itemName, qty, costPrice, reason = "") {
   const addQty = num(qty);
   if (!itemName || addQty <= 0) return null;
@@ -99,42 +122,50 @@ export async function receiveStock(userId, itemName, qty, costPrice, reason = ""
   const batches = await itemBatches(userId, itemName);
   const cost = num(costPrice);
 
-  // එකම cost එකේ batch එකක් තියෙනවා නම් ඒකට එකතු කරනවා
+  // add to an existing batch with the same cost
   const sameCost = batches.find((b) => num(b.cost_price ?? b.unit_price) === cost);
   if (sameCost) {
     const newQty = num(sameCost.quantity) + addQty;
-    const { data } = await supabase.from("inventory")
+    const { data } = await supabase
+      .from("inventory")
       .update({ quantity: newQty, item_status: batchStatus(newQty), updated_at: now() })
-      .eq("inventory_id", sameCost.inventory_id).select().single();
+      .eq("inventory_id", sameCost.inventory_id)
+      .select()
+      .single();
     return data;
   }
 
-  // නැත්නම් අලුත් batch row එකක් — meta එක තියෙන batch එකකින් copy කරනවා
+  // otherwise a new batch row, copying metadata from an existing batch
   const t = batches[batches.length - 1] || batches[0] || {};
-  // existing item එකක් තියෙනවා නම් ඒකෙ නියම නම පාවිච්චි කරනවා (case consistent),
-  // නැත්නම් user දුන්න නම trim කරලා.
+  // use the existing item's exact name (consistent case), otherwise the trimmed name given
   const canonicalName = t.item_name || String(itemName).trim();
-  const { data } = await supabase.from("inventory").insert([{
-    user_id: userId,
-    item_name: canonicalName,
-    category: t.category ?? "Other",
-    supplier_name: t.supplier_name ?? null,
-    quantity: addQty,
-    reorder_level: num(t.reorder_level),
-    unit: t.unit ?? "UNIT",
-    cost_price: cost,
-    unit_price: cost,
-    lead_time_days: num(t.lead_time_days ?? 1),
-    received_at: now(),
-    item_status: batchStatus(addQty),
-  }]).select().single();
+  const { data } = await supabase
+    .from("inventory")
+    .insert([
+      {
+        user_id: userId,
+        item_name: canonicalName,
+        category: t.category ?? "Other",
+        supplier_name: t.supplier_name ?? null,
+        quantity: addQty,
+        reorder_level: num(t.reorder_level),
+        unit: t.unit ?? "UNIT",
+        cost_price: cost,
+        unit_price: cost,
+        lead_time_days: num(t.lead_time_days ?? 1),
+        received_at: now(),
+        item_status: batchStatus(addQty),
+      },
+    ])
+    .select()
+    .single();
   return data;
 }
 
 // ── Backward-compat wrapper ───────────────────────────────────────────
-// procurement.controller.js වගේ තැන් තාම adjustStock පාවිච්චි කරන නිසා.
+// still used by procurement.controller.js.
 //   delta < 0  -> FIFO consume
-//   delta > 0  -> receive (costPrice දුන්නොත් ඒකට, නැත්නම් newest batch එකේ cost එකට)
+//   delta > 0  -> receive (at costPrice if given, otherwise at the newest batch's cost)
 export async function adjustStock(userId, itemName, delta, reason = "", costPrice = null) {
   const d = num(delta);
   if (!itemName || !d) return null;

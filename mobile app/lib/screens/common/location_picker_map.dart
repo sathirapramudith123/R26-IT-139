@@ -5,15 +5,15 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../../core/config.dart';
 import '../../core/theme.dart';
+import '../../core/i18n.dart';
 
-// Read from the .env file at the project root (see main.dart, which loads
-// it via dotenv.load() before runApp). This covers the Places search and
-// Directions REST calls made from Dart — the native map SDKs (Android/iOS)
-// still read their own separate copy of the key from AndroidManifest.xml
-// and AppDelegate.swift, since those load before Flutter/dotenv does.
-String get _kGoogleApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
+// Web-service key for the Places search, Geocoding and Directions REST calls
+// made from Dart, given at build time (flutter run --dart-define-from-file=.env).
+// The native map SDKs read their own key: Android from AndroidManifest.xml
+// (filled from android/local.properties), iOS from AppDelegate.swift.
+String get _kGoogleApiKey => AppConfig.googleMapsApiKey;
 
 /// One extra marker to plot alongside the picked point — e.g. suppliers of
 /// the item being procured, with [highlight] marking the nearest one.
@@ -89,6 +89,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
   Timer? _debounce;
   List<_PlaceSuggestion> _suggestions = [];
   bool _searching = false;
+  String? _searchError; // shown under the search box when Google rejects the request
 
   Set<Polyline> _polylines = {};
   String? _routeDistanceKm;
@@ -152,7 +153,9 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
       final res = await http.get(uri);
       final data = jsonDecode(res.body);
       final results = data["results"] as List?;
-      final addr = (results != null && results.isNotEmpty) ? results[0]["formatted_address"] as String? : null;
+      final addr = (results != null && results.isNotEmpty)
+          ? results[0]["formatted_address"] as String?
+          : null;
       if (addr != null) widget.onAddress?.call(addr);
     } catch (_) {
       // Silent — the user can still type/edit the address field manually.
@@ -166,19 +169,19 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
         perm = await Geolocator.requestPermission();
       }
       if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
-        _snack("Location permission denied.");
+        _snack(tr("Location permission denied."));
         return;
       }
       final pos = await Geolocator.getCurrentPosition();
       _setPoint(LatLng(pos.latitude, pos.longitude), move: true);
     } catch (_) {
-      _snack("Couldn't get your location.");
+      _snack(tr("Couldn't get your location."));
     }
   }
 
   void _snack(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr(msg))));
   }
 
   // ---------------- Places Autocomplete search ----------------
@@ -186,14 +189,27 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
   void _onSearchChanged(String query) {
     _debounce?.cancel();
     if (query.trim().isEmpty) {
-      setState(() => _suggestions = []);
+      setState(() {
+        _suggestions = [];
+        _searchError = null;
+      });
       return;
     }
     _debounce = Timer(const Duration(milliseconds: 400), () => _fetchSuggestions(query));
   }
 
   Future<void> _fetchSuggestions(String query) async {
-    setState(() => _searching = true);
+    if (_kGoogleApiKey.isEmpty) {
+      setState(
+        () =>
+            _searchError = tr("Map search needs the Google Maps key — run with --dart-define-from-file=.env"),
+      );
+      return;
+    }
+    setState(() {
+      _searching = true;
+      _searchError = null;
+    });
     try {
       final uri = Uri.https("maps.googleapis.com", "/maps/api/place/autocomplete/json", {
         "input": query,
@@ -207,10 +223,21 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
             .toList();
         if (mounted) setState(() => _suggestions = preds);
       } else if (mounted) {
-        setState(() => _suggestions = []);
+        // ZERO_RESULTS is a normal "nothing found"; anything else is a key / API problem
+        setState(() {
+          _suggestions = [];
+          _searchError = data["status"] == "ZERO_RESULTS"
+              ? tr("No places found.")
+              : "${tr("Map search failed")}: ${data["status"]} — ${data["error_message"] ?? ""}";
+        });
       }
     } catch (_) {
-      if (mounted) setState(() => _suggestions = []);
+      if (mounted) {
+        setState(() {
+          _suggestions = [];
+          _searchError = tr("Map search failed — check the internet connection.");
+        });
+      }
     } finally {
       if (mounted) setState(() => _searching = false);
     }
@@ -238,7 +265,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
         );
       }
     } catch (_) {
-      _snack("Couldn't look up that place.");
+      _snack(tr("Couldn't look up that place."));
     }
   }
 
@@ -275,7 +302,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
             _polylines = {
               Polyline(
                 polylineId: const PolylineId("route"),
-                color: const Color(0xFF0D9488),
+                color: KadeColors.teal,
                 width: 4,
                 points: points.map((p) => LatLng(p.latitude, p.longitude)).toList(),
               ),
@@ -290,14 +317,14 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
           _polylines = {};
           _routeDistanceKm = null;
           _routeDurationMin = null;
-          _routeError = "No route found";
+          _routeError = tr("No route found");
         });
       }
     } catch (_) {
       if (mounted) {
         setState(() {
           _polylines = {};
-          _routeError = "Couldn't fetch route";
+          _routeError = tr("Couldn't fetch route");
         });
       }
     }
@@ -332,8 +359,8 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
             m.highlight
                 ? BitmapDescriptor.hueGreen
                 : m.cheapest
-                    ? BitmapDescriptor.hueYellow
-                    : BitmapDescriptor.hueRed,
+                ? BitmapDescriptor.hueYellow
+                : BitmapDescriptor.hueRed,
           ),
         ),
       if (widget.destinationLat != null && widget.destinationLng != null)
@@ -379,28 +406,50 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
                           controller: _searchCtrl,
                           onChanged: _onSearchChanged,
                           decoration: InputDecoration(
-                            hintText: "Search a place or address…",
+                            hintText: tr("Search a place or address…"),
                             filled: true,
                             fillColor: Theme.of(context).cardColor,
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide.none,
+                            ),
                             suffixIcon: _searching
                                 ? const Padding(
                                     padding: EdgeInsets.all(12),
-                                    child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                                    child: SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    ),
                                   )
                                 : null,
                           ),
                         ),
                       ),
+                      if (_searchError != null && _suggestions.isEmpty)
+                        Container(
+                          margin: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardColor,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            _searchError!,
+                            style: const TextStyle(color: KadeColors.terra, fontSize: 12),
+                          ),
+                        ),
                       if (_suggestions.isNotEmpty)
                         Container(
                           margin: const EdgeInsets.only(top: 4),
                           decoration: BoxDecoration(
                             color: Theme.of(context).cardColor,
                             borderRadius: BorderRadius.circular(10),
-                            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 2))],
+                            boxShadow: const [
+                              BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 2)),
+                            ],
                           ),
                           constraints: const BoxConstraints(maxHeight: 180),
                           child: ListView.builder(
@@ -412,7 +461,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
                               return ListTile(
                                 dense: true,
                                 leading: const Icon(Icons.place_outlined, size: 18),
-                                title: Text(s.description, style: const TextStyle(fontSize: 13)),
+                                title: Text(tr(s.description), style: const TextStyle(fontSize: 13)),
                                 onTap: () => _selectSuggestion(s),
                               );
                             },
@@ -429,7 +478,10 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
                     top: 10,
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(8)),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       child: Text(
                         _routeDistanceKm != null
                             ? "🚗 $_routeDistanceKm km · ⏱ ${_formatDuration(_routeDurationMin)}"
@@ -461,8 +513,8 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
         const SizedBox(height: 6),
         Text(
           _picked == null
-              ? "Tap on the map or search to pick the delivery location"
-              : "Picked: ${_picked!.latitude.toStringAsFixed(5)}, ${_picked!.longitude.toStringAsFixed(5)}",
+              ? tr("Tap on the map or search to pick the delivery location")
+              : tr("📍 Location picked on the map"),
           style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
         ),
       ],

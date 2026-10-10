@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
+import '../core/i18n.dart';
 
 /// Standard loading indicator used across screens while data is fetched.
 class Loading extends StatelessWidget {
@@ -18,14 +19,11 @@ class Loading extends StatelessWidget {
           SizedBox(
             width: 32,
             height: 32,
-            child: CircularProgressIndicator(
-              strokeWidth: 3,
-              color: theme.colorScheme.primary,
-            ),
+            child: CircularProgressIndicator(strokeWidth: 3, color: theme.colorScheme.primary),
           ),
           const SizedBox(height: KadeSpacing.md),
           Text(
-            label,
+            tr(label),
             style: theme.textTheme.bodyMedium?.copyWith(
               color: isDark ? KadeColors.textSoftDark : KadeColors.textSoftLight,
             ),

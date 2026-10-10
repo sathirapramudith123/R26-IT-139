@@ -4,9 +4,9 @@
 
 **A Digital Platform with Explainable Machine Learning for Rural Sri Lankan Micro-Merchants**
 
-*IT4010 Research Project · BSc (Hons) in Information Technology*
+*IT4010 Research Project · BSc (Hons) in Information Technology · Project R26-IT-139*
 
-![Web](https://img.shields.io/badge/Web-Next.js%2014-black?style=for-the-badge&logo=next.js)
+![Web](https://img.shields.io/badge/Web-Next.js%2015-black?style=for-the-badge&logo=next.js)
 ![Mobile](https://img.shields.io/badge/Mobile-Flutter-02569B?style=for-the-badge&logo=flutter)
 ![Backend](https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-339933?style=for-the-badge&logo=node.js)
 ![Database](https://img.shields.io/badge/DB-Supabase-3ECF8E?style=for-the-badge&logo=supabase)
@@ -14,30 +14,23 @@
 
 </div>
 
-## Smart Merchant Support Platform for Agency Banking & Procurement
+## Lanka-Link
 
-A simple digital tool that helps small Sri Lankan shop owners ("kade" owners) run
+A digital tool that helps small Sri Lankan shop owners ("kade" owners) and agency-banking agents run
 their business — with AI that explains its advice in plain language.
-
-Research Project · BSc (Hons) in Information Technology
-
 
 ---
 
 ## What is this? (In simple words)
 
-Many small shop owners in rural Sri Lanka run their whole business **on paper**.
-They have no records, no easy access to banking, and no way to know if the bank
-will give them a loan.
+Many small shop owners in rural Sri Lanka run their whole business **on paper**. They have no records,
+no easy access to banking, and no way to know if a bank will give them a loan.
 
 **Lanka-Link** is an app (on **web and mobile**) that helps them:
 
-- Keep records of **sales, stock, suppliers, and purchases**
-- Do **banking for their customers** (deposits, withdrawals) as an agent
-- Get **AI advice** — and the AI always explains **why** it gave that advice
-
-Think of it as a **digital shop assistant** that also gives smart suggestions.
-
+- Keep records of **sales, stock, suppliers and purchases**
+- Do **banking for their customers** (deposits, withdrawals, transfers) as an agent
+- Get **AI advice** — and the AI always shows **why** it gave that advice
 
 ---
 
@@ -45,13 +38,12 @@ Think of it as a **digital shop assistant** that also gives smart suggestions.
 
 | The shop owner's problem | What the app does |
 |---|---|
-| "I have no records, so no bank will give me a loan." | Tracks sales, then gives an **AI loan-readiness score** |
-| "I keep running out of stock." | Tracks inventory, then **AI predicts how much you'll sell** |
-| "I don't know the best time to buy stock." | **AI says buy now or wait** for a better price |
-| "How do I spot a suspicious transaction?" | **AI flags unusual banking activity** |
+| "I have no records, so no bank will give me a loan." | Tracks sales and gives an **AI credit-readiness score** and a loan limit |
+| "I keep running out of stock — or have too much." | **AI forecasts next week's sales** per item and sets when to restock |
+| "I don't know the best time to buy." | **AI tells you whether prices are likely to rise** (buy now) or not (wait) |
+| "How do I spot a suspicious transaction?" | **AI flags unusual banking activity** for the agent to check |
 
-Each AI answer comes with a **plain-language reason** — so the shop owner can trust it.
-
+Each AI answer comes with the **factors that pushed it up or down**, so the shop owner can trust it.
 
 ---
 
@@ -59,83 +51,85 @@ Each AI answer comes with a **plain-language reason** — so the shop owner can 
 
 | Module | What it does |
 |---|---|
-| **Dashboard** | A friendly home screen showing income, expenses, profit, and stock — with an animated sky that changes by time of day |
-| **Transactions** | Record every sale, purchase, and expense |
-| **Journal** | An accountant-style double-entry ledger (Debit/Credit), with monthly reports and profit/loss |
-| **Inventory** | Track stock and get low-stock alerts |
-| **Suppliers** | Keep a list of suppliers, their prices, and locations on a map |
-| **Procurement** | Order stock — the app recommends the best supplier (most items and nearest) |
-| **Agency Banking** | Do deposits/withdrawals for customers, with float-account tracking |
-| **My Banks** | Manage your bank float accounts and cash |
-| **Predictions** | See all 4 AI insights in one place |
+| **Dashboard** | Income, expenses, profit and stock at a glance |
+| **Transactions** | Record every sale, purchase and expense |
+| **Journal & Reports** | Double-entry ledger (debit / credit), goods movement and profit & loss, PDF reports |
+| **Inventory** | Stock in FIFO batches, low-stock alerts, delivery lead time per item |
+| **Suppliers** | Suppliers, the items they carry, and their location on a map |
+| **Procurement** | Purchase orders — the app ranks suppliers by items covered, price and distance |
+| **Agency Banking** | Deposits / withdrawals / transfers for customers, with CBSL daily limits |
+| **My Banks** | Float account per partner bank and the shared cash pool |
+| **Predictions** | All 4 AI insights in one place, each with its reasons |
 
+---
+
+## How the parts connect
+
+```
+Sales, purchases, stock and banking (one digital ledger)
+        │
+        ├──► Demand forecast (units next week) ──► Reorder point (lead time + safety stock) ──► Buy / Wait
+        │                                                       ▲
+        │                                    Procurement model: "good price now / prices may improve"
+        ├──► Credit readiness (stock-outs, margin, digital payments, time in business)
+        └──► Anomaly check on each banking transaction
+```
+
+What a shop records once feeds every insight: the demand forecast decides when to restock, and steady
+stock improves the credit score.
 
 ---
 
 ## The AI (Machine Learning) — explained simply
 
-The app has **4 AI models**, each trained to help with one decision. Every model was
-built by testing several algorithms and keeping the best one, then checking it on
-data it had never seen before.
+The app has **4 AI models**. For each one, five algorithms were compared (Logistic Regression, Decision
+Tree, Random Forest, Gradient Boosting, XGBoost); the winner was chosen by **cross-validation on the
+training data only** and then tested **once** on data it had never seen. Every model is also compared
+with **simple rules or naive forecasts**, with bootstrap confidence intervals, so the value of the AI is
+measured honestly.
 
-### Component 1 — Credit Readiness
-- **What it does:** Answers "Is this shop ready for a loan?"
-- **Type of problem:** Classification (Yes / No)
-- **Best algorithm:** Logistic Regression
-- **What it looks at:** How long in business, daily sales, profit margin, digital-payment use
-- **Result:** A readiness score, plus the reasons behind it
+| Model | Answers | Algorithm | Key result |
+|---|---|---|---|
+| **Credit readiness** | "Is this shop ready for a loan?" | Logistic Regression | ROC-AUC 0.839 (99.9 % of the best possible on this data); better than bank rules (F1 0.75 vs 0.68) |
+| **Weekly demand forecast** | "How many units will sell next week?" | Random Forest | 21.7 % lower error than "same as last week"; 64 % lower right after Avurudu |
+| **Procurement (buy now / wait)** | "Will the price rise in 4 weeks?" | Random Forest | ROC-AUC 0.795 on future weeks; following it saves about 2.2 % of the purchase bill |
+| **Banking anomaly detection** | "Is this transaction unusual?" | XGBoost (+ Isolation Forest input) | Threshold 0.87 cuts false alarms from 136 to 19 per 1,000 honest customers |
 
-### Component 2 — Demand Forecast
-- **What it does:** Answers "How many units of this item will sell next week?"
-- **Type of problem:** Regression (a number)
-- **Best algorithm:** Random Forest
-- **What it looks at:** Past sales trend, stock levels, seasonal patterns
-- **Result:** A predicted number of units, plus a safe reorder level (using the
-  safety-stock formula: buffer = Z × forecast error × √lead-time)
+What the app does with them:
 
-### Component 3 — Procurement (Buy or Wait)
-- **What it does:** Answers "Should I buy this stock now, or wait?"
-- **Type of problem:** Classification (Buy / Wait) plus a price forecast
-- **Best algorithm:** XGBoost
-- **What it looks at:** Price trend, price ups-and-downs, possible profit margin
-- **Result:** A buy/wait decision with a confidence score. Business rules also apply —
-  it won't tell you to over-buy or stock perishables you can't sell in time
+- **Credit:** score 0–100 → approved (≥ 70), conditional (50–69, loan capped at LKR 250,000) or rejected;
+  hard blocks for debt-to-income above 85 % or under 3 months in business. Loan limit = **3.5 × monthly net
+  cash flow**.
+- **Demand:** next week's units per item; the **reorder point** = forecast × lead time + safety stock
+  (1.65 × forecast error × √lead time) decides Buy / Wait.
+- **Procurement:** adds price context to Buy / Wait ("Good price right now" / "Prices may improve soon").
+- **Anomaly:** flags a transaction for the agent to verify. CBSL limits are **enforced** (over-limit
+  transactions are refused), and the model detects what the limits cannot.
 
-### Component 4 — Banking Anomaly (Fraud Detection)
-- **What it does:** Answers "Is this transaction suspicious?"
-- **Type of problem:** Classification on rare events (fraud is uncommon)
-- **Best algorithm:** XGBoost (combined with an Isolation Forest to catch new,
-  never-seen patterns)
-- **What it looks at:** Amount, time, channel, transaction type
-- **Result:** Normal or Suspicious. Amounts near or above the CBSL limit are also flagged
-
-**The special part (the research contribution):** every model doesn't just give an
-answer — it **shows the reasons** behind it. So instead of a mysterious "black box,"
-the shop owner sees *why* — which builds trust.
-
-**Algorithms tested for each model:** Logistic Regression, Decision Tree,
-Random Forest, Gradient Boosting, and XGBoost. The most accurate one (measured on
-unseen test data) was kept as the final model.
-
+**The research contribution:** explainable decision support for micro-merchants, evaluated honestly —
+time-based testing for time-series data, comparison with simple rules, and clear limits on what the
+results claim. Details, charts and code for each model: [`ML model/README.md`](ML%20model/README.md)
+(one notebook and one model card per model).
 
 ---
 
 ## How the app is built (The 4 parts)
 
-The app has 4 parts that work together:
-
 - **Web + Mobile app** — what the shop owner sees and touches
-- **Backend** — the middle "manager" that checks logins and moves data around
-- **AI Service** — a separate program that runs the 4 AI models
-- **Database** — where all the information is safely stored
+- **Backend** — checks logins, applies the business rules and moves data
+- **ML service** — a separate Python program that runs the 4 models and explains each prediction
+- **Database** — Supabase (PostgreSQL), including SQL functions that run each banking operation as one transaction
 
-The web and mobile apps never talk to the AI directly. Every request goes through the
-backend "manager" first, which checks the login and then asks the AI service.
+The web and mobile apps never talk to the ML service directly: every request goes through the backend,
+which checks the login and builds the model inputs from the shop's own data.
 
-**Why keep the AI separate?** The AI models are Python files that the main backend
-can't open directly. So they run in their own small program — keeping everything
-clean and organized.
-
+| Folder | What it is | README |
+|---|---|---|
+| `frontend/` | Web app (Next.js) | [frontend/README.md](frontend/README.md) |
+| `mobile app/` | Android app (Flutter) | [mobile app/README.md](mobile%20app/README.md) |
+| `backend/` | REST API (Node.js + Express) | [backend/README.md](backend/README.md) |
+| `ml_service/` | ML API (FastAPI) | [ml_service/README.md](ml_service/README.md) |
+| `ML model/` | Datasets, training notebooks, model cards | [ML model/README.md](ML%20model/README.md) |
 
 ---
 
@@ -143,109 +137,92 @@ clean and organized.
 
 | Part | Technology |
 |---|---|
-| **Web app** | Next.js (React) + Tailwind CSS |
+| **Web app** | Next.js 15 (React) + Tailwind CSS |
 | **Mobile app** | Flutter (Dart) |
-| **Backend** | Node.js + Express |
+| **Backend** | Node.js + Express, Joi validation |
 | **Database** | Supabase (PostgreSQL) |
-| **AI service** | Python + FastAPI |
-| **AI / Machine Learning** | scikit-learn, XGBoost, pandas (for the models); SHAP (for explanations) |
-| **Login security** | JWT tokens + bcrypt password encryption |
-| **Maps** | OpenStreetMap (free, no API key) |
-| **Design** | Warm "kade" style, Nunito font, light + dark mode |
-
+| **ML service** | Python + FastAPI |
+| **Machine learning** | scikit-learn, XGBoost, pandas; SHAP for explanations |
+| **Login security** | JWT (8-hour sessions), bcrypt password hashing, login rate limiting |
+| **Maps** | Google Maps (web and mobile) |
+| **Code style** | Prettier (JS), Black (Python), dart format |
 
 ---
 
 ## How to run it (Setup)
 
-You need: **Node.js 18+**, **Python 3.11+**, **Flutter SDK**, and a **Supabase account**.
+You need: **Node.js 18+**, **Python 3.11+**, **Flutter SDK**, and a **Supabase project**.
 
-**Step 1 — Database**
-Create a Supabase project, open the SQL Editor, and run `backend/schema.sql`.
-Then copy your service_role key from Settings → API.
+**1. Database** — in the Supabase SQL Editor run `backend/schema.sql`, then `backend/sql/atomic_banking.sql`.
 
-**Step 2 — AI Service**
-```
+**2. ML service**
+```bash
 cd ml_service
 pip install -r requirements.txt
-python -m uvicorn app:app --port 8000 --reload
+python -m uvicorn app:app --port 8000
 ```
 
-**Step 3 — Backend**
-```
+**3. Backend** — create `backend/.env` (keys listed in [backend/README.md](backend/README.md)), then:
+```bash
 cd backend
 npm install
 npm run dev
 ```
 
-**Step 4 — Web app**
-```
+**4. Web app** — create `frontend/.env.local` with `NEXT_PUBLIC_API_BASE_URL=http://localhost:5000/api/v1`, then:
+```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-**Step 5 — Mobile app**
-```
-cd mobile_app
+**5. Mobile app** — create `mobile app/.env` (Google Maps key) and add `MAPS_API_KEY` to
+`android/local.properties`, then:
+```bash
+cd "mobile app"
 flutter pub get
-flutter run
+flutter run --dart-define-from-file=.env
 ```
 
-You'll also need two small settings files with your database keys and secrets —
-one in `backend` and one in `frontend`.
-
+Secret files (`.env`, `.env.local`, `local.properties`) are git-ignored and never committed.
 
 ---
 
 ## How it stays safe (Security)
 
-- **Login protection** — you must log in to reach the dashboard
-- **Tokens** — every request is checked to make sure you're allowed
-- **Passwords** — never stored as plain text (they're encrypted)
-- **Input checks** — all data is validated before it's saved
-- **Banking limits** — CBSL rules are enforced on agent transactions
-- **AI kept separate** — the AI runs on its own, and secret keys stay on the server only
+- **Login protection** — every API request needs a valid token; sessions expire after 8 hours
+- **Passwords** — hashed with bcrypt; secure, time-limited password-reset links
+- **Rate limiting** — repeated login attempts are slowed down
+- **CORS allowlist** — only the app's own web origin may call the API from a browser
+- **Input validation** — every request body is checked before it is saved
+- **Banking integrity** — float and cash-pool updates run inside one database transaction with a lock, so
+  two requests at the same moment cannot corrupt a balance
+- **Banking limits** — CBSL daily limits are enforced on agent transactions
+- **Secrets on the server only** — the database key and ML service are never exposed to the apps
 
-Follows Central Bank of Sri Lanka rules: Direction No. 02 of 2018 (Agent Banking)
-and Direction No. 01 of 2021 (Mobile Payments).
-
+Follows Central Bank of Sri Lanka rules: Direction No. 02 of 2018 (Agent Banking) and Direction No. 01 of
+2021 (Mobile Payments).
 
 ---
 
 ## The look and feel
 
-Both the web and mobile apps share one warm, friendly "kade" design — cream
-backgrounds, deep teal with turmeric and terracotta touches, rounded shapes, and a
-soft font. It's made to feel welcoming for rural shop owners, not cold and corporate.
-
-The dashboard changes with the time of day — a sunrise over mountains in the morning,
-a bright day, a sunset into the sea in the evening, and a starry night — with numbers
-that count up smoothly. Both light and dark modes are available.
-
-
----
-
-## What's planned next (Future work)
-
-- Test the app with real shop owners in rural Sri Lanka
-- Compare the AI's advice against a shop owner's current guesswork
-- Show the AI's reasons live inside the app
-- Offline mode — use the app without internet, sync later
-- Sinhala and Tamil language support
-
+Web and mobile share one warm "kade" design — teal with turmeric touches, rounded shapes and a friendly
+font, made to feel welcoming for rural shop owners. Light and dark modes are available, and every screen
+can be switched between **Sinhala and English** (සිංහල / English button in the top bar on web, Settings on
+mobile).
 
 ---
 
 ## A note on the data
 
-There's no single ready-made dataset with everything needed for Sri Lankan shop
-owners. So this project uses real public data where it exists, and carefully
-generated realistic data (based on real Sri Lankan prices) where it doesn't — and is
-honest about this gap as part of the research. The final step is a real pilot with
-actual merchants.
-
+There is no ready-made dataset of Sri Lankan micro-merchants. The project uses real public data where it
+exists (market prices for rice and vegetables) and generated or simulated data where it does not
+(shop ledgers for credit readiness; PaySim for banking transactions). The model comparisons are valid
+because every method uses the same data; the absolute numbers are **not** claims about real-world
+performance. Each model card lists its limitations.
 
 ---
+
 
 Built for real-world impact in rural Sri Lanka · Lanka-Link

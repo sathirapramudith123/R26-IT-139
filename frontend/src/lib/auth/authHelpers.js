@@ -24,9 +24,9 @@ export function isMerchant() {
 
 export function hasRole(requiredRole) {
   const role = getCurrentRole();
-  if (requiredRole === ROLES.MERCHANT)   return true;
+  if (requiredRole === ROLES.MERCHANT) return true;
   if (requiredRole === ROLES.BANK_AGENT) return role === ROLES.BANK_AGENT || role === ROLES.ADMIN;
-  if (requiredRole === ROLES.ADMIN)      return role === ROLES.ADMIN;
+  if (requiredRole === ROLES.ADMIN) return role === ROLES.ADMIN;
   return false;
 }
 

@@ -8,8 +8,10 @@ import 'auth/login_screen.dart';
 import 'crud/list_screen.dart';
 import 'notifications_screen.dart';
 import 'predictions/predictions_hub_screen.dart';
-import 'reports/income_statement_screen.dart';
-
+import 'reports/reports_screen.dart';
+import 'agency_banking/my_banks_screen.dart';
+import 'journal/journal_screen.dart';
+import '../core/i18n.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -23,6 +25,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   double income = 0, expense = 0;
   int lowStock = 0;
   int unread = 0;
+  List<Map<String, dynamic>> recent = []; // latest 5 transactions
 
   @override
   void initState() {
@@ -46,6 +49,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         }
       }
 
+      // newest first, same as the web "Recent activity"
+      final latest = (txns is List)
+          ? txns.whereType<Map>().map((m) => Map<String, dynamic>.from(m)).toList()
+          : <Map<String, dynamic>>[];
+      latest.sort((a, b) => "${b["created_at"] ?? ""}".compareTo("${a["created_at"] ?? ""}"));
+
       int low = 0;
       if (inv is List) {
         for (final i in inv) {
@@ -62,7 +71,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (n is Map && n["count"] is num) un = (n["count"] as num).toInt();
       } catch (_) {}
 
-      if (mounted) setState(() { income = inc; expense = exp; lowStock = low; unread = un; });
+      if (mounted) {
+        setState(() {
+          income = inc;
+          expense = exp;
+          lowStock = low;
+          unread = un;
+          recent = latest.take(5).toList();
+        });
+      }
     } catch (_) {
       // leave metrics at 0 on error
     } finally {
@@ -71,11 +88,91 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _openIncomeStatement() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const IncomeStatementScreen()),
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportViewScreen(reportId: "income")));
+  }
+
+  // logo, notification bell, theme and logout — white on the blue header
+  Widget _topBar(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          height: 40,
+          width: 40,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.18),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(Icons.storefront_outlined, color: Colors.white, size: 22),
+        ),
+        const SizedBox(width: 10),
+        Text(tr("Lanka-Link"), style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white)),
+        const Spacer(),
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+              tooltip: tr("Notifications"),
+              onPressed: () async {
+                await Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+                _loadMetrics(); // refresh the badge when coming back
+              },
+            ),
+            if (unread > 0)
+              Positioned(
+                right: 6,
+                top: 6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  constraints: const BoxConstraints(minWidth: 18),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(999)),
+                  child: Text(
+                    unread > 9 ? "9+" : "$unread",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: KadeColors.teal, fontSize: 10, fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        ValueListenableBuilder<ThemeMode>(
+          valueListenable: ThemeController.mode,
+          builder: (context, mode, _) => IconButton(
+            icon: Icon(mode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode, color: Colors.white),
+            onPressed: () => ThemeController.toggle(),
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.logout, color: Colors.white),
+          onPressed: () async {
+            await AuthService.logout();
+            if (!context.mounted) return;
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+              (route) => false,
+            );
+          },
+        ),
+      ],
     );
   }
+
+  // greeting on the blue header (net profit is a stat card below, like income / expense)
+  Widget _greeting(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        tr("Ayubowan 👋"),
+        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        tr("Your business overview — finances, stock and procurement."),
+        style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12),
+      ),
+    ],
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -85,132 +182,82 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onRefresh: _loadMetrics,
           child: CustomScrollView(
             slivers: [
-              // ---- Header (simple gradient) ----
+              // ---- Header: blue gradient with net profit, white stat cards overlapping its edge ----
               SliverToBoxAdapter(
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 34),
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft, end: Alignment.bottomRight,
-                      colors: [Color(0xFF0D9488), Color(0xFF0F766E), Color(0xFF065F46)],
-                    ),
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(28), bottomRight: Radius.circular(28)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(children: [
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Column(
+                      children: [
                         Container(
-                          height: 44, width: 44,
-                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.14), borderRadius: BorderRadius.circular(12)),
-                          child: const Center(child: Icon(Icons.storefront_outlined, color: Colors.white, size: 24)),
-                        ),
-                        const SizedBox(width: 10),
-                        Text("Lanka-Link", style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white)),
-                        const Spacer(),
-
-                        // ---- Notification bell with unread badge ----
-                        Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-                              tooltip: "Notifications",
-                              onPressed: () async {
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-                                );
-                                _loadMetrics(); // refresh the badge when coming back
-                              },
+                          width: double.infinity,
+                          padding: const EdgeInsets.fromLTRB(20, 12, 12, 84),
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: KadeColors.headerGradient,
                             ),
-                            if (unread > 0)
-                              Positioned(
-                                right: 6,
-                                top: 6,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                  constraints: const BoxConstraints(minWidth: 18),
-                                  decoration: BoxDecoration(
-                                    color: KadeColors.terra,
-                                    borderRadius: BorderRadius.circular(999),
-                                  ),
-                                  child: Text(
-                                    unread > 9 ? "9+" : "$unread",
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-
-                        ValueListenableBuilder<ThemeMode>(
-                          valueListenable: ThemeController.mode,
-                          builder: (context, mode, _) => IconButton(
-                            icon: Icon(mode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode, color: Colors.white),
-                            onPressed: () => ThemeController.toggle(),
+                            borderRadius: BorderRadius.only(
+                              bottomLeft: Radius.circular(32),
+                              bottomRight: Radius.circular(32),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [_topBar(context), const SizedBox(height: 18), _greeting(context)],
                           ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.logout, color: Colors.white),
-                          onPressed: () {
-                            AuthService.logout();
-                            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
-                          },
-                        ),
-                      ]),
-                      const SizedBox(height: 18),
-                      Text("Ayubowan 👋",
-                          style: Theme.of(context).textTheme.headlineLarge?.copyWith(color: Colors.white)),
-                      const SizedBox(height: 4),
-                      Text("Here's your Lanka-Link today.", style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 14)),
-                    ],
-                  ),
-                ),
-              ),
-
-              // ---- Metric cards ----
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.55,
-                  ),
-                  delegate: SliverChildListDelegate([
-                    _AnimatedStatCard(
-                      label: "Total Income",
-                      value: income,
-                      loading: loading,
-                      gradient: const [Color(0xFF14335E), Color(0xFF1E4785)],
+                        const SizedBox(height: 70),
+                      ],
                     ),
-                    _AnimatedStatCard(
-                      label: "Total Expense",
-                      value: expense,
-                      loading: loading,
-                      gradient: const [Color(0xFF8A2E2E), Color(0xFF5C1E1E)],
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      height: 136,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        children: [
+                          _StatCard(
+                            icon: Icons.south_west,
+                            color: KadeColors.success,
+                            label: tr("Total Income"),
+                            caption: tr("money in"),
+                            value: income,
+                            loading: loading,
+                          ),
+                          _StatCard(
+                            icon: Icons.north_east,
+                            color: KadeColors.terra,
+                            label: tr("Total Expense"),
+                            caption: tr("money out"),
+                            value: expense,
+                            loading: loading,
+                          ),
+                          _StatCard(
+                            icon: Icons.account_balance_wallet_outlined,
+                            color: income - expense < 0 ? KadeColors.terra : KadeColors.teal,
+                            label: tr("Net Profit"),
+                            caption: tr("income − expense"),
+                            value: income - expense,
+                            loading: loading,
+                            onTap: _openIncomeStatement,
+                          ),
+                          _StatCard(
+                            icon: Icons.inventory_2_outlined,
+                            color: KadeColors.amber,
+                            label: tr("Low Stock Items"),
+                            caption: tr("to restock"),
+                            value: lowStock.toDouble(),
+                            loading: loading,
+                            isCount: true,
+                          ),
+                        ],
+                      ),
                     ),
-                    _AnimatedStatCard(
-                      label: "Net Profit",
-                      value: income - expense,
-                      loading: loading,
-                      gradient: const [Color(0xFF1E7A46), Color(0xFF14522F)],
-                      onTap: _openIncomeStatement,
-                    ),
-                    _AnimatedStatCard(
-                      label: "Low Stock Items",
-                      value: lowStock.toDouble(),
-                      loading: loading,
-                      isCount: true,
-                      gradient: const [Color(0xFF37415A), Color(0xFF232B3D)],
-                    ),
-                  ]),
+                  ],
                 ),
               ),
 
@@ -218,7 +265,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
-                  child: Text("Modules", style: Theme.of(context).textTheme.titleMedium),
+                  child: Text(
+                    tr("Modules"),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
 
@@ -227,96 +277,281 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                 sliver: SliverGrid(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2, mainAxisSpacing: 14, crossAxisSpacing: 14, childAspectRatio: 1.15,
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 14,
+                    crossAxisSpacing: 14,
+                    childAspectRatio: 1.15,
                   ),
                   delegate: SliverChildListDelegate([
-                    ...modules.map((m) => ModuleTile(
-                          icon: m.icon, title: m.title,
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ListScreen(module: m))),
-                        )),
-                    ModuleTile(
-                      icon: Icons.bar_chart_outlined, title: "Financial Statement",
-                      onTap: _openIncomeStatement,
+                    ...modules.map(
+                      (m) => ModuleTile(
+                        icon: m.icon,
+                        title: m.title,
+                        subtitle: _moduleCaptions[m.path],
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ListScreen(module: m))),
+                      ),
                     ),
                     ModuleTile(
-                      icon: Icons.insights_outlined, title: "Predictions", highlight: true,
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PredictionsHubScreen())),
+                      icon: Icons.account_balance_wallet_outlined,
+                      title: tr("My Banks"),
+                      subtitle: "Float accounts",
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyBanksScreen())),
+                    ),
+                    ModuleTile(
+                      icon: Icons.menu_book_outlined,
+                      title: tr("Journal"),
+                      subtitle: "Double-entry ledger",
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const JournalScreen())),
+                    ),
+                    ModuleTile(
+                      icon: Icons.bar_chart_outlined,
+                      title: tr("Reports"),
+                      subtitle: "Reports & Export",
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen())),
+                    ),
+                    ModuleTile(
+                      icon: Icons.insights_outlined,
+                      title: tr("Predictions"),
+                      subtitle: "AI insights",
+                      highlight: true,
+                      onTap: () =>
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const PredictionsHubScreen())),
                     ),
                   ]),
                 ),
               ),
+
+              // ---- Recent activity (latest 5 transactions) ----
+              SliverToBoxAdapter(child: _recentActivity(context)),
             ],
           ),
         ),
       ),
     );
   }
+
+  Widget _recentActivity(BuildContext context) {
+    final soft = Theme.of(context).textTheme.bodySmall?.color;
+    final txModule = modules.firstWhere((m) => m.path == "/transactions");
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
+            child: Text(
+              tr("Recent activity"),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
+          Card(
+            margin: EdgeInsets.zero,
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                if (recent.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(tr("No transactions yet."), style: TextStyle(color: soft)),
+                  )
+                else
+                  for (var i = 0; i < recent.length; i++) ...[
+                    if (i > 0) const Divider(height: 1),
+                    _activityRow(recent[i], soft),
+                  ],
+                const Divider(height: 1),
+                InkWell(
+                  onTap: () async {
+                    await Navigator.push(context, MaterialPageRoute(builder: (_) => ListScreen(module: txModule)));
+                    _loadMetrics();
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Center(
+                      child: Text(
+                        tr("View all transactions →"),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? KadeColors.tealDark
+                              : KadeColors.teal,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _activityRow(Map<String, dynamic> tx, Color? soft) {
+    final type = "${tx["transaction_type"] ?? ""}";
+    final isIn = type == "sale" || type == "deposit";
+    final color = isIn ? KadeColors.success : KadeColors.terra;
+    final amount = (tx["amount"] is num) ? (tx["amount"] as num).toDouble() : double.tryParse("${tx["amount"]}") ?? 0;
+    final d = DateTime.tryParse("${tx["created_at"] ?? ""}")?.toLocal();
+    final when = d == null ? "" : "${d.year}-${d.month.toString().padLeft(2, "0")}-${d.day.toString().padLeft(2, "0")}";
+    String title(String s) =>
+        s.split("_").map((w) => w.isEmpty ? w : "${w[0].toUpperCase()}${w.substring(1)}").join(" ");
+    final cat = "${tx["category"] ?? ""}".trim();
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: color.withValues(alpha: 0.12),
+            child: Icon(isIn ? Icons.south_west : Icons.north_east, size: 16, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        tr(title(type)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    Text(when, style: TextStyle(fontSize: 11, color: soft)),
+                  ],
+                ),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "${isIn ? "+" : "-"} ${_fmtMoney(amount)}",
+                    style: TextStyle(fontWeight: FontWeight.w700, color: color),
+                  ),
+                ),
+                Text(
+                  cat.isNotEmpty ? cat : tr(title("${tx["payment_method"] ?? ""}")),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 11, color: soft),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
-/// Gradient stat card whose number counts up from 0 to [value] on load.
-class _AnimatedStatCard extends StatelessWidget {
+
+// small caption under each module tile (same as the web module cards)
+const _moduleCaptions = {
+  "/transactions": "Sales, purchases & expenses",
+  "/inventory": "Stock & batches",
+  "/procurement": "Purchase orders",
+  "/suppliers": "Your vendors",
+  "/agency-banking": "Deposits & withdrawals",
+};
+
+String _fmtMoney(double v, {bool isCount = false}) {
+  if (isCount) return v.round().toString();
+  final parts = v.abs().toStringAsFixed(2).split(".");
+  final s = parts[0].replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',');
+  return "${v < 0 ? "-" : ""}LKR $s.${parts[1]}";
+}
+
+/// Number that counts up from 0 to [value] on load.
+class _CountUp extends StatelessWidget {
+  final double value;
+  final bool isCount;
+  final TextStyle style;
+
+  const _CountUp({required this.value, required this.style, this.isCount = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: value),
+      duration: const Duration(milliseconds: 1200),
+      curve: Curves.easeOutCubic,
+      builder: (context, v, _) => FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text(_fmtMoney(v, isCount: isCount), maxLines: 1, style: style),
+      ),
+    );
+  }
+}
+
+/// White card with a coloured icon, a label and a counting-up number.
+class _StatCard extends StatelessWidget {
+  final IconData icon;
+  final Color color;
   final String label;
+  final String caption;
   final double value;
   final bool loading;
-  final bool isCount;      // integer count (no LKR prefix)
-  final List<Color> gradient;
+  final bool isCount;
   final VoidCallback? onTap;
 
-  const _AnimatedStatCard({
+  const _StatCard({
+    required this.icon,
+    required this.color,
     required this.label,
+    required this.caption,
     required this.value,
     required this.loading,
-    required this.gradient,
     this.isCount = false,
     this.onTap,
   });
 
-  String _fmt(double v) {
-    if (isCount) return v.round().toString();
-    final n = v.round();
-    final s = n.toString().replaceAllMapped(
-      RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',');
-    return "LKR $s";
-  }
-
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(color: gradient.first.withOpacity(0.35), blurRadius: 16, offset: const Offset(0, 8)),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(label,
-                maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.9), fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            loading
-                ? const Text("…", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white))
-                : TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0, end: value),
-                    duration: const Duration(milliseconds: 1200),
-                    curve: Curves.easeOutCubic,
-                    builder: (context, v, _) => FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(_fmt(v),
-                          maxLines: 1,
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: "Nunito")),
-                    ),
-                  ),
-          ],
-        ),
+    final text = Theme.of(context).textTheme;
+    final card = Container(
+      width: 168,
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
+        borderRadius: BorderRadius.circular(KadeRadius.lg),
+        boxShadow: const [BoxShadow(color: KadeColors.cardShadow, blurRadius: 18, offset: Offset(0, 8))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 13,
+                backgroundColor: color.withValues(alpha: 0.15),
+                child: Icon(icon, size: 15, color: color),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.titleSmall),
+              ),
+            ],
+          ),
+          const Spacer(),
+          loading
+              ? Text("…", style: text.titleLarge)
+              : _CountUp(
+                  value: value,
+                  isCount: isCount,
+                  style: text.titleLarge!.copyWith(fontWeight: FontWeight.w600),
+                ),
+          const SizedBox(height: 2),
+          Text(caption, style: text.labelMedium?.copyWith(color: color)),
+        ],
       ),
     );
+    return onTap == null ? card : GestureDetector(onTap: onTap, child: card);
   }
 }

@@ -4,12 +4,12 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../../core/config.dart';
 import '../../core/theme.dart';
+import '../../core/i18n.dart';
 
-// Read from the .env file at the project root — see location_picker_map.dart
-// for the full explanation of why this only covers Dart-side REST calls.
-String get _kGoogleApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
+// Web-service key for the Directions REST call — see location_picker_map.dart.
+String get _kGoogleApiKey => AppConfig.googleMapsApiKey;
 
 /// Read-only map: "how far is this supplier/agent from me, and how long
 /// would it take to drive there right now?" No search box, nothing to tap —
@@ -67,7 +67,7 @@ class _SupplierDistanceMapState extends State<SupplierDistanceMap> {
       if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
         setState(() {
           _loading = false;
-          _error = "Location permission denied.";
+          _error = tr("Location permission denied.");
         });
         return;
       }
@@ -77,7 +77,7 @@ class _SupplierDistanceMapState extends State<SupplierDistanceMap> {
     } catch (_) {
       setState(() {
         _loading = false;
-        _error = "Couldn't get your location.";
+        _error = tr("Couldn't get your location.");
       });
     }
   }
@@ -102,7 +102,7 @@ class _SupplierDistanceMapState extends State<SupplierDistanceMap> {
           _polylines = {
             Polyline(
               polylineId: const PolylineId("route"),
-              color: const Color(0xFF0D9488),
+              color: KadeColors.teal,
               width: 4,
               points: points.map((p) => LatLng(p.latitude, p.longitude)).toList(),
             ),
@@ -115,13 +115,13 @@ class _SupplierDistanceMapState extends State<SupplierDistanceMap> {
       } else {
         setState(() {
           _loading = false;
-          _error = "No route found";
+          _error = tr("No route found");
         });
       }
     } catch (_) {
       setState(() {
         _loading = false;
-        _error = "Couldn't fetch route";
+        _error = tr("Couldn't fetch route");
       });
     }
   }
@@ -175,7 +175,7 @@ class _SupplierDistanceMapState extends State<SupplierDistanceMap> {
                     markerId: const MarkerId("me"),
                     position: _userLocation!,
                     icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-                    infoWindow: const InfoWindow(title: "You"),
+                    infoWindow: InfoWindow(title: tr("You")),
                   ),
               },
               polylines: _polylines,
@@ -188,7 +188,7 @@ class _SupplierDistanceMapState extends State<SupplierDistanceMap> {
             ),
             if (_loading)
               Container(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 child: const Center(child: CircularProgressIndicator()),
               ),
             if (!_loading && (_distanceKm != null || _error != null))
@@ -198,7 +198,10 @@ class _SupplierDistanceMapState extends State<SupplierDistanceMap> {
                 top: 10,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(10)),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   child: Text(
                     _distanceKm != null
                         ? "🚗 $_distanceKm km away · ⏱ about ${_formatDuration(_durationMin)} drive"

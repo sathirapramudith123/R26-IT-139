@@ -1,35 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// ---- Corporate "Kade" palette (navy/blue, banking-app style) ----
+// ---- "Kade" palette: royal blue with a fresh green accent (fintech style) ----
 // NOTE: field names are unchanged on purpose — every screen in the app
 // references these directly (KadeColors.teal, .tealDark, .terra, etc.), so
 // only the *values* change here. Renaming would break every other file.
 class KadeColors {
-  // shared brand — deep navy for light mode, a brighter corporate blue for
-  // dark mode (so it still reads clearly against a near-black background)
-  static const teal = Color(0xFF0F2C59);       // deep navy — primary (light)
-  static const tealDark = Color(0xFF4C8DFF);   // corporate blue — primary (dark)
-  static const amber = Color(0xFFB8860B);      // muted gold — warning accent
-  static const terra = Color(0xFFC62828);      // corporate red — error accent
+  // shared brand — royal blue for light mode, a lighter blue for dark mode
+  // (so it still reads clearly against a near-black background)
+  static const teal = Color(0xFF2A5BDB); // royal blue — primary (light)
+  static const tealDark = Color(0xFF5B8DEF); // light blue — primary (dark)
+  static const amber = Color(0xFFE0A100); // gold — warning accent
+  static const terra = Color(0xFFE5484D); // red — error accent
+
+  // green call-to-action accent (the "Buy" style buttons)
+  static const accent = Color(0xFF3DDC97);
+  // blue gradient for page headers
+  static const headerGradient = [Color(0xFF2A5BDB), Color(0xFF4A8BF0)];
+  // soft blue-tinted card shadow
+  static const cardShadow = Color(0x1A2A5BDB);
 
   // semantic (used across both themes for status/state)
-  static const success = Color(0xFF1E7A46);
-  static const successDark = Color(0xFF4CAF7D);
-  static const danger = terra;        // reuse terra as the "error" accent
+  static const success = Color(0xFF22B573);
+  static const successDark = Color(0xFF4CD39A);
+  static const danger = terra; // reuse terra as the "error" accent
   static const dangerDark = Color(0xFFEF5350);
-  static const warning = amber;       // reuse amber as the "warning" accent
+  static const warning = amber; // reuse amber as the "warning" accent
   static const warningDark = Color(0xFFFFC107);
   static const info = teal;
   static const infoDark = tealDark;
 
-  // light — cool neutral grays instead of warm cream
-  static const bgLight = Color(0xFFF4F6F9);
+  // light — cool blue-gray background, white cards
+  static const bgLight = Color(0xFFF2F5FA);
   static const surfaceLight = Color(0xFFFFFFFF);
-  static const surfaceMutedLight = Color(0xFFEDF1F7);
-  static const borderLight = Color(0xFFE0E6EE);
-  static const textLight = Color(0xFF1A2233);
-  static const textSoftLight = Color(0xFF5B6478);
+  static const surfaceMutedLight = Color(0xFFEDF1F8);
+  static const borderLight = Color(0xFFE3E8F0);
+  static const textLight = Color(0xFF2B3445);
+  static const textSoftLight = Color(0xFF8A94A6);
 
   // dark — near-black navy, premium fintech feel
   static const bgDark = Color(0xFF0B1220);
@@ -52,8 +59,8 @@ class KadeSpacing {
 
 class KadeRadius {
   static const sm = 8.0;
-  static const md = 12.0;
-  static const lg = 16.0; // matches CardTheme below
+  static const md = 14.0;
+  static const lg = 20.0; // matches CardTheme below
   static const pill = 999.0;
 }
 
@@ -73,12 +80,10 @@ TextTheme _buildTextTheme(Color primary, Color soft) {
     labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: soft),
     labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: soft),
   );
-  // Applies Inter (downloaded/cached by google_fonts) to every style above
-  // while keeping the sizes/weights/colors we set. Inter reads as clean and
-  // businesslike — the standard choice for fintech/enterprise apps (Stripe,
-  // Mercury, most banking dashboards) — versus Nunito's rounded, consumer
-  // feel from the old warm theme.
-  return GoogleFonts.interTextTheme(base);
+  // Applies Rubik (downloaded/cached by google_fonts) to every style above
+  // while keeping the sizes/weights/colors we set — a soft, rounded fintech
+  // look. Sinhala text falls back to the phone's Sinhala font.
+  return GoogleFonts.rubikTextTheme(base);
 }
 
 ThemeData buildLightTheme() {
@@ -99,22 +104,32 @@ ThemeData buildLightTheme() {
     iconTheme: const IconThemeData(color: KadeColors.textSoftLight, size: 22),
     cardTheme: CardThemeData(
       color: KadeColors.surfaceLight,
-      elevation: 0,
+      elevation: 3,
+      shadowColor: KadeColors.cardShadow,
+      surfaceTintColor: Colors.transparent,
       margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(KadeRadius.lg),
-        side: const BorderSide(color: KadeColors.borderLight),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(KadeRadius.lg)),
     ),
-    inputDecorationTheme: _inputTheme(KadeColors.surfaceLight, KadeColors.borderLight, KadeColors.teal, KadeColors.danger),
+    inputDecorationTheme: _inputTheme(
+      KadeColors.surfaceLight,
+      KadeColors.borderLight,
+      KadeColors.teal,
+      KadeColors.danger,
+    ),
     appBarTheme: AppBarTheme(
       backgroundColor: KadeColors.bgLight,
       foregroundColor: KadeColors.textLight,
       elevation: 0,
       centerTitle: false,
-      titleTextStyle: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w700, color: KadeColors.textLight),
+      titleTextStyle: GoogleFonts.rubik(
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        color: KadeColors.textLight,
+      ),
     ),
     elevatedButtonTheme: _elevatedButtonTheme(KadeColors.teal, Colors.white),
+    filledButtonTheme: _filledButtonTheme(KadeColors.teal, Colors.white),
+    navigationBarTheme: _navBarTheme(KadeColors.surfaceLight, KadeColors.teal, KadeColors.textSoftLight),
     outlinedButtonTheme: _outlinedButtonTheme(KadeColors.teal, KadeColors.borderLight),
     textButtonTheme: _textButtonTheme(KadeColors.teal),
     snackBarTheme: _snackBarTheme(KadeColors.textLight, KadeColors.surfaceLight),
@@ -147,15 +162,26 @@ ThemeData buildDarkTheme() {
         side: const BorderSide(color: KadeColors.borderDark),
       ),
     ),
-    inputDecorationTheme: _inputTheme(KadeColors.surfaceDark, KadeColors.borderDark, KadeColors.tealDark, KadeColors.dangerDark),
+    inputDecorationTheme: _inputTheme(
+      KadeColors.surfaceDark,
+      KadeColors.borderDark,
+      KadeColors.tealDark,
+      KadeColors.dangerDark,
+    ),
     appBarTheme: AppBarTheme(
       backgroundColor: KadeColors.bgDark,
       foregroundColor: KadeColors.textDark,
       elevation: 0,
       centerTitle: false,
-      titleTextStyle: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w700, color: KadeColors.textDark),
+      titleTextStyle: GoogleFonts.rubik(
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        color: KadeColors.textDark,
+      ),
     ),
     elevatedButtonTheme: _elevatedButtonTheme(KadeColors.tealDark, KadeColors.bgDark),
+    filledButtonTheme: _filledButtonTheme(KadeColors.tealDark, KadeColors.bgDark),
+    navigationBarTheme: _navBarTheme(KadeColors.surfaceDark, KadeColors.tealDark, KadeColors.textSoftDark),
     outlinedButtonTheme: _outlinedButtonTheme(KadeColors.tealDark, KadeColors.borderDark),
     textButtonTheme: _textButtonTheme(KadeColors.tealDark),
     snackBarTheme: _snackBarTheme(KadeColors.textDark, KadeColors.surfaceDark),
@@ -165,9 +191,9 @@ ThemeData buildDarkTheme() {
 
 InputDecorationTheme _inputTheme(Color fill, Color border, Color focus, Color error) {
   OutlineInputBorder side(Color c, [double w = 1]) => OutlineInputBorder(
-        borderRadius: BorderRadius.circular(KadeRadius.md),
-        borderSide: BorderSide(color: c, width: w),
-      );
+    borderRadius: BorderRadius.circular(KadeRadius.md),
+    borderSide: BorderSide(color: c, width: w),
+  );
   return InputDecorationTheme(
     filled: true,
     fillColor: fill,
@@ -187,8 +213,8 @@ ElevatedButtonThemeData _elevatedButtonTheme(Color bg, Color fg) {
       foregroundColor: fg,
       elevation: 0,
       padding: const EdgeInsets.symmetric(horizontal: KadeSpacing.lg, vertical: KadeSpacing.md),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(KadeRadius.md)),
-      textStyle: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600),
+      shape: const StadiumBorder(),
+      textStyle: GoogleFonts.rubik(fontSize: 15, fontWeight: FontWeight.w600),
     ),
   );
 }
@@ -199,8 +225,41 @@ OutlinedButtonThemeData _outlinedButtonTheme(Color fg, Color border) {
       foregroundColor: fg,
       side: BorderSide(color: border),
       padding: const EdgeInsets.symmetric(horizontal: KadeSpacing.lg, vertical: KadeSpacing.md),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(KadeRadius.md)),
-      textStyle: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600),
+      shape: const StadiumBorder(),
+      textStyle: GoogleFonts.rubik(fontSize: 15, fontWeight: FontWeight.w600),
+    ),
+  );
+}
+
+FilledButtonThemeData _filledButtonTheme(Color bg, Color fg) {
+  return FilledButtonThemeData(
+    style: FilledButton.styleFrom(
+      backgroundColor: bg,
+      foregroundColor: fg,
+      padding: const EdgeInsets.symmetric(horizontal: KadeSpacing.lg, vertical: KadeSpacing.md),
+      shape: const StadiumBorder(),
+      textStyle: GoogleFonts.rubik(fontSize: 15, fontWeight: FontWeight.w600),
+    ),
+  );
+}
+
+// Bottom bar: white, with a soft blue pill behind the selected tab
+NavigationBarThemeData _navBarTheme(Color bg, Color selected, Color idle) {
+  return NavigationBarThemeData(
+    backgroundColor: bg,
+    surfaceTintColor: Colors.transparent,
+    elevation: 8,
+    shadowColor: KadeColors.cardShadow,
+    indicatorColor: selected.withValues(alpha: 0.12),
+    iconTheme: WidgetStateProperty.resolveWith(
+      (states) => IconThemeData(color: states.contains(WidgetState.selected) ? selected : idle),
+    ),
+    labelTextStyle: WidgetStateProperty.resolveWith(
+      (states) => GoogleFonts.rubik(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: states.contains(WidgetState.selected) ? selected : idle,
+      ),
     ),
   );
 }
@@ -210,7 +269,7 @@ TextButtonThemeData _textButtonTheme(Color fg) {
     style: TextButton.styleFrom(
       foregroundColor: fg,
       padding: const EdgeInsets.symmetric(horizontal: KadeSpacing.sm, vertical: KadeSpacing.sm),
-      textStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
+      textStyle: GoogleFonts.rubik(fontSize: 14, fontWeight: FontWeight.w600),
     ),
   );
 }
@@ -218,7 +277,7 @@ TextButtonThemeData _textButtonTheme(Color fg) {
 SnackBarThemeData _snackBarTheme(Color fg, Color bg) {
   return SnackBarThemeData(
     backgroundColor: fg, // inverted for contrast, like most Material apps
-    contentTextStyle: GoogleFonts.inter(color: bg, fontWeight: FontWeight.w600),
+    contentTextStyle: GoogleFonts.rubik(color: bg, fontWeight: FontWeight.w600),
     behavior: SnackBarBehavior.floating,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(KadeRadius.sm)),
   );
@@ -227,7 +286,7 @@ SnackBarThemeData _snackBarTheme(Color fg, Color bg) {
 ChipThemeData _chipTheme(Color bg, Color fg, Color border) {
   return ChipThemeData(
     backgroundColor: bg,
-    labelStyle: GoogleFonts.inter(color: fg, fontWeight: FontWeight.w600, fontSize: 12),
+    labelStyle: GoogleFonts.rubik(color: fg, fontWeight: FontWeight.w600, fontSize: 12),
     side: BorderSide(color: border),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(KadeRadius.pill)),
     padding: const EdgeInsets.symmetric(horizontal: KadeSpacing.sm, vertical: 2),

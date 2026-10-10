@@ -9,12 +9,13 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import TransactionForm from "@/components/forms/TransactionForm";
 import { transactionApi } from "@/services/api/transaction";
 
+import { t } from "@/lib/i18n";
 function normalize(tx) {
   if (!tx) return tx;
   return {
     ...tx,
     transaction_type: tx.transaction_type ? String(tx.transaction_type).toLowerCase() : tx.transaction_type,
-    payment_method:   tx.payment_method   ? String(tx.payment_method).toLowerCase()   : tx.payment_method,
+    payment_method: tx.payment_method ? String(tx.payment_method).toLowerCase() : tx.payment_method,
   };
 }
 
@@ -34,7 +35,9 @@ export default function EditTransactionPage() {
       return;
     }
     if (typeof transactionApi.getById !== "function") {
-      setError("transactionApi.getById is not a function — check the method name in services/api/transaction.");
+      setError(
+        "transactionApi.getById is not a function — check the method name in services/api/transaction.",
+      );
       setLoading(false);
       return;
     }
@@ -44,19 +47,40 @@ export default function EditTransactionPage() {
     setError(null);
     transactionApi
       .getById(id)
-      .then(data => { if (active) setItem(normalize(data)); })
-      .catch(e => { if (active) setError(e?.message || "Failed to load transaction."); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
+      .then((data) => {
+        if (active) setItem(normalize(data));
+      })
+      .catch((e) => {
+        if (active) setError(e?.message || t("Failed to load transaction."));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [id]);
 
   return (
     <div className="page-container">
-      <PageHeader title="Edit Transaction" description="Update transaction details."
-        action={<Link href="/dashboard/transactions"><Button variant="secondary">← Back</Button></Link>} />
-      {loading ? <LoadingSpinner /> : error ? <p className="text-sm text-red-600">{error}</p> :
-       !item ? <p className="text-sm text-slate-500">Not found.</p> :
-       <TransactionForm initialData={item} txId={id} />}
+      <PageHeader
+        title={t("Edit Transaction")}
+        description={t("Update transaction details.")}
+        action={
+          <Link href="/dashboard/transactions">
+            <Button variant="secondary">{t("← Back")}</Button>
+          </Link>
+        }
+      />
+      {loading ? (
+        <LoadingSpinner />
+      ) : error ? (
+        <p className="text-sm text-red-600">{error}</p>
+      ) : !item ? (
+        <p className="text-sm text-slate-500">{t("Not found.")}</p>
+      ) : (
+        <TransactionForm initialData={item} txId={id} />
+      )}
     </div>
   );
 }
