@@ -1,19 +1,16 @@
 import 'dart:async';
-import 'dart:convert';
+import 'dart:io' show SocketException;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geolocator/geolocator.dart';
-import '../../core/config.dart';
+import '../../core/geo.dart';
 import '../../core/theme.dart';
 import '../../core/i18n.dart';
 
-// Web-service key for the Places search, Geocoding and Directions REST calls
-// made from Dart, given at build time (flutter run --dart-define-from-file=.env).
-// The native map SDKs read their own key: Android from AndroidManifest.xml
-// (filled from android/local.properties), iOS from AppDelegate.swift.
-String get _kGoogleApiKey => AppConfig.googleMapsApiKey;
+// Places search, Geocoding and Directions go through the backend (mapsApi), which holds
+// the web-service key. The native map SDKs read their own key: Android from
+// AndroidManifest.xml (filled from android/local.properties), iOS from AppDelegate.swift.
 
 /// One extra marker to plot alongside the picked point — e.g. suppliers of
 /// the item being procured, with [highlight] marking the nearest one.
@@ -146,12 +143,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
 
   Future<void> _reverseGeocode(LatLng p) async {
     try {
-      final uri = Uri.https("maps.googleapis.com", "/maps/api/geocode/json", {
-        "latlng": "${p.latitude},${p.longitude}",
-        "key": _kGoogleApiKey,
-      });
-      final res = await http.get(uri);
-      final data = jsonDecode(res.body);
+      final data = await mapsApi("geocode", {"latlng": "${p.latitude},${p.longitude}"});
       final results = data["results"] as List?;
       final addr = (results != null && results.isNotEmpty)
           ? results[0]["formatted_address"] as String?
@@ -199,24 +191,12 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
   }
 
   Future<void> _fetchSuggestions(String query) async {
-    if (_kGoogleApiKey.isEmpty) {
-      setState(
-        () =>
-            _searchError = tr("Map search needs the Google Maps key — run with --dart-define-from-file=.env"),
-      );
-      return;
-    }
     setState(() {
       _searching = true;
       _searchError = null;
     });
     try {
-      final uri = Uri.https("maps.googleapis.com", "/maps/api/place/autocomplete/json", {
-        "input": query,
-        "key": _kGoogleApiKey,
-      });
-      final res = await http.get(uri);
-      final data = jsonDecode(res.body);
+      final data = await mapsApi("autocomplete", {"input": query});
       if (data["status"] == "OK") {
         final preds = (data["predictions"] as List)
             .map((p) => _PlaceSuggestion(placeId: p["place_id"], description: p["description"]))
@@ -231,11 +211,15 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
               : "${tr("Map search failed")}: ${data["status"]} — ${data["error_message"] ?? ""}";
         });
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
         setState(() {
           _suggestions = [];
-          _searchError = tr("Map search failed — check the internet connection.");
+          // the server's reason (e.g. key not set up), otherwise a connection problem
+          final reason = e.toString().replaceFirst("Exception: ", "");
+          _searchError = e is SocketException || e is! Exception
+              ? tr("Map search failed — check the internet connection.")
+              : "${tr("Map search failed")}: $reason";
         });
       }
     } finally {
@@ -249,13 +233,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
       _searchCtrl.text = s.description;
     });
     try {
-      final uri = Uri.https("maps.googleapis.com", "/maps/api/place/details/json", {
-        "place_id": s.placeId,
-        "fields": "geometry",
-        "key": _kGoogleApiKey,
-      });
-      final res = await http.get(uri);
-      final data = jsonDecode(res.body);
+      final data = await mapsApi("place-details", {"place_id": s.placeId, "fields": "geometry"});
       final loc = data["result"]?["geometry"]?["location"];
       if (loc != null) {
         _setPoint(
@@ -285,14 +263,11 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
       return;
     }
     try {
-      final uri = Uri.https("maps.googleapis.com", "/maps/api/directions/json", {
+      final data = await mapsApi("directions", {
         "origin": "${_picked!.latitude},${_picked!.longitude}",
         "destination": "${dest.latitude},${dest.longitude}",
         "mode": "driving",
-        "key": _kGoogleApiKey,
       });
-      final res = await http.get(uri);
-      final data = jsonDecode(res.body);
       if (data["status"] == "OK" && (data["routes"] as List).isNotEmpty) {
         final route = data["routes"][0];
         final leg = route["legs"][0];

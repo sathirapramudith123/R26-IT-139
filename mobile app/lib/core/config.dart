@@ -14,9 +14,4 @@ class AppConfig {
     }
     return "http://localhost:5000/api/v1"; // iOS simulator, web, desktop
   }
-
-  /// Google Maps web-service key (Places / Geocoding / Directions), given at build time:
-  ///   flutter run --dart-define-from-file=.env
-  /// Kept out of the app's assets and out of git (.env is git-ignored).
-  static const String googleMapsApiKey = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
 }
