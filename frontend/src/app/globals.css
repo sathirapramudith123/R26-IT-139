@@ -20,6 +20,11 @@ a {
   @apply text-inherit no-underline;
 }
 
+/* native controls (date-picker popup and calendar icon, scrollbars, plain inputs) follow the theme */
+.dark {
+  color-scheme: dark;
+}
+
 @layer components {
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-card transition hover:bg-brand-700 active:scale-95 disabled:opacity-60;

@@ -644,7 +644,6 @@ const Map<String, String> siStrings = {
   "Map": "සිතියම",
   "Map search failed": "සිතියම් සෙවීම අසාර්ථකයි",
   "Map search failed — check the internet connection.": "සිතියම් සෙවීම අසාර්ථකයි — අන්තර්ජාල සම්බන්ධතාවය පරීක්ෂා කරන්න.",
-  "Map search needs the Google Maps key — run with --dart-define-from-file=.env": "සිතියම් සෙවීමට Google Maps key එක අවශ්‍යයි — --dart-define-from-file=.env සමඟ run කරන්න",
   "Map searches and routes are sent to Google Maps to find places and distances.": "ස්ථාන සහ දුර සොයාගැනීමට සිතියම් සෙවීම් සහ මාර්ග Google Maps වෙත යවනු ලැබේ.",
   "Mar": "මාර්",
   "Margin:": "ආන්තිකය:",

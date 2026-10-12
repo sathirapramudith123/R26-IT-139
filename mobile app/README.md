@@ -7,7 +7,7 @@ agency banking, reports and the Predictions hub.
 
 ```bash
 flutter pub get
-flutter run --dart-define-from-file=.env
+flutter run
 ```
 
 Backend URL: the Android emulator uses `http://10.0.2.2:5000/api/v1` by default; for a real phone see
@@ -15,8 +15,10 @@ Backend URL: the Android emulator uses `http://10.0.2.2:5000/api/v1` by default;
 
 ## Keys (never committed)
 
-- `mobile app/.env` — create it with one line: `GOOGLE_MAPS_API_KEY=your-key` (git-ignored).
 - `android/local.properties` — `MAPS_API_KEY=...` for the Android map view.
+- Map search, addresses and routes (Places, Geocoding, Directions) go through the backend
+  (`/api/v1/maps/...`), which holds the web-service key as `GOOGLE_MAPS_API_KEY` in `backend/.env`.
+  The app itself needs no `.env`.
 
 ## Structure
 

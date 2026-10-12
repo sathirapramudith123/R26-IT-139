@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'core/api.dart';
-import 'core/config.dart';
 import 'core/theme.dart';
 import 'services/auth_service.dart';
 import 'screens/splash_screen.dart';
@@ -13,12 +12,6 @@ final navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (AppConfig.googleMapsApiKey.isEmpty) {
-    debugPrint(
-      'GOOGLE_MAPS_API_KEY not set — map search and distances are disabled. '
-      'Run with: flutter run --dart-define-from-file=.env  (see README.md)',
-    );
-  }
   await AuthService.restoreSession(); // stay logged in across app restarts
   await LanguageController.load(); // Sinhala / English choice saved on this phone
   Api.onUnauthorized = _goToLogin; // expired token → back to login

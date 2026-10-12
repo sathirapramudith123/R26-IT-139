@@ -176,12 +176,12 @@ npm install
 npm run dev
 ```
 
-**5. Mobile app** — create `mobile app/.env` (Google Maps key) and add `MAPS_API_KEY` to
-`android/local.properties`, then:
+**5. Mobile app** — add `MAPS_API_KEY` to `android/local.properties` (map view); map search and
+routes use the backend's `GOOGLE_MAPS_API_KEY`, so no `.env` is needed. Then:
 ```bash
 cd "mobile app"
 flutter pub get
-flutter run --dart-define-from-file=.env
+flutter run
 ```
 
 Secret files (`.env`, `.env.local`, `local.properties`) are git-ignored and never committed.

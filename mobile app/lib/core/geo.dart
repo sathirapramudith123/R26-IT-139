@@ -1,7 +1,5 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'config.dart';
+import 'api.dart';
 import 'i18n.dart';
 
 // "6.91182, 79.97460" — a delivery location saved as raw coordinates
@@ -15,6 +13,11 @@ final _coordText = RegExp(r'^\s*(-?\d{1,2}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?
   return lat.abs() <= 90 && lng.abs() <= 180 ? (lat, lng) : null;
 }
 
+/// Google Maps web service through the backend (`/maps/<service>`), which holds the API key;
+/// returns Google's JSON. [service]: geocode, autocomplete, place-details or directions.
+Future<dynamic> mapsApi(String service, Map<String, String> params) =>
+    Api.get("/maps/$service?${Uri(queryParameters: params).query}");
+
 final _cache = <String, Future<String?>>{};
 
 /// Street address for a map point (Google Geocoding, same as the location picker); null when unknown.
@@ -22,11 +25,7 @@ Future<String?> reverseGeocode(double lat, double lng) {
   final key = "${lat.toStringAsFixed(5)},${lng.toStringAsFixed(5)}";
   return _cache.putIfAbsent(key, () async {
     try {
-      final uri = Uri.https("maps.googleapis.com", "/maps/api/geocode/json", {
-        "latlng": "$lat,$lng",
-        "key": AppConfig.googleMapsApiKey,
-      });
-      final data = jsonDecode((await http.get(uri)).body);
+      final data = await mapsApi("geocode", {"latlng": "$lat,$lng"});
       final results = data["results"] as List?;
       final addr = (results != null && results.isNotEmpty) ? results[0]["formatted_address"] as String? : null;
       if (addr == null) _cache.remove(key); // try again next time

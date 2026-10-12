@@ -1,15 +1,12 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geolocator/geolocator.dart';
-import '../../core/config.dart';
+import '../../core/geo.dart';
 import '../../core/theme.dart';
 import '../../core/i18n.dart';
 
-// Web-service key for the Directions REST call — see location_picker_map.dart.
-String get _kGoogleApiKey => AppConfig.googleMapsApiKey;
+// The Directions call goes through the backend (mapsApi) — see location_picker_map.dart.
 
 /// Read-only map: "how far is this supplier/agent from me, and how long
 /// would it take to drive there right now?" No search box, nothing to tap —
@@ -86,14 +83,11 @@ class _SupplierDistanceMapState extends State<SupplierDistanceMap> {
     final origin = _userLocation!;
     final dest = LatLng(widget.destinationLat, widget.destinationLng);
     try {
-      final uri = Uri.https("maps.googleapis.com", "/maps/api/directions/json", {
+      final data = await mapsApi("directions", {
         "origin": "${origin.latitude},${origin.longitude}",
         "destination": "${dest.latitude},${dest.longitude}",
         "mode": "driving",
-        "key": _kGoogleApiKey,
       });
-      final res = await http.get(uri);
-      final data = jsonDecode(res.body);
       if (data["status"] == "OK" && (data["routes"] as List).isNotEmpty) {
         final route = data["routes"][0];
         final leg = route["legs"][0];
