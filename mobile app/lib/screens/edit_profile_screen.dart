@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../core/i18n.dart';
 import '../core/theme.dart';
 import '../services/auth_service.dart';
+import '../core/password_policy.dart';
+import '../widgets/password_guidelines.dart';
 import 'inventory/inventory_form_screen.dart' show fieldLabel, errorBox;
 
 /// Change your name, and your password (the current password is checked by the backend).
@@ -64,8 +66,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       setState(() => passwordError = tr("Enter your current password."));
       return;
     }
-    if (newCtrl.text.length < 6) {
-      setState(() => passwordError = tr("At least 6 characters"));
+    final problem = passwordProblem(newCtrl.text);
+    if (problem != null) {
+      setState(() => passwordError = tr(problem));
       return;
     }
     if (newCtrl.text != confirmCtrl.text) {
@@ -139,9 +142,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               TextField(
                 controller: newCtrl,
                 obscureText: true,
+                onChanged: (_) => setState(() {}),
                 enabled: !savingPassword,
-                decoration: InputDecoration(hintText: tr("At least 6 characters")),
+                decoration: InputDecoration(hintText: tr("At least 12 characters")),
               ),
+              const SizedBox(height: 10),
+              PasswordGuidelines(password: newCtrl.text),
               const SizedBox(height: 12),
               fieldLabel(tr("Confirm new password")),
               TextField(controller: confirmCtrl, obscureText: true, enabled: !savingPassword),

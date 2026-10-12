@@ -3,8 +3,10 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { KeyRound, Lock, ArrowLeft, Loader2 } from "lucide-react";
+import { KeyRound, Lock, ArrowLeft, Loader2, Eye, EyeOff } from "lucide-react";
 import { authApi } from "@/services/api/auth";
+import { passwordProblem } from "@/lib/auth/passwordPolicy";
+import PasswordGuidelines from "@/components/forms/PasswordGuidelines";
 
 import { t } from "@/lib/i18n";
 const inputClass =
@@ -15,6 +17,8 @@ function ResetPasswordContent() {
   const token = useSearchParams().get("token");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -24,8 +28,8 @@ function ResetPasswordContent() {
     const password = formData.get("password");
     const confirm = formData.get("confirm");
 
-    if (password.length < 6) return setError("Password must be at least 6 characters.");
-    if (password !== confirm) return setError("Passwords do not match.");
+    if (passwordProblem(password)) return setError(t(passwordProblem(password)));
+    if (password !== confirm) return setError(t("Passwords do not match."));
 
     setLoading(true);
     try {
@@ -92,13 +96,27 @@ function ResetPasswordContent() {
                 <input
                   id="password"
                   name="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
-                  minLength={6}
+                  minLength={12}
                   autoComplete="new-password"
-                  placeholder={t("At least 6 characters")}
-                  className={inputClass}
+                  placeholder={t("At least 12 characters")}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className={`${inputClass} pr-11`}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
+                  aria-label={showPassword ? t("Hide password") : t("Show password")}
+                  title={showPassword ? t("Hide password") : t("Show password")}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <div className="pt-1">
+                <PasswordGuidelines password={newPassword} />
               </div>
             </div>
 
@@ -116,7 +134,7 @@ function ResetPasswordContent() {
                   name="confirm"
                   type="password"
                   required
-                  minLength={6}
+                  minLength={12}
                   autoComplete="new-password"
                   placeholder={t("Repeat the new password")}
                   className={inputClass}
