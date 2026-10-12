@@ -1,10 +1,17 @@
 import { supabase } from "../config/supabase.js";
-import { randomUUID } from "crypto";
+import { localDateStr, localDayStart } from "./time.js";
+
+// Every write to a bank float, the cash pool or the float ledger goes through the
+// Postgres functions in backend/sql/atomic_banking.sql. Each call is ONE database
+// transaction that locks the user's cash pool (and the bank) first, so two requests
+// at the same moment cannot overwrite each other's balance, and an error half-way
+// saves nothing.
 
 const num = (v) => Number(v || 0);
 
-const DAILY_START_CASH = 75000;   
-const RESERVE_FLOOR    = 50000; 
+const DAILY_START_CASH = 75000;
+const RESERVE_FLOOR = 50000;
+const POOL_DEFAULTS = { p_start_cash: DAILY_START_CASH, p_reserve: RESERVE_FLOOR };
 
 export function floatHealth(bank) {
   const floor = num(bank.float_floor);
@@ -17,177 +24,209 @@ export function floatHealth(bank) {
 
 export async function getBank(userId, agentBankId) {
   const { data, error } = await supabase
-    .from("agent_banks").select("*")
-    .eq("agent_bank_id", agentBankId).eq("user_id", userId).maybeSingle();
+    .from("agent_banks")
+    .select("*")
+    .eq("agent_bank_id", agentBankId)
+    .eq("user_id", userId)
+    .maybeSingle();
   if (error) throw error;
   return data;
 }
 
-
+// The user's cash pool — created on first use, reset to the day's starting cash on a
+// new (Sri Lanka) day. Done in the DB under a lock (agent_pool_get).
 export async function getCashPool(userId) {
-  let { data, error } = await supabase
-    .from("agent_cash_pool").select("*").eq("user_id", userId).maybeSingle();
+  const { data, error } = await supabase.rpc("agent_pool_get", {
+    p_user: userId,
+    p_today: localDateStr(),
+    ...POOL_DEFAULTS,
+  });
   if (error) throw error;
-
-  
-  if (!data) {
-    const ins = await supabase.from("agent_cash_pool")
-      .insert([{ user_id: userId, cash_on_hand: DAILY_START_CASH,
-                 reserve_floor: RESERVE_FLOOR, day_start_cash: DAILY_START_CASH,
-                 last_reset_date: new Date().toISOString().slice(0, 10) }])
-      .select().single();
-    if (ins.error) throw ins.error;
-    return ins.data;
-  }
-
-
-  const today = new Date().toISOString().slice(0, 10);
-  if ((data.last_reset_date || "").slice(0, 10) < today) {
-    const upd = await supabase.from("agent_cash_pool")
-      .update({ cash_on_hand: num(data.day_start_cash) || DAILY_START_CASH,
-                last_reset_date: today, updated_at: new Date().toISOString() })
-      .eq("user_id", userId).select().single();
-    if (!upd.error && upd.data) return upd.data;
-  }
   return data;
 }
 
-async function setPoolCash(userId, newCash) {
-  const { error } = await supabase.from("agent_cash_pool")
-    .update({ cash_on_hand: newCash, updated_at: new Date().toISOString() })
-    .eq("user_id", userId);
-  if (error) throw error;
-}
-
-// Agent adds physical cash into the pool (e.g. withdrew cash from a bank).
-export async function addCashToPool(userId, amount) {
-  const amt = num(amount);
-  if (amt <= 0) return { ok: false, block: true, reason: "Enter an amount greater than 0." };
-  const pool = await getCashPool(userId);
-  const after = num(pool.cash_on_hand) + amt;
-  await setPoolCash(userId, after);
-  return { ok: true, cashAfter: after };
-}
-
-
+// Warnings only (floor / ceiling) — the blocking checks run inside the DB functions.
 export function checkFloat(bank, pool, type, amount) {
   const t = String(type || "").toUpperCase();
   const amt = num(amount);
   const float = num(bank.float_balance);
   const floor = num(bank.float_floor);
   const ceiling = num(bank.float_ceiling);
-  const cash = num(pool?.cash_on_hand);
 
-  if (t.includes("DEPOSIT")) {
-    const after = float - amt;
-    if (after < 0) {
-      return { ok: false, block: true,
-        reason: `Insufficient float — cannot fund this deposit. Available float: LKR ${float.toLocaleString()}.` };
-    }
-    if (after < floor) {
-      return { ok: true, block: false,
-        warn: `Float will drop below floor (LKR ${floor.toLocaleString()}) — a top-up is recommended.` };
-    }
-    return { ok: true, block: false };
+  if (t.includes("DEPOSIT") && float - amt >= 0 && float - amt < floor) {
+    return { warn: `Float will drop below floor (LKR ${floor.toLocaleString()}) — a top-up is recommended.` };
   }
-
-  if (t.includes("WITHDRAWAL")) {
-    // agent pays cash from the global pool
-    if (cash - amt < 0) {
-      return { ok: false, block: true,
-        reason: `Insufficient cash on hand — cannot pay out this withdrawal. Available cash: LKR ${cash.toLocaleString()}.` };
-    }
-    const floatAfter = float + amt;
-    if (floatAfter > ceiling) {
-      return { ok: true, block: false,
-        warn: `Float will exceed ceiling (LKR ${ceiling.toLocaleString()}) — schedule a sweep to the bank.` };
-    }
-    return { ok: true, block: false };
+  if (t.includes("WITHDRAWAL") && num(pool?.cash_on_hand) - amt >= 0 && float + amt > ceiling) {
+    return {
+      warn: `Float will exceed ceiling (LKR ${ceiling.toLocaleString()}) — schedule a sweep to the bank.`,
+    };
   }
-
-  return { ok: true, block: false };
+  return { warn: null };
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Apply float movement + global pool update + GL double-entry               */
-/* -------------------------------------------------------------------------- */
-export async function applyFloat(userId, bank, pool, type, amount, agencyBankingId = null) {
-  const t = String(type || "").toUpperCase();
-  const amt = num(amount);
-  let float = num(bank.float_balance);
-  let cash = num(pool.cash_on_hand);
+// ── Calls to the DB functions ─────────────────────────────────────────────────
+// limits = { limit, maxTxns } for the transaction type (CBSL daily limits)
+const dayArgs = () => ({ p_today: localDateStr(), p_day_start: localDayStart().toISOString() });
 
-  let rows = [];
-  const ref = randomUUID();
-  const base = { user_id: userId, agent_bank_id: bank.agent_bank_id,
-    agency_banking_id: agencyBankingId, journal_ref: ref, amount: amt };
-
-  if (t.includes("DEPOSIT")) {
-    float -= amt; cash += amt;
-    rows = [
-      { ...base, event_type: "DEPOSIT", gl_account: "Agent Float",        gl_direction: "DR", float_after: float },
-      { ...base, event_type: "DEPOSIT", gl_account: "Agent Cash-on-Hand", gl_direction: "CR", float_after: null },
-    ];
-  } else if (t.includes("WITHDRAWAL")) {
-    float += amt; cash -= amt;
-    rows = [
-      { ...base, event_type: "WITHDRAWAL", gl_account: "Agent Cash-on-Hand", gl_direction: "DR", float_after: null },
-      { ...base, event_type: "WITHDRAWAL", gl_account: "Agent Float",        gl_direction: "CR", float_after: float },
-    ];
-  } else {
-    return { floatAfter: float, cashAfter: cash };
-  }
-
-  const { error: ledgerErr } = await supabase.from("agent_float_ledger").insert(rows);
-  if (ledgerErr) throw ledgerErr;
-
-  // update bank float
-  const { error: bankErr } = await supabase.from("agent_banks")
-    .update({ float_balance: float, updated_at: new Date().toISOString() })
-    .eq("agent_bank_id", bank.agent_bank_id).eq("user_id", userId);
-  if (bankErr) throw bankErr;
-
-  // update global cash pool
-  await setPoolCash(userId, cash);
-
-  return { floatAfter: float, cashAfter: cash };
+export async function postBanking(userId, row, limits = {}) {
+  return supabase.rpc("banking_post", {
+    p_user: userId,
+    p_row: row,
+    ...dayArgs(),
+    p_limit: limits.limit ?? null,
+    p_max_txns: limits.maxTxns ?? null,
+    ...POOL_DEFAULTS,
+  });
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Float top-up: physical cash (global pool) -> bank float                   */
-/*    Enforces the 50k reserve: can only top up with cash ABOVE reserve.      */
-/* -------------------------------------------------------------------------- */
-export async function topUpFloat(userId, bank, pool, amount, note = "Float top-up") {
-  const amt = num(amount);
-  const cash = num(pool.cash_on_hand);
-  const reserve = num(pool.reserve_floor) || RESERVE_FLOOR;
-  const available = cash - reserve;
-
-  if (amt > available) {
-    return { ok: false, block: true,
-      reason: `Only LKR ${Math.max(0, available).toLocaleString()} is available for top-up ` +
-              `(LKR ${reserve.toLocaleString()} is reserved for daily operations, cash on hand LKR ${cash.toLocaleString()}).` };
-  }
-
-  const float = num(bank.float_balance) + amt;
-  const cashAfter = cash - amt;
-  const ref = randomUUID();
-
-  const rows = [
-    { user_id: userId, agent_bank_id: bank.agent_bank_id, journal_ref: ref, amount: amt,
-      event_type: "TOPUP", gl_account: "Agent Float",        gl_direction: "DR", float_after: float, note },
-    { user_id: userId, agent_bank_id: bank.agent_bank_id, journal_ref: ref, amount: amt,
-      event_type: "TOPUP", gl_account: "Agent Cash-on-Hand", gl_direction: "CR", float_after: null, note },
-  ];
-  const { error: le } = await supabase.from("agent_float_ledger").insert(rows);
-  if (le) throw le;
-
-  const { error: be } = await supabase.from("agent_banks")
-    .update({ float_balance: float, updated_at: new Date().toISOString() })
-    .eq("agent_bank_id", bank.agent_bank_id).eq("user_id", userId);
-  if (be) throw be;
-
-  await setPoolCash(userId, cashAfter);
-
-  return { ok: true, block: false, floatAfter: float, cashAfter };
+export async function updateBanking(userId, id, row, limits = {}) {
+  return supabase.rpc("banking_update", {
+    p_user: userId,
+    p_id: id,
+    p_row: row,
+    ...dayArgs(),
+    p_limit: limits.limit ?? null,
+    p_max_txns: limits.maxTxns ?? null,
+    ...POOL_DEFAULTS,
+  });
 }
+
+export async function deleteBanking(userId, id) {
+  return supabase.rpc("banking_delete", {
+    p_user: userId,
+    p_id: id,
+    p_today: localDateStr(),
+    ...POOL_DEFAULTS,
+  });
+}
+
+// Deposit / withdrawal on a registered dummy-bank account (sql/dummy_bank.sql)
+export async function postAccountBanking(userId, row, limits = {}, otpId = null) {
+  return supabase.rpc("bank_account_post", {
+    p_user: userId,
+    p_row: row,
+    ...dayArgs(),
+    p_limit: limits.limit ?? null,
+    p_max_txns: limits.maxTxns ?? null,
+    ...POOL_DEFAULTS,
+    p_otp_id: otpId,
+  });
+}
+
+export async function deleteAccountBanking(userId, id) {
+  return supabase.rpc("bank_account_delete", {
+    p_user: userId,
+    p_id: id,
+    p_today: localDateStr(),
+    ...POOL_DEFAULTS,
+  });
+}
+
+export async function topUpFloat(userId, bankId, amount, note = "Float top-up") {
+  return supabase.rpc("float_topup", {
+    p_user: userId,
+    p_bank: bankId,
+    p_amount: num(amount),
+    p_today: localDateStr(),
+    p_note: note,
+    ...POOL_DEFAULTS,
+  });
+}
+
+export async function addCashToPool(userId, amount) {
+  return supabase.rpc("pool_add_cash", {
+    p_user: userId,
+    p_amount: num(amount),
+    p_today: localDateStr(),
+    ...POOL_DEFAULTS,
+  });
+}
+
+// ── DB rejection -> { status, message } (null = a real error, let it throw) ────
+const lkr = (v) => num(v).toLocaleString();
+const typeText = (type) =>
+  String(type || "")
+    .replace(/_/g, " ")
+    .toLowerCase();
+
+export function bankingError(error, type = "") {
+  if (!error) return null;
+  let d = {};
+  try {
+    d = error.details ? JSON.parse(error.details) : {};
+  } catch {
+    d = {};
+  }
+  const t = typeText(type);
+  switch (error.message) {
+    case "INSUFFICIENT_FLOAT":
+      return {
+        status: 400,
+        message: `Insufficient float — cannot fund this deposit. Available float: LKR ${lkr(d.float)}.`,
+      };
+    case "INSUFFICIENT_CASH":
+      return {
+        status: 400,
+        message: `Insufficient cash on hand — cannot pay out this withdrawal. Available cash: LKR ${lkr(d.cash)}.`,
+      };
+    case "CANNOT_UNDO_DEPOSIT":
+      return {
+        status: 400,
+        message: `Cannot undo this deposit — cash on hand (LKR ${lkr(d.cash)}) is less than LKR ${lkr(d.amount)}.`,
+      };
+    case "CANNOT_UNDO_WITHDRAWAL":
+      return {
+        status: 400,
+        message: `Cannot undo this withdrawal — ${d.bank_name} float (LKR ${lkr(d.float)}) is less than LKR ${lkr(d.amount)}.`,
+      };
+    case "TOPUP_EXCEEDS":
+      return {
+        status: 400,
+        message:
+          `Only LKR ${lkr(Math.max(0, num(d.available)))} is available for top-up ` +
+          `(LKR ${lkr(d.reserve)} is reserved for daily operations, cash on hand LKR ${lkr(d.cash)}).`,
+      };
+    case "PER_TXN_LIMIT":
+      return { status: 400, message: `Amount exceeds the daily limit of LKR ${lkr(d.limit)} for ${t}.` };
+    case "DAILY_LIMIT":
+      return {
+        status: 400,
+        message:
+          `Daily limit for ${t} is LKR ${lkr(d.limit)}. ` +
+          `Already used today: LKR ${lkr(d.already)}. Remaining: LKR ${lkr(Math.max(0, num(d.limit) - num(d.already)))}.`,
+      };
+    case "MAX_TXNS":
+      return {
+        status: 400,
+        message: `Daily transaction limit reached: max ${d.max} ${t} transactions per NIC per day.`,
+      };
+    case "BANK_NOT_FOUND":
+      return { status: 400, message: "Selected bank not found." };
+    case "ACCOUNT_NOT_FOUND":
+      return { status: 400, message: "No account with this number at the selected bank." };
+    case "ACCOUNT_INACTIVE":
+      return { status: 400, message: "This account is not active." };
+    case "INSUFFICIENT_BALANCE":
+      return {
+        status: 400,
+        message: `Insufficient balance in the customer's account. Available: LKR ${lkr(d.balance)}.`,
+      };
+    case "OTP_REQUIRED":
+      return { status: 400, message: "A valid OTP from the customer is required for this withdrawal." };
+    case "UNSUPPORTED_ACCOUNT_TXN":
+      return { status: 400, message: "Only deposits and withdrawals can be posted to a customer account." };
+    case "CANNOT_UNDO_ACCOUNT":
+      return {
+        status: 400,
+        message: `Cannot undo this deposit — the customer's balance (LKR ${lkr(d.balance)}) is less than LKR ${lkr(d.amount)}.`,
+      };
+    case "NOT_FOUND":
+      return { status: 404, message: "Transaction not found" };
+    default:
+      return null;
+  }
+}
+
+// Float-ledger event types that increase the float (for statements)
+const FLOAT_IN_EVENTS = ["WITHDRAWAL", "TOPUP", "DEPOSIT_REVERSAL"];
+export const isFloatInflow = (eventType) => FLOAT_IN_EVENTS.includes(eventType);

@@ -9,6 +9,7 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import SupplierForm from "@/components/forms/SupplierForm";
 import { supplierApi } from "@/services/api/supplier";
 
+import { t } from "@/lib/i18n";
 export default function EditSupplierPage() {
   useAuthGuard();
   const { Id } = useParams();
@@ -18,16 +19,33 @@ export default function EditSupplierPage() {
 
   useEffect(() => {
     if (!Id) return;
-    supplierApi.getById(Id).then(setItem).catch(e => setError(e.message || "Failed")).finally(() => setLoading(false));
+    supplierApi
+      .getById(Id)
+      .then(setItem)
+      .catch((e) => setError(e.message || t("Failed")))
+      .finally(() => setLoading(false));
   }, [Id]);
 
   return (
     <div className="page-container">
-      <PageHeader title="Edit Supplier" description="Update supplier details."
-        action={<Link href="/dashboard/suppliers"><Button variant="secondary">← Back</Button></Link>} />
-      {loading ? <LoadingSpinner /> : error ? <p className="text-sm text-red-600">{error}</p> :
-       !item ? <p className="text-sm text-slate-500">Not found.</p> :
-       <SupplierForm initialData={item} supplierId={Id} />}
+      <PageHeader
+        title={t("Edit Supplier")}
+        description={t("Update supplier details.")}
+        action={
+          <Link href="/dashboard/suppliers">
+            <Button variant="secondary">{t("← Back")}</Button>
+          </Link>
+        }
+      />
+      {loading ? (
+        <LoadingSpinner />
+      ) : error ? (
+        <p className="text-sm text-red-600">{error}</p>
+      ) : !item ? (
+        <p className="text-sm text-slate-500">{t("Not found.")}</p>
+      ) : (
+        <SupplierForm initialData={item} supplierId={Id} />
+      )}
     </div>
   );
 }

@@ -7,7 +7,14 @@ import '../transactions/transaction_form_screen.dart';
 import '../inventory/inventory_form_screen.dart';
 import '../suppliers/supplier_form_screen.dart';
 import '../procurement/procurement_form_screen.dart';
+import '../common/module_details.dart';
 import '../agency_banking/agency_banking_form_screen.dart';
+import '../../core/i18n.dart';
+import '../suppliers/supplier_route_screen.dart';
+import '../suppliers/suppliers_map_view.dart';
+import '../inventory/inventory_alerts_screen.dart';
+import '../common/record_details.dart' show money;
+import 'list_extras.dart';
 
 class ListScreen extends StatefulWidget {
   final ModuleConfig module;
@@ -24,9 +31,13 @@ class _ListScreenState extends State<ListScreen> {
 
   final searchCtrl = TextEditingController();
   String query = "";
+  bool mapView = false; // suppliers: List / Map switch (same as web)
 
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() {
+    super.initState();
+    _load();
+  }
 
   @override
   void dispose() {
@@ -35,10 +46,17 @@ class _ListScreenState extends State<ListScreen> {
   }
 
   Future<void> _load() async {
-    setState(() { loading = true; error = null; });
-    try { items = await service.list(); }
-    catch (e) { error = e.toString().replaceFirst("Exception: ", ""); }
-    finally { if (mounted) setState(() => loading = false); }
+    setState(() {
+      loading = true;
+      error = null;
+    });
+    try {
+      items = await service.list();
+    } catch (e) {
+      error = e.toString().replaceFirst("Exception: ", "");
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
   }
 
   Future<void> _delete(String id) async {
@@ -46,24 +64,28 @@ class _ListScreenState extends State<ListScreen> {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(KadeRadius.lg)),
-        title: const Text("Delete?"),
-        content: const Text("This cannot be undone."),
+        title: Text(tr("Delete?")),
+        content: Text(tr("This cannot be undone.")),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr("Cancel"))),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: KadeColors.terra),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text("Delete"),
+            child: Text(tr("Delete")),
           ),
         ],
       ),
     );
     if (ok != true) return;
-    try { await service.remove(id); _load(); }
-    catch (e) { _snack(e.toString().replaceFirst("Exception: ", "")); }
+    try {
+      await service.remove(id);
+      _load();
+    } catch (e) {
+      _snack(e.toString().replaceFirst("Exception: ", ""));
+    }
   }
 
-  void _snack(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
+  void _snack(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr(m))));
 
   // Searches across every column shown in the list (title + subtitle
   // fields) — case-insensitive substring match, purely client-side since
@@ -71,51 +93,69 @@ class _ListScreenState extends State<ListScreen> {
   List<Map<String, dynamic>> get _filteredItems {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return items;
-    final cols = widget.module.listColumns;
-    return items.where((it) {
-      for (final k in cols) {
-        if (_display(k, it[k]).toLowerCase().contains(q)) return true;
-      }
-      return false;
-    }).toList();
+    return items.where((it) => matchesSearch(widget.module.path, it, q)).toList();
   }
 
   Future<void> _openForm([Map<String, dynamic>? item]) async {
     Widget screen;
     switch (widget.module.path) {
-      case "/transactions":   screen = TransactionFormScreen(item: item); break;
-      case "/inventory":      screen = InventoryFormScreen(item: item); break;
-      case "/suppliers":      screen = SupplierFormScreen(item: item); break;
-      case "/procurement":    screen = ProcurementFormScreen(item: item); break;
-      case "/agency-banking": screen = AgencyBankingFormScreen(item: item); break;
-      default:                screen = FormScreen(module: widget.module, item: item);
+      case "/transactions":
+        screen = TransactionFormScreen(item: item);
+        break;
+      case "/inventory":
+        screen = InventoryFormScreen(item: item);
+        break;
+      case "/suppliers":
+        screen = SupplierFormScreen(item: item);
+        break;
+      case "/procurement":
+        screen = ProcurementFormScreen(item: item);
+        break;
+      case "/agency-banking":
+        screen = AgencyBankingFormScreen(item: item);
+        break;
+      default:
+        screen = FormScreen(module: widget.module, item: item);
     }
-    final changed = await Navigator.push<bool>(
-      context, MaterialPageRoute(builder: (_) => screen),
-    ) ?? false;
+    final changed = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => screen)) ?? false;
     if (changed) _load();
   }
 
   // ---------- Details dialog ----------
 
   static const _hidden = [
-    "id", "user_id",
-    "item_name", "item_status",
-    "supplier_status", "procurement_status", "banking_status",
+    "id",
+    "user_id",
+    "item_name",
+    "item_status",
+    "supplier_status",
+    "procurement_status",
+    "banking_status",
+    // map / model internals — shown elsewhere (map pins) or meaningless to a merchant
+    "coords",
+    "latitude",
+    "longitude",
+    "metadata",
+    "features",
+    "explanation",
+    "batch_ids",
   ];
   static const _dateFields = ["created_at", "updated_at", "read_at"];
   static const _moneyFields = [
-  "amount", "unit_price", "cost_price", "delivery_cost", "total_cost",
-  "estimated_profit", "expected_selling_price", "service_fee", "commission",
-];
-  static const _months = [
-    "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"
+    "amount",
+    "unit_price",
+    "cost_price",
+    "delivery_cost",
+    "total_cost",
+    "estimated_profit",
+    "expected_selling_price",
+    "service_fee",
+    "commission",
   ];
+  static const _months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-  String _titleCase(String s) => s
-      .split("_")
-      .map((w) => w.isEmpty ? w : "${w[0].toUpperCase()}${w.substring(1)}")
-      .join(" ");
+  String _titleCase(String s) =>
+      s.split("_").map((w) => w.isEmpty ? w : "${w[0].toUpperCase()}${w.substring(1)}").join(" ");
 
   String _fmtDate(dynamic v) {
     final d = DateTime.tryParse("$v");
@@ -133,25 +173,46 @@ class _ListScreenState extends State<ListScreen> {
     return "LKR ${n.toStringAsFixed(2)}";
   }
 
+  // One readable line for an entry of a list field, e.g. an item line:
+  // "Salt — 67 g × LKR 120.00" (instead of the raw {unit: g, quantity: 67, ...})
+  String _lineOf(dynamic v) {
+    if (v is! Map) return "$v";
+    final name = v["item_name"] ?? v["name"] ?? v["item"];
+    final qty = v["quantity"];
+    final unit = v["unit"] == null || v["unit"] == "unit" ? "" : " ${tr("${v["unit"]}")}";
+    final price = v["unit_cost"] ?? v["unit_price"] ?? v["cost_price"];
+    if (name != null && qty != null) {
+      final q = num.tryParse("$qty") ?? 0;
+      final qs = q == q.roundToDouble() ? q.toStringAsFixed(0) : q.toStringAsFixed(2);
+      return "$name — $qs$unit${price != null ? " × ${_fmtMoney(price)}" : ""}";
+    }
+    if (name != null) return "$name";
+    return v.entries.where((e) => e.value != null).map((e) => "${tr(_titleCase(e.key))}: ${e.value}").join(", ");
+  }
+
+  // a list / map value? (rendered as lines, or skipped when empty)
+  bool _isEmptyValue(dynamic v) => v == null || "$v".isEmpty || (v is List && v.isEmpty) || (v is Map && v.isEmpty);
+
   String _display(String key, dynamic v) {
     if (v == null || "$v".isEmpty) return "—";
     if (_dateFields.contains(key)) return _fmtDate(v);
     if (_moneyFields.contains(key)) return _fmtMoney(v);
-    if (v is bool) return v ? "Yes" : "No";
+    if (v is bool) return v ? tr("Yes") : tr("No");
     final s = "$v";
     if (RegExp(r'^[a-z_]+$').hasMatch(s)) return _titleCase(s);
     return s;
   }
 
   void _viewDetails(Map<String, dynamic> item) {
+    // modules with their own details screen (blue header + cards); others use the dialog below
+    final screen = detailsScreenFor(widget.module.path, item);
+    if (screen != null) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+      return;
+    }
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final entries = item.entries
-        .where((e) =>
-            !_hidden.contains(e.key) &&
-            e.value != null &&
-            "${e.value}".isNotEmpty)
-        .toList();
+    final entries = item.entries.where((e) => !_hidden.contains(e.key) && !_isEmptyValue(e.value)).toList();
 
     showDialog(
       context: context,
@@ -166,7 +227,7 @@ class _ListScreenState extends State<ListScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Details", style: Theme.of(context).textTheme.titleLarge),
+                  Text(tr("Details"), style: Theme.of(context).textTheme.titleLarge),
                   IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
                 ],
               ),
@@ -182,34 +243,76 @@ class _ListScreenState extends State<ListScreen> {
                           color: isDark ? Colors.white10 : KadeColors.surfaceMutedLight,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                _titleCase(e.key),
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Theme.of(context).textTheme.bodySmall?.color,
-                                ),
+                        child: e.value is List
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    tr(_titleCase(e.key)),
+                                    style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodySmall?.color),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  for (final line in e.value as List)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text("•  ", style: TextStyle(fontWeight: FontWeight.w700)),
+                                          Expanded(
+                                            child: Text(
+                                              _lineOf(line),
+                                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                ],
+                              )
+                            : Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      tr(_titleCase(e.key)),
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Theme.of(context).textTheme.bodySmall?.color,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 3,
+                                    child: Text(
+                                      e.value is Map ? _lineOf(e.value) : tr(_display(e.key, e.value)),
+                                      textAlign: TextAlign.right,
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                            Expanded(
-                              flex: 3,
-                              child: Text(
-                                _display(e.key, e.value),
-                                textAlign: TextAlign.right,
-                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                              ),
-                            ),
-                          ],
-                        ),
                       );
                     }).toList(),
                   ),
                 ),
               ),
+              // suppliers with a map pin: open the road route from where you are now
+              if (widget.module.path == "/suppliers" && item["latitude"] != null && item["longitude"] != null) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    icon: const Icon(Icons.directions_outlined),
+                    label: Text(tr("How far? Show route")),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => SupplierRouteScreen(supplier: item)));
+                    },
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -226,126 +329,284 @@ class _ListScreenState extends State<ListScreen> {
     final cols = widget.module.listColumns;
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.module.title)),
+      appBar: AppBar(title: Text(tr(widget.module.title))),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: teal,
         foregroundColor: Colors.white,
         onPressed: () => _openForm(),
         icon: const Icon(Icons.add),
-        label: const Text("Add", style: TextStyle(fontWeight: FontWeight.w600)),
+        label: Text(tr("Add"), style: TextStyle(fontWeight: FontWeight.w600)),
       ),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: TextField(
-              controller: searchCtrl,
-              onChanged: (v) => setState(() => query = v),
-              decoration: InputDecoration(
-                hintText: "Search ${widget.module.title.toLowerCase()}…",
-                isDense: true,
-                prefixIcon: const Icon(Icons.search, size: 20),
-                suffixIcon: query.isEmpty
-                    ? null
-                    : IconButton(
-                        icon: const Icon(Icons.close, size: 18),
-                        onPressed: () => setState(() {
-                          searchCtrl.clear();
-                          query = "";
-                        }),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (moduleDescription(path).isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Text(
+                      moduleDescription(path),
+                      style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
+                    ),
+                  ),
+                ..._summary(),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: searchCtrl,
+                        onChanged: (v) => setState(() => query = v),
+                        decoration: InputDecoration(
+                          hintText: searchHint(path),
+                          isDense: true,
+                          prefixIcon: const Icon(Icons.search, size: 20),
+                          suffixIcon: query.isEmpty
+                              ? null
+                              : IconButton(
+                                  icon: const Icon(Icons.close, size: 18),
+                                  onPressed: () => setState(() {
+                                    searchCtrl.clear();
+                                    query = "";
+                                  }),
+                                ),
+                        ),
                       ),
-              ),
+                    ),
+                    if (path == "/suppliers") ...[
+                      const SizedBox(width: 8),
+                      SegmentedButton<bool>(
+                        showSelectedIcon: false,
+                        style: const ButtonStyle(visualDensity: VisualDensity.compact),
+                        segments: [
+                          ButtonSegment(value: false, icon: const Icon(Icons.list, size: 18), tooltip: tr("List")),
+                          ButtonSegment(
+                            value: true,
+                            icon: const Icon(Icons.map_outlined, size: 18),
+                            tooltip: tr("Map"),
+                          ),
+                        ],
+                        selected: {mapView},
+                        onSelectionChanged: (v) => setState(() => mapView = v.first),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
             ),
           ),
           Expanded(
             child: loading
                 ? const Center(child: CircularProgressIndicator())
                 : error != null
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Text(error!, style: const TextStyle(color: KadeColors.terra)),
-                        ),
-                      )
-                    : _filteredItems.isEmpty
-                        ? _empty()
-                        : RefreshIndicator(
-                            onRefresh: _load,
-                            child: ListView.builder(
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 90),
-                              itemCount: _filteredItems.length,
-                              itemBuilder: (_, i) {
-                                final it = _filteredItems[i];
-                                final title = "${it[cols.first] ?? "—"}";
-                                final subtitle = cols
-                                    .skip(1)
-                                    .map((k) => _display(k, it[k]))
-                                    .join("  ·  ");
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 10),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context).cardTheme.color,
-                                    borderRadius: BorderRadius.circular(KadeRadius.md),
-                                    border: Border.all(
-                                        color: isDark ? KadeColors.borderDark : KadeColors.borderLight),
-                                  ),
-                                  child: ListTile(
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                                    onTap: () => _viewDetails(it),
-                                    leading: Container(
-                                      height: 40, width: 40,
-                                      decoration: BoxDecoration(
-                                        color: teal.withOpacity(0.10),
-                                        borderRadius: BorderRadius.circular(KadeRadius.sm),
-                                      ),
-                                      child: Icon(widget.module.icon, size: 20, color: teal),
-                                    ),
-                                    title: Text(title,
-                                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                                    subtitle: Text(subtitle,
-                                        style: TextStyle(
-                                            fontSize: 12,
-                                            color: Theme.of(context).textTheme.bodySmall?.color)),
-                                    trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                                      IconButton(
-                                          icon: const Icon(Icons.visibility_outlined, size: 20),
-                                          onPressed: () => _viewDetails(it)),
-                                      IconButton(
-                                          icon: const Icon(Icons.edit_outlined, size: 20),
-                                          onPressed: () => _openForm(it)),
-                                      IconButton(
-                                          icon: const Icon(Icons.delete_outline,
-                                              size: 20, color: KadeColors.terra),
-                                          onPressed: () => _delete("${it["id"]}")),
-                                    ]),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(tr(error!), style: const TextStyle(color: KadeColors.terra)),
+                    ),
+                  )
+                : _filteredItems.isEmpty
+                ? _empty()
+                : path == "/suppliers" && mapView
+                ? SuppliersMapView(suppliers: _filteredItems)
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 90),
+                      itemCount: _filteredItems.length,
+                      itemBuilder: (_, i) => _rowCard(_filteredItems[i], cols, teal, isDark),
+                    ),
+                  ),
           ),
         ],
       ),
     );
   }
 
+  String get path => widget.module.path;
+
+  // Totals / warnings shown above the list, as on the web pages
+  List<Widget> _summary() {
+    if (loading || error != null) return const [];
+    if (path == "/agency-banking" && items.isNotEmpty) {
+      double sum(String k) => items.fold(0.0, (s, i) => s + (num.tryParse("${i[k] ?? 0}") ?? 0));
+      return [
+        Row(
+          children: [
+            Expanded(child: MiniStat(tr("Transactions"), "${items.length}")),
+            const SizedBox(width: 8),
+            Expanded(child: MiniStat(tr("Volume"), money(sum("amount")))),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(child: MiniStat(tr("Service Fees"), money(sum("service_fee")), color: KadeColors.teal)),
+            const SizedBox(width: 8),
+            Expanded(child: MiniStat(tr("Commission"), money(sum("commission")), color: KadeColors.success)),
+          ],
+        ),
+        const SizedBox(height: 10),
+      ];
+    }
+    if (path == "/inventory") {
+      final low = items.where(isLowStock).length;
+      if (low == 0) return const [];
+      return [
+        Container(
+          padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+          margin: const EdgeInsets.only(bottom: 10),
+          decoration: BoxDecoration(
+            color: KadeColors.amber.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(KadeRadius.md),
+            border: Border.all(color: KadeColors.amber.withValues(alpha: 0.4)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text("⚠ $low ${tr("running low.")}", style: const TextStyle(fontWeight: FontWeight.w600)),
+              ),
+              TextButton(
+                onPressed: () async {
+                  final changed = await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(builder: (_) => const InventoryAlertsScreen()),
+                  );
+                  if (changed == true) _load();
+                },
+                child: Text(tr("View Alerts")),
+              ),
+            ],
+          ),
+        ),
+      ];
+    }
+    return const [];
+  }
+
+  Widget _rowCard(Map<String, dynamic> it, List<String> cols, Color teal, bool isDark) {
+    final row =
+        rowFor(path, it) ??
+        ListRow(title: "${it[cols.first] ?? "—"}", subtitle: cols.skip(1).map((k) => _display(k, it[k])).join("  ·  "));
+    final soft = Theme.of(context).textTheme.bodySmall?.color;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
+        borderRadius: BorderRadius.circular(KadeRadius.md),
+        border: Border.all(color: isDark ? KadeColors.borderDark : KadeColors.borderLight),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(KadeRadius.md),
+        onTap: () => _viewDetails(it),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 4, 4),
+          child: Column(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    height: 40,
+                    width: 40,
+                    decoration: BoxDecoration(
+                      color: teal.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(KadeRadius.sm),
+                    ),
+                    child: Icon(widget.module.icon, size: 20, color: teal),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(row.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 2),
+                        Text(row.subtitle, style: TextStyle(fontSize: 12, color: soft)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        if (row.figure != null)
+                          Text(
+                            row.figure!,
+                            style: TextStyle(fontWeight: FontWeight.w700, color: row.figureColor),
+                          ),
+                        if (row.badge != null) ...[const SizedBox(height: 4), StatusPill(row.badge!.$1, row.badge!.$2)],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              // Wrap, not Row: the Sinhala labels are long and overflowed narrow phones
+              Wrap(
+                alignment: WrapAlignment.end,
+                children: [
+                  TextButton.icon(
+                    style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                    icon: const Icon(Icons.visibility_outlined, size: 18),
+                    label: Text(tr("View")),
+                    onPressed: () => _viewDetails(it),
+                  ),
+                  TextButton.icon(
+                    style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: Text(tr("Edit")),
+                    onPressed: () => _openForm(it),
+                  ),
+                  TextButton.icon(
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      foregroundColor: KadeColors.terra,
+                    ),
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: Text(tr("Delete")),
+                    onPressed: () => _delete("${it["id"]}"),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _emptyTitle() => switch (path) {
+    "/transactions" || "/agency-banking" => tr("No transactions"),
+    "/inventory" => tr("No inventory items"),
+    "/suppliers" => tr("No suppliers"),
+    "/procurement" => tr("No procurement records"),
+    _ => tr("Nothing here yet"),
+  };
+
   Widget _empty() {
     final searching = query.trim().isNotEmpty;
     return Center(
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(searching ? Icons.search_off : widget.module.icon,
-            size: 52, color: Theme.of(context).textTheme.bodySmall?.color),
-        const SizedBox(height: 12),
-        Text(
-          searching ? "No matches found" : "No ${widget.module.title.toLowerCase()} yet",
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        const SizedBox(height: 6),
-        Text(
-          searching ? "Try a different search term." : "Tap + to add one.",
-          style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
-        ),
-      ]),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            searching ? Icons.search_off : widget.module.icon,
+            size: 52,
+            color: Theme.of(context).textTheme.bodySmall?.color,
+          ),
+          const SizedBox(height: 12),
+          Text(searching ? tr("No matches found") : _emptyTitle(), style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 6),
+          Text(
+            searching ? tr("Try a different search term.") : tr("Tap + to add one."),
+            style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
+          ),
+        ],
+      ),
     );
   }
 }

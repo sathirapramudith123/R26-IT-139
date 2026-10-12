@@ -2,10 +2,10 @@ import axios from "axios";
 
 const ML_URL = process.env.ML_URL || "http://localhost:8000";
 
-// Axios Instance එකක් සෑදීම මඟින් Timeout සැකසිය හැක
+// Axios instance for the ML service, with a request timeout
 const mlClient = axios.create({
   baseURL: ML_URL,
-  timeout: 5000, // තත්පර 5ක් ඇතුළත Response නැත්නම් Abort වේ
+  timeout: 5000, // abort if the ML service does not answer within 5 seconds
 });
 
 export async function predict(component, features) {

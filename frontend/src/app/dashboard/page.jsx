@@ -5,40 +5,134 @@ import useAuthGuard from "@/hooks/useAuthGuard";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import useTransactions from "@/hooks/useTransactions";
 import useInventory from "@/hooks/useInventory";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, titleCase } from "@/lib/formatters";
 import {
-  TrendingUp, TrendingDown, Wallet, PackageX, ArrowUpRight, ArrowDownRight,
-  CreditCard, Package, Handshake, ShoppingCart, Landmark, Building2, Bot, BookOpen,
+  TrendingUp,
+  TrendingDown,
+  PackageX,
+  Wallet,
+  ArrowUpRight,
+  ArrowDownRight,
+  CreditCard,
+  Package,
+  Handshake,
+  ShoppingCart,
+  Landmark,
+  Building2,
+  Bot,
+  BookOpen,
 } from "lucide-react";
 
+import { t } from "@/lib/i18n";
 const MODULES = [
-  { href: "/dashboard/transactions",    label: "Transactions", desc: "Sales, purchases & expenses", icon: CreditCard,  tint: "teal" },
-  { href: "/dashboard/journal",         label: "Journal",      desc: "Double-entry ledger",         icon: BookOpen,    tint: "indigo" },
-  { href: "/dashboard/inventory",       label: "Inventory",    desc: "Stock & batches",             icon: Package,     tint: "amber" },
-  { href: "/dashboard/procurement",     label: "Procurement",  desc: "Purchase orders",             icon: ShoppingCart,tint: "rose" },
-  { href: "/dashboard/suppliers",       label: "Suppliers",    desc: "Your vendors",                icon: Handshake,   tint: "emerald" },
-  { href: "/dashboard/agency-banking",  label: "Agency Banking", desc: "Deposits & withdrawals",    icon: Landmark,    tint: "sky" },
-  { href: "/dashboard/my-banks",        label: "My Banks",     desc: "Float accounts",              icon: Building2,   tint: "violet" },
-  { href: "/dashboard/predictions",     label: "Predictions",  desc: "AI insights",                 icon: Bot,         tint: "fuchsia" },
+  {
+    href: "/dashboard/transactions",
+    get label() {
+      return t("Transactions");
+    },
+    get desc() {
+      return t("Sales, purchases & expenses");
+    },
+    icon: CreditCard,
+    tint: "brand",
+  },
+  {
+    href: "/dashboard/journal",
+    get label() {
+      return t("Journal");
+    },
+    get desc() {
+      return t("Double-entry ledger");
+    },
+    icon: BookOpen,
+    tint: "indigo",
+  },
+  {
+    href: "/dashboard/inventory",
+    get label() {
+      return t("Inventory");
+    },
+    get desc() {
+      return t("Stock & batches");
+    },
+    icon: Package,
+    tint: "amber",
+  },
+  {
+    href: "/dashboard/procurement",
+    get label() {
+      return t("Procurement");
+    },
+    get desc() {
+      return t("Purchase orders");
+    },
+    icon: ShoppingCart,
+    tint: "rose",
+  },
+  {
+    href: "/dashboard/suppliers",
+    get label() {
+      return t("Suppliers");
+    },
+    get desc() {
+      return t("Your vendors");
+    },
+    icon: Handshake,
+    tint: "emerald",
+  },
+  {
+    href: "/dashboard/agency-banking",
+    get label() {
+      return t("Agency Banking");
+    },
+    get desc() {
+      return t("Deposits & withdrawals");
+    },
+    icon: Landmark,
+    tint: "sky",
+  },
+  {
+    href: "/dashboard/my-banks",
+    get label() {
+      return t("My Banks");
+    },
+    get desc() {
+      return t("Float accounts");
+    },
+    icon: Building2,
+    tint: "violet",
+  },
+  {
+    href: "/dashboard/predictions",
+    get label() {
+      return t("Predictions");
+    },
+    get desc() {
+      return t("AI insights");
+    },
+    icon: Bot,
+    tint: "fuchsia",
+  },
 ];
 
 const TINT = {
-  teal:    "bg-teal-50 text-teal-600 dark:bg-teal-950 dark:text-teal-400",
-  indigo:  "bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400",
-  amber:   "bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
-  rose:    "bg-rose-50 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
+  brand: "bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-400",
+  indigo: "bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400",
+  amber: "bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
+  rose: "bg-rose-50 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
   emerald: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
-  sky:     "bg-sky-50 text-sky-600 dark:bg-sky-950 dark:text-sky-400",
-  violet:  "bg-violet-50 text-violet-600 dark:bg-violet-950 dark:text-violet-400",
+  sky: "bg-sky-50 text-sky-600 dark:bg-sky-950 dark:text-sky-400",
+  violet: "bg-violet-50 text-violet-600 dark:bg-violet-950 dark:text-violet-400",
   fuchsia: "bg-fuchsia-50 text-fuchsia-600 dark:bg-fuchsia-950 dark:text-fuchsia-400",
 };
 
-// stat card gradient colours (fixed — not time-of-day)
+// stat card icon tints
 const STAT = {
-  income:  ["#0F766E", "#14B8A6"],
-  expense: ["#B45309", "#F59E0B"],
-  profit:  ["#15803D", "#22C55E"],
-  stock:   ["#1E3A8A", "#3B82F6"],
+  income: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
+  expense: "bg-rose-50 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
+  stock: "bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
+  profit: "bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-400",
+  loss: "bg-rose-50 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
 };
 
 /* Count-up animation: eases a number from 0 to `target`. */
@@ -46,7 +140,10 @@ function useCountUp(target, duration = 1200) {
   const [val, setVal] = useState(0);
   useEffect(() => {
     const end = Number(target) || 0;
-    if (end === 0) { setVal(0); return; }
+    if (end === 0) {
+      setVal(0);
+      return;
+    }
     let raf;
     const start = performance.now();
     const tick = (now) => {
@@ -66,78 +163,146 @@ export default function DashboardPage() {
   useAuthGuard();
   const { items: txns, loading: tl, fetchAll: fetchTx } = useTransactions();
   const { items: inv, loading: il, fetchAll: fetchInv } = useInventory();
-  useEffect(() => { fetchTx(); fetchInv(); }, [fetchTx, fetchInv]);
+  useEffect(() => {
+    fetchTx();
+    fetchInv();
+  }, [fetchTx, fetchInv]);
 
   const m = useMemo(() => {
-    const income = txns.filter(t => ["sale", "deposit"].includes(t.transaction_type)).reduce((s, t) => s + (Number(t.amount) || 0), 0);
-    const expense = txns.filter(t => ["purchase", "expense"].includes(t.transaction_type)).reduce((s, t) => s + (Number(t.amount) || 0), 0);
-    const lowStock = inv.filter(i => Number(i.quantity) <= Number(i.reorder_level)).length;
+    const income = txns
+      .filter((t) => ["sale", "deposit"].includes(t.transaction_type))
+      .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    const expense = txns
+      .filter((t) => ["purchase", "expense"].includes(t.transaction_type))
+      .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    const lowStock = inv.filter((i) => Number(i.quantity) <= Number(i.reorder_level)).length;
     return { income, expense, profit: income - expense, lowStock };
   }, [txns, inv]);
 
-  const recent = useMemo(() =>
-    [...txns].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5), [txns]);
+  const recent = useMemo(
+    () => [...txns].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5),
+    [txns],
+  );
 
-  const aIncome  = useCountUp(m.income);
+  const aIncome = useCountUp(m.income);
   const aExpense = useCountUp(m.expense);
-  const aProfit  = useCountUp(m.profit);
-  const aStock   = useCountUp(m.lowStock);
+  const aProfit = useCountUp(m.profit);
+  const aStock = useCountUp(m.lowStock);
 
   const stats = [
-    { key: "income",  label: "Total Income",    value: formatCurrency(Math.round(aIncome)),  icon: TrendingUp,   grad: STAT.income },
-    { key: "expense", label: "Total Expense",   value: formatCurrency(Math.round(aExpense)), icon: TrendingDown, grad: STAT.expense },
-    { key: "profit",  label: "Net Profit",      value: formatCurrency(Math.round(aProfit)),  icon: Wallet,       grad: STAT.profit },
-    { key: "stock",   label: "Low Stock Items", value: `${Math.round(aStock)}`,              icon: PackageX,     grad: STAT.stock },
+    {
+      key: "income",
+      get label() {
+        return t("Total Income");
+      },
+      get caption() {
+        return t("money in");
+      },
+      value: formatCurrency(aIncome),
+      icon: TrendingUp,
+      tint: STAT.income,
+    },
+    {
+      key: "expense",
+      get label() {
+        return t("Total Expense");
+      },
+      get caption() {
+        return t("money out");
+      },
+      value: formatCurrency(aExpense),
+      icon: TrendingDown,
+      tint: STAT.expense,
+    },
+    {
+      key: "profit",
+      get label() {
+        return t("Net Profit");
+      },
+      get caption() {
+        return t("Income minus expenses");
+      },
+      value: formatCurrency(aProfit),
+      icon: Wallet,
+      tint: m.profit < 0 ? STAT.loss : STAT.profit,
+    },
+    {
+      key: "stock",
+      get label() {
+        return t("Low Stock Items");
+      },
+      get caption() {
+        return t("to restock");
+      },
+      value: `${Math.round(aStock)}`,
+      icon: PackageX,
+      tint: STAT.stock,
+    },
   ];
 
-  if (tl || il) return <div className="page-container"><LoadingSpinner label="Loading dashboard..." /></div>;
+  if (tl || il)
+    return (
+      <div className="page-container">
+        <LoadingSpinner label={t("Loading dashboard...")} />
+      </div>
+    );
 
   return (
     <div className="page-container space-y-6">
-      {/* ===== Simple gradient hero ===== */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-800 p-6 text-white shadow-lg sm:p-8">
-        <div className="absolute -right-8 -top-10 h-40 w-40 rounded-full bg-white/10" />
-        <div className="absolute -bottom-12 right-24 h-32 w-32 rounded-full bg-white/5" />
-        <p className="relative text-sm font-medium text-white/80">Ayubowan 👋</p>
-        <h1 className="relative mt-1 font-outfit text-2xl font-bold sm:text-3xl">Here's your Lanka-Link today</h1>
-        <p className="relative mt-2 max-w-lg text-sm text-white/70">
-          A quick snapshot of your income, expenses and stock — plus fast access to everything you manage.
-        </p>
-      </div>
-
-      {/* ===== Stat cards ===== */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((s) => {
-          const Icon = s.icon;
-          return (
-            <div key={s.key} className="relative overflow-hidden rounded-2xl p-5 text-white shadow-md"
-              style={{ background: `linear-gradient(135deg, ${s.grad[0]}, ${s.grad[1]})` }}>
-              <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-white/10" />
-              <div className="flex items-start justify-between">
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-white/80">{s.label}</p>
-                  <p className="mt-1.5 font-outfit text-2xl font-bold leading-tight break-words">{s.value}</p>
-                </div>
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20">
-                  <Icon className="h-5 w-5" />
-                </div>
-              </div>
+      {/* ===== Blue gradient header (greeting); white stat cards overlap its bottom edge ===== */}
+      <div>
+        <div className="relative overflow-hidden rounded-3xl gradient-brand px-6 pb-24 pt-7 text-white shadow-elevated sm:px-8">
+          <div className="pointer-events-none absolute -right-10 -top-12 h-48 w-48 rounded-full bg-white/10" />
+          <div className="pointer-events-none absolute -bottom-20 right-32 h-40 w-40 rounded-full bg-white/5" />
+          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="font-display text-2xl font-semibold">{t("Ayubowan 👋")}</p>
+              <p className="mt-1 text-sm text-white/80">
+                {t("Your business overview — finances, stock and procurement.")}
+              </p>
             </div>
-          );
-        })}
+          </div>
+        </div>
+
+        <div className="relative -mt-16 grid grid-cols-1 gap-4 px-3 sm:grid-cols-2 sm:px-6 xl:grid-cols-4">
+          {stats.map((s) => {
+            const Icon = s.icon;
+            return (
+              <div key={s.key} className="card">
+                <div className="flex items-center gap-2">
+                  <span className={`flex h-8 w-8 items-center justify-center rounded-full ${s.tint}`}>
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{s.label}</p>
+                </div>
+                <p className="mt-3 font-display text-2xl font-semibold text-slate-800 dark:text-slate-100">
+                  {s.value}
+                </p>
+                <p className={`mt-0.5 text-xs font-medium ${s.tint.split(" ")[1]}`}>{s.caption}</p>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Modules */}
         <div className="lg:col-span-2">
-          <h2 className="mb-3 font-outfit text-lg font-bold text-slate-900 dark:text-slate-100">Modules</h2>
+          <h2 className="mb-3 font-display text-lg font-bold text-slate-900 dark:text-slate-100">
+            {t("Modules")}
+          </h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {MODULES.map((mod) => {
               const Icon = mod.icon;
               return (
-                <Link key={mod.href} href={mod.href}
-                  className="group rounded-2xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-teal-700">
-                  <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${TINT[mod.tint]}`}>
+                <Link
+                  key={mod.href}
+                  href={mod.href}
+                  className="card group p-4 transition hover:-translate-y-0.5 hover:shadow-card-hover"
+                >
+                  <div
+                    className={`flex h-11 w-11 items-center justify-center rounded-full ${TINT[mod.tint]}`}
+                  >
                     <Icon className="h-5 w-5" />
                   </div>
                   <p className="mt-3 font-semibold text-slate-800 dark:text-slate-200">{mod.label}</p>
@@ -150,41 +315,62 @@ export default function DashboardPage() {
 
         {/* Recent activity */}
         <div>
-          <h2 className="mb-3 font-outfit text-lg font-bold text-slate-900 dark:text-slate-100">Recent activity</h2>
-          <div className="rounded-2xl border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900">
+          <h2 className="mb-3 font-display text-lg font-bold text-slate-900 dark:text-slate-100">
+            {t("Recent activity")}
+          </h2>
+          <div className="card p-2">
             {recent.length === 0 ? (
-              <p className="p-6 text-center text-sm text-slate-400">No transactions yet.</p>
+              <p className="p-6 text-center text-sm text-slate-400">{t("No transactions yet.")}</p>
             ) : (
               <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-                {recent.map((t, i) => {
-                  const isIncome = ["sale", "deposit"].includes(t.transaction_type);
+                {recent.map((tx, i) => {
+                  const isIncome = ["sale", "deposit"].includes(tx.transaction_type);
                   return (
-                    <li key={t.id || i} className="flex items-center gap-3 p-3">
-                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-                        isIncome ? "bg-emerald-100 dark:bg-emerald-950" : "bg-rose-100 dark:bg-rose-950"}`}>
-                        {isIncome ? <ArrowDownRight className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                                  : <ArrowUpRight className="h-4 w-4 text-rose-600 dark:text-rose-400" />}
+                    <li key={tx.id || i} className="flex items-center gap-3 p-3">
+                      <div
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                          isIncome ? "bg-emerald-100 dark:bg-emerald-950" : "bg-rose-100 dark:bg-rose-950"
+                        }`}
+                      >
+                        {isIncome ? (
+                          <ArrowDownRight className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        ) : (
+                          <ArrowUpRight className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+                        )}
                       </div>
+                      {/* amount on its own line — with cents it no longer fits beside the name */}
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium capitalize text-slate-800 dark:text-slate-200">
-                          {String(t.transaction_type || "").replace(/_/g, " ")}
+                        <div className="flex items-baseline justify-between gap-2">
+                          <p className="truncate text-sm font-medium capitalize text-slate-800 dark:text-slate-200">
+                            {t(titleCase(tx.transaction_type || ""))}
+                          </p>
+                          <span className="shrink-0 text-[11px] text-slate-400">
+                            {new Date(tx.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p
+                          className={`whitespace-nowrap text-sm font-semibold ${
+                            isIncome
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-rose-600 dark:text-rose-400"
+                          }`}
+                        >
+                          {isIncome ? "+" : "-"} {formatCurrency(tx.amount)}
                         </p>
                         <p className="truncate text-[11px] text-slate-400">
-                          {t.category || t.payment_method || "—"} · {new Date(t.created_at).toLocaleDateString()}
+                          {tx.category || t(titleCase(tx.payment_method || "")) || "—"}
                         </p>
                       </div>
-                      <span className={`shrink-0 text-sm font-semibold ${
-                        isIncome ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
-                        {isIncome ? "+" : "-"} {formatCurrency(t.amount)}
-                      </span>
                     </li>
                   );
                 })}
               </ul>
             )}
-            <Link href="/dashboard/transactions"
-              className="block border-t border-slate-100 p-3 text-center text-xs font-semibold text-teal-600 hover:bg-slate-50 dark:border-slate-800 dark:text-teal-400 dark:hover:bg-slate-800">
-              View all transactions →
+            <Link
+              href="/dashboard/transactions"
+              className="block border-t border-slate-100 p-3 text-center text-xs font-semibold text-brand-600 hover:bg-slate-50 dark:border-slate-800 dark:text-brand-400 dark:hover:bg-slate-800"
+            >
+              {t("View all transactions →")}
             </Link>
           </div>
         </div>

@@ -2,11 +2,16 @@ export const up = (v) => (v ? String(v).toUpperCase() : v);
 export const low = (v) => (v ? String(v).toLowerCase() : v);
 
 const ENUM_FIELDS = [
-  "transaction_type", "payment_method", "unit", "item_status",
-  "supplier_status", "procurement_status", "banking_status",
-  "notification_type", "notification_category",
+  "transaction_type",
+  "payment_method",
+  "unit",
+  "item_status",
+  "supplier_status",
+  "procurement_status",
+  "banking_status",
+  "notification_type",
+  "notification_category",
 ];
-
 
 export function toClient(row, idField) {
   if (!row) return row;

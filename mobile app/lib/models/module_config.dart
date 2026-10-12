@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'field_config.dart';
 
 class ModuleConfig {
-  final String title;   
-  final String path;    
-  final IconData icon;    
+  final String title;
+  final String path;
+  final IconData icon;
   final List<FieldConfig> fields;
-  final List<String> listColumns; 
+  final List<String> listColumns;
 
   const ModuleConfig({
     required this.title,

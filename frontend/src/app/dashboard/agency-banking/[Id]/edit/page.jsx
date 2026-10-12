@@ -11,6 +11,7 @@ import AgencyBankingForm from "@/components/forms/AgencyBankingForm";
 import { agencyBankingApi } from "@/services/api/agencyBanking";
 import { ArrowLeft, AlertCircle, FileX } from "lucide-react";
 
+import { t } from "@/lib/i18n";
 export default function EditAgencyBankingPage() {
   useAuthGuard();
   const { Id } = useParams();
@@ -23,7 +24,7 @@ export default function EditAgencyBankingPage() {
     agencyBankingApi
       .getById(Id)
       .then(setItem)
-      .catch((e) => setError(e.message || "Failed to load transaction details."))
+      .catch((e) => setError(e.message || t("Failed to load transaction details.")))
       .finally(() => setLoading(false));
   }, [Id]);
 
@@ -31,8 +32,8 @@ export default function EditAgencyBankingPage() {
     <div className="min-h-screen space-y-6 p-6 md:p-8">
       {/* Header Section */}
       <PageHeader
-        title="Edit Transaction"
-        description="Update agency banking transaction records and details."
+        title={t("Edit Transaction")}
+        description={t("Update agency banking transaction records and details.")}
         action={
           <Link href="/dashboard/agency-banking">
             <Button
@@ -40,7 +41,7 @@ export default function EditAgencyBankingPage() {
               className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/80 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-slate-100 transition-all shadow-sm"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back
+              {t("Back")}
             </Button>
           </Link>
         }
@@ -51,7 +52,7 @@ export default function EditAgencyBankingPage() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
             <LoadingSpinner />
-            <p className="text-sm text-slate-400">Loading transaction details...</p>
+            <p className="text-sm text-slate-400">{t("Loading transaction details...")}</p>
           </div>
         ) : error ? (
           <div className="flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
@@ -63,9 +64,7 @@ export default function EditAgencyBankingPage() {
             <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-800/80 text-slate-500">
               <FileX className="h-6 w-6" />
             </div>
-            <p className="text-sm font-medium text-slate-400">
-              Transaction record not found.
-            </p>
+            <p className="text-sm font-medium text-slate-400">{t("Transaction record not found.")}</p>
           </div>
         ) : (
           <AgencyBankingForm initialData={item} agencyId={Id} />

@@ -12,28 +12,40 @@ export default function useAuth() {
   const [error, setError] = useState(null);
 
   async function login({ email, password }) {
-    setLoading(true); setError(null);
+    setLoading(true);
+    setError(null);
     try {
       const d = await authApi.login({ email, password });
       tokenService.setToken(d.token);
       tokenService.setUser(normalizeUser(d.user));
       return d;
-    } catch (e) { setError(e.message || "Login failed."); throw e; }
-    finally { setLoading(false); }
+    } catch (e) {
+      setError(e.message || "Login failed.");
+      throw e;
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function register({ full_name, email, password }) {
-    setLoading(true); setError(null);
+    setLoading(true);
+    setError(null);
     try {
       await authApi.register({ fullName: full_name, email, password });
       const d = await authApi.login({ email, password });
       tokenService.setToken(d.token);
       tokenService.setUser(normalizeUser(d.user));
       return d;
-    } catch (e) { setError(e.message || "Registration failed."); throw e; }
-    finally { setLoading(false); }
+    } catch (e) {
+      setError(e.message || "Registration failed.");
+      throw e;
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function logout() { tokenService.clearToken(); }
+  function logout() {
+    tokenService.clearToken();
+  }
   return { loading, error, login, register, logout };
 }

@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 
-// කෙළින්ම FastAPI backend URL එක ලබා දීම
+// ML service (FastAPI) URL
 const FASTAPI_URL = "http://127.0.0.1:8000/predict";
 
 export default function usePrediction() {
@@ -32,7 +32,7 @@ export default function usePrediction() {
         }
       });
 
-      // කෙළින්ම FastAPI එකට request එක යැවීම
+      // send the request straight to the ML service
       const response = await fetch(FASTAPI_URL, {
         method: "POST",
         headers: {

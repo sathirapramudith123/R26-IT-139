@@ -1,39 +1,385 @@
-import Link from "next/link";
+"use client";
 
-const features = [
-  { icon: "💳", title: "Sales & Finance", desc: "Track transactions and get a credit-readiness score." },
-  { icon: "📦", title: "Smart Inventory", desc: "Stock levels with low-stock alerts and demand forecasting." },
-  { icon: "🛒", title: "Procurement", desc: "Decide when to buy with supplier insights." },
-  { icon: "🏦", title: "Agency Banking", desc: "Deposits, withdrawals, transfers with anomaly detection." },
+import Link from "next/link";
+import {
+  ArrowRight,
+  Brain,
+  CalendarDays,
+  CreditCard,
+  Landmark,
+  Package,
+  Scale,
+  ShieldCheck,
+  ShoppingCart,
+  Sparkles,
+  TrendingUp,
+  TriangleAlert,
+} from "lucide-react";
+
+import { t } from "@/lib/i18n";
+const flow = [
+  {
+    icon: Package,
+    get title() {
+      return t("Record");
+    },
+    get desc() {
+      return t("Sales, purchases, stock and banking in one digital ledger.");
+    },
+  },
+  {
+    icon: TrendingUp,
+    get title() {
+      return t("Forecast");
+    },
+    get desc() {
+      return t("Next week's demand per item, aware of Avurudu and festivals.");
+    },
+  },
+  {
+    icon: ShoppingCart,
+    get title() {
+      return t("Restock");
+    },
+    get desc() {
+      return t("Buy when stock falls below what the forecast needs until delivery.");
+    },
+  },
+  {
+    icon: CreditCard,
+    get title() {
+      return t("Grow");
+    },
+    get desc() {
+      return t("Steady stock and records build a credit-readiness score.");
+    },
+  },
 ];
+
+const modules = [
+  {
+    icon: CreditCard,
+    get title() {
+      return t("Sales & Finance");
+    },
+    get desc() {
+      return t("Daily transactions, journal and profit & loss.");
+    },
+    get ai() {
+      return t("Credit-readiness score and a loan limit from your net cash flow.");
+    },
+  },
+  {
+    icon: Package,
+    get title() {
+      return t("Smart Inventory");
+    },
+    get desc() {
+      return t("Stock levels, batches and low-stock alerts.");
+    },
+    get ai() {
+      return t("Weekly demand forecast for every item that sells.");
+    },
+  },
+  {
+    icon: ShoppingCart,
+    get title() {
+      return t("Procurement");
+    },
+    get desc() {
+      return t("Suppliers, purchase orders and delivery lead times.");
+    },
+    get ai() {
+      return t("Buy now or wait, from stock, forecast and price trend.");
+    },
+  },
+  {
+    icon: Landmark,
+    get title() {
+      return t("Agency Banking");
+    },
+    get desc() {
+      return t("Deposits, withdrawals and transfers for partner banks.");
+    },
+    get ai() {
+      return t("Flags unusual transactions; CBSL daily limits enforced.");
+    },
+  },
+];
+
+const trust = [
+  {
+    icon: Brain,
+    get title() {
+      return t("Explainable, not a black box");
+    },
+    get desc() {
+      return t("Every prediction shows what pushed it up and what held it back, in plain words.");
+    },
+  },
+  {
+    icon: Scale,
+    get title() {
+      return t("Rules and ML together");
+    },
+    get desc() {
+      return t("CBSL limits are hard rules that are always enforced. The models flag what rules cannot see.");
+    },
+  },
+  {
+    icon: ShieldCheck,
+    get title() {
+      return t("Tested against simple methods");
+    },
+    get desc() {
+      return t("On held-out data the demand forecast is about 22% more accurate than “same as last week”.");
+    },
+  },
+];
+
+function PreviewCard() {
+  return (
+    <div className="relative">
+      <div className="absolute -inset-4 rounded-[2rem] bg-white/10 blur-2xl" aria-hidden />
+      <div className="relative space-y-3 rounded-3xl border border-white/20 bg-white/95 p-5 text-slate-800 shadow-2xl backdrop-blur dark:bg-slate-900/95 dark:text-slate-100">
+        <div className="flex items-center justify-between">
+          <p className="font-display text-sm font-bold">{t("Your business this week")}</p>
+          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+            {t("Sample data")}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-2xl bg-brand-50 p-3 dark:bg-brand-950/50">
+            <p className="text-[11px] font-medium text-brand-700 dark:text-brand-300">{t("Credit score")}</p>
+            <p className="font-display text-3xl font-extrabold text-brand-700 dark:text-brand-300">82</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">{t("Ready to apply")}</p>
+          </div>
+          <div className="rounded-2xl bg-amber-50 p-3 dark:bg-amber-950/40">
+            <p className="text-[11px] font-medium text-amber-700 dark:text-amber-300">
+              {t("Sales next week")}
+            </p>
+            <p className="font-display text-3xl font-extrabold text-amber-600 dark:text-amber-300">≈353</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">{t("units · ≈ Rs 70,900")}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between rounded-2xl bg-slate-50 p-3 dark:bg-slate-800/60">
+          <div>
+            <p className="text-sm font-semibold">{t("Fresh Milk")}</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              {t("Stock 28 · Reorder 28 (≈23/week forecast)")}
+            </p>
+          </div>
+          <span className="rounded-xl bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+            {t("Buy")}
+          </span>
+        </div>
+
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 dark:border-rose-900 dark:bg-rose-950/40">
+          <div className="flex items-center gap-2">
+            <TriangleAlert className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+            <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">
+              {t("Unusual transaction")}
+            </p>
+          </div>
+          <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+            {t("Cash withdrawal · LKR 50,000 — why:")}
+          </p>
+          <div className="mt-2 space-y-1.5">
+            {[
+              [t("Amount vs usual"), "w-4/5"],
+              [t("Transaction type"), "w-1/2"],
+              [t("Day of month"), "w-1/5"],
+            ].map(([label, w]) => (
+              <div key={label} className="flex items-center gap-2">
+                <span className="w-28 shrink-0 text-[10px] text-slate-500 dark:text-slate-400">{label}</span>
+                <span className="h-1.5 flex-1 rounded-full bg-rose-100 dark:bg-rose-950">
+                  <span className={`block h-1.5 rounded-full bg-rose-400 ${w}`} />
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function HomePage() {
   return (
-    <div className="space-y-16 pb-12">
-      <section className="rounded-3xl gradient-teal px-8 py-16 text-white md:px-16 md:py-20">
-        <div className="grid gap-10 md:grid-cols-2 md:items-center">
-          <div className="space-y-6">
-            <span className="inline-flex rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm font-medium">🇱🇰 Built for Rural Sri Lanka</span>
-            <h1 className="font-outfit text-4xl font-extrabold leading-tight md:text-5xl">Run your kade <span className="text-yellow-300">smarter.</span></h1>
-            <p className="text-lg text-white/80">A digital platform for micro-merchants — inventory, finance, banking, procurement, with explainable ML insights.</p>
+    <div className="space-y-16 pb-12 md:space-y-20">
+      {/* Hero */}
+      <section className="relative overflow-hidden rounded-3xl gradient-brand px-6 py-14 text-white sm:px-10 md:px-16 md:py-20">
+        <div
+          className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-white/10 blur-3xl"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -bottom-32 left-1/3 h-80 w-80 rounded-full bg-yellow-300/10 blur-3xl"
+          aria-hidden
+        />
+
+        <div className="relative grid gap-12 lg:grid-cols-[1.1fr_1fr] lg:items-center">
+          <div className="space-y-7">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm font-medium">
+              <Sparkles className="h-4 w-4 text-accent" /> {t("Built for rural Sri Lanka")}
+            </span>
+            <h1 className="font-display text-4xl font-extrabold leading-[1.05] sm:text-5xl md:text-6xl">
+              {t("Run your kade")} <span className="text-accent">{t("smarter.")}</span>
+            </h1>
+            <p className="max-w-xl text-lg text-white/85">
+              {t(
+                "One app for the small shop and agency-banking agent: record every sale, know what to restock and when, build a credit record, and keep customers' money safe — with AI that explains itself.",
+              )}
+            </p>
             <div className="flex flex-wrap gap-3">
-              <Link href="/auth/register" className="rounded-xl bg-white px-6 py-3 text-sm font-semibold text-teal-700 shadow-lg">Get Started →</Link>
-              <Link href="/auth/login" className="rounded-xl border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold text-white">Sign In</Link>
+              <Link
+                href="/auth/register"
+                className="group inline-flex items-center gap-2 rounded-xl bg-[#ffffff] px-6 py-3 text-sm font-semibold text-brand-700 shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+              >
+                {t("Get started")} <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+              </Link>
+              <Link
+                href="/auth/login"
+                className="inline-flex items-center rounded-xl border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/20"
+              >
+                {t("Sign in")}
+              </Link>
             </div>
+            <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/80">
+              <li className="flex items-center gap-1.5">
+                <Brain className="h-4 w-4" /> {t("Explainable AI")}
+              </li>
+              <li className="flex items-center gap-1.5">
+                <ShieldCheck className="h-4 w-4" /> {t("CBSL limits built in")}
+              </li>
+              <li className="flex items-center gap-1.5">
+                <CalendarDays className="h-4 w-4" /> {t("Avurudu-aware forecasts")}
+              </li>
+            </ul>
           </div>
+          <PreviewCard />
         </div>
       </section>
+
+      {/* One ledger, four decisions */}
       <section>
-        <h2 className="mb-8 text-center font-outfit text-3xl font-bold text-slate-900">Four integrated modules</h2>
+        <div className="mx-auto mb-10 max-w-2xl text-center">
+          <p className="text-sm font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">
+            {t("How it works")}
+          </p>
+          <h2 className="mt-2 font-display text-3xl font-bold text-slate-900 dark:text-white md:text-4xl">
+            {t("One ledger, connected decisions")}
+          </h2>
+          <p className="mt-3 text-slate-500 dark:text-slate-400">
+            {t(
+              "What you record once feeds every insight. The demand forecast sets when to restock, and steady stock improves your credit score.",
+            )}
+          </p>
+        </div>
+        <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {flow.map((step, i) => (
+            <li key={step.title} className="relative">
+              <div className="card h-full transition hover:-translate-y-1 hover:border-brand-300 hover:shadow-lg dark:hover:border-brand-700">
+                <div className="mb-4 flex items-center justify-between">
+                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl gradient-brand text-white shadow-md">
+                    <step.icon className="h-5 w-5" />
+                  </span>
+                  <span className="bg-gradient-to-br from-brand-600 to-brand-400 bg-clip-text font-display text-4xl font-extrabold text-transparent dark:from-brand-300 dark:to-brand-200">
+                    0{i + 1}
+                  </span>
+                </div>
+                <h3 className="font-display text-lg font-semibold text-slate-900 dark:text-white">
+                  {step.title}
+                </h3>
+                <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">{step.desc}</p>
+              </div>
+              {i < flow.length - 1 && (
+                <span
+                  className="absolute -right-4 top-1/2 z-10 hidden h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-brand-200 bg-brand-50 text-brand-600 shadow-sm dark:border-brand-800 dark:bg-brand-950 dark:text-brand-300 lg:flex"
+                  aria-hidden
+                >
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </span>
+              )}
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* Modules */}
+      <section>
+        <div className="mx-auto mb-10 max-w-2xl text-center">
+          <p className="text-sm font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">
+            {t("Modules")}
+          </p>
+          <h2 className="mt-2 font-display text-3xl font-bold text-slate-900 dark:text-white md:text-4xl">
+            {t("Four modules, one shop")}
+          </h2>
+        </div>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {features.map(f => (
-            <div key={f.title} className="card">
-              <div className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-2xl">{f.icon}</div>
-              <h3 className="font-outfit font-semibold text-slate-900">{f.title}</h3>
-              <p className="mt-1.5 text-sm text-slate-500">{f.desc}</p>
+          {modules.map((m) => (
+            <div
+              key={m.title}
+              className="card group flex flex-col transition hover:-translate-y-1 hover:border-brand-300 hover:shadow-lg dark:hover:border-brand-700"
+            >
+              <span className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl gradient-brand text-white shadow-md">
+                <m.icon className="h-6 w-6" />
+              </span>
+              <h3 className="font-display text-lg font-semibold text-slate-900 dark:text-white">{m.title}</h3>
+              <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">{m.desc}</p>
+              <p className="mt-4 flex gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+                <Sparkles className="mt-0.5 h-4 w-4 shrink-0" /> {m.ai}
+              </p>
             </div>
           ))}
         </div>
+      </section>
+
+      {/* Trust */}
+      <section className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-brand-950 px-6 py-14 text-white dark:border-brand-900/60 dark:from-slate-900 dark:via-slate-900 dark:to-brand-900/60 sm:px-10 md:px-16">
+        <div
+          className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-brand-500/20 blur-3xl"
+          aria-hidden
+        />
+        <div className="relative mb-10 max-w-2xl">
+          <p className="text-sm font-semibold uppercase tracking-wider text-brand-400">
+            {t("Why you can trust it")}
+          </p>
+          <h2 className="mt-2 font-display text-3xl font-bold md:text-4xl">{t("AI you can check")}</h2>
+        </div>
+        <div className="relative grid gap-6 md:grid-cols-3">
+          {trust.map((t) => (
+            <div
+              key={t.title}
+              className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur transition hover:border-brand-400/40 hover:bg-white/10"
+            >
+              <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brand-400/15">
+                <t.icon className="h-6 w-6 text-brand-300" />
+              </span>
+              <h3 className="mt-4 font-display text-lg font-semibold">{t.title}</h3>
+              <p className="mt-2 text-sm text-slate-300">{t.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="flex flex-col items-center gap-5 text-center">
+        <h2 className="font-display text-3xl font-bold text-slate-900 dark:text-white md:text-4xl">
+          {t("Ready to run your kade")}{" "}
+          <span className="text-brand-600 dark:text-brand-400">{t("smarter?")}</span>
+        </h2>
+        <p className="max-w-lg text-slate-500 dark:text-slate-400">
+          {t("Create an account and start recording your sales today.")}
+        </p>
+        <Link
+          href="/auth/register"
+          className="group inline-flex items-center gap-2 rounded-xl gradient-brand px-7 py-3.5 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+        >
+          {t("Get started")} <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+        </Link>
       </section>
     </div>
   );

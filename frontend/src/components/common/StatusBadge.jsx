@@ -1,3 +1,6 @@
+import { t } from "@/lib/i18n";
+import { titleCase } from "@/lib/formatters";
+
 const tones = {
   pending: "bg-amber-50 text-amber-700 border-amber-200",
   active: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -12,9 +15,11 @@ const tones = {
 };
 export default function StatusBadge({ status = "pending" }) {
   const key = status?.toLowerCase();
+  // shows the Sinhala word when one exists, otherwise the status as stored
+  const label = t(titleCase(status));
   return (
     <span className={`badge border ${tones[key] ?? "bg-slate-100 text-slate-600 border-slate-200"}`}>
-      {status}
+      {label === titleCase(status) ? status : label}
     </span>
   );
 }
