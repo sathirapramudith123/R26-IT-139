@@ -4,19 +4,22 @@ import AdminPriceUploadWidget from "@/components/dashboard/AdminPriceUploadWidge
 import MarketPriceWidget from "@/components/dashboard/MarketPriceWidget";
 import MLAnalyticsWidget from "@/components/dashboard/MLAnalyticsWidget";
 
+import { t } from "@/lib/i18n";
 export default function AdminProcurementPage() {
   return (
     <div className="page-container">
       <PageHeader
-        title="Smart Procurement"
-        description="Upload the HKARTI daily wholesale price PDF. Merchants will use this data for supplier recommendations."
+        title={t("Smart Procurement")}
+        description={t(
+          "Upload the HKARTI daily wholesale price PDF. Merchants will use this data for supplier recommendations.",
+        )}
       />
 
-      <div className="rounded-xl border border-teal-100 bg-teal-50 px-4 py-3 text-xs text-teal-700 leading-relaxed">
-        <strong className="text-teal-800">How it works:</strong> Upload the daily price bulletin from the
-        Hector Kobbekaduwa Agrarian Research and Training Institute. Once uploaded, merchants can open
-        Procurement from their sidebar and run supplier recommendations — their prices will be
-        benchmarked against the government wholesale average you uploaded here.
+      <div className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-xs text-brand-700 leading-relaxed">
+        <strong className="text-brand-800">{t("How it works:")}</strong>{" "}
+        {t(
+          "Upload the daily price bulletin from the Hector Kobbekaduwa Agrarian Research and Training Institute. Once uploaded, merchants can open Procurement from their sidebar and run supplier recommendations — their prices will be benchmarked against the government wholesale average you uploaded here.",
+        )}
       </div>
 
       {/* ML analytics shown to admin too */}

@@ -4,52 +4,71 @@ module.exports = {
   content: [
     "./src/app/**/*.{js,jsx,ts,tsx}",
     "./src/components/**/*.{js,jsx,ts,tsx}",
-    "./src/hooks/**/*.{js,jsx}"
+    "./src/hooks/**/*.{js,jsx}",
   ],
   theme: {
     extend: {
       colors: {
-        primary: {
-          DEFAULT: "#0f766e",
-          50: "#f0fdfa",
-          100: "#ccfbf1",
-          200: "#99f6e4",
-          300: "#5eead4",
-          400: "#2dd4bf",
-          500: "#14b8a6",
-          600: "#0d9488",
-          700: "#0f766e",
-          800: "#115e59",
-          900: "#134e4a"
+        // royal blue brand scale (buttons, links, headers)
+        brand: {
+          50: "#eef4ff",
+          100: "#dce7fe",
+          200: "#bacffd",
+          300: "#8cb0fa",
+          400: "#5b8def",
+          500: "#3a6fe6",
+          600: "#2a5bdb",
+          700: "#2349b5",
+          800: "#1f3d8f",
+          900: "#1e3672",
+          950: "#142250",
         },
-        secondary: "#1e3a5f",
+        primary: {
+          DEFAULT: "#2a5bdb",
+          50: "#eef4ff",
+          100: "#dce7fe",
+          200: "#bacffd",
+          300: "#8cb0fa",
+          400: "#5b8def",
+          500: "#3a6fe6",
+          600: "#2a5bdb",
+          700: "#2349b5",
+          800: "#1f3d8f",
+          900: "#1e3672",
+        },
+        secondary: "#1e3672",
+        // fresh green call-to-action ("Buy" style buttons)
         accent: {
-          DEFAULT: "#f59e0b",
-          light: "#fcd34d"
-        }
+          DEFAULT: "#3ddc97",
+          dark: "#22b573",
+        },
       },
       fontFamily: {
-        outfit: ['Outfit', 'sans-serif'],
-        dm: ['DM Sans', 'sans-serif']
+        display: ["Rubik", "Noto Sans Sinhala", "sans-serif"],
+        sans: ["Rubik", "Noto Sans Sinhala", "sans-serif"],
       },
       borderRadius: {
-        '2xl': '1rem',
-        '3xl': '1.5rem'
+        "2xl": "1.125rem",
+        "3xl": "1.75rem",
       },
       boxShadow: {
-        'card': '0 1px 3px 0 rgba(0,0,0,0.08), 0 1px 2px -1px rgba(0,0,0,0.06)',
-        'card-hover': '0 4px 12px 0 rgba(0,0,0,0.10)',
-        'elevated': '0 8px 30px rgba(0,0,0,0.10)'
+        // soft blue-tinted shadows
+        card: "0 8px 24px -8px rgba(42,91,219,0.14)",
+        "card-hover": "0 14px 32px -10px rgba(42,91,219,0.22)",
+        elevated: "0 18px 40px -12px rgba(42,91,219,0.25)",
       },
       animation: {
-        'fade-in': 'fadeIn 0.3s ease-out',
-        'slide-up': 'slideUp 0.3s ease-out'
+        "fade-in": "fadeIn 0.3s ease-out",
+        "slide-up": "slideUp 0.3s ease-out",
       },
       keyframes: {
-        fadeIn: { from: { opacity: '0' }, to: { opacity: '1' } },
-        slideUp: { from: { opacity: '0', transform: 'translateY(8px)' }, to: { opacity: '1', transform: 'translateY(0)' } }
-      }
-    }
+        fadeIn: { from: { opacity: "0" }, to: { opacity: "1" } },
+        slideUp: {
+          from: { opacity: "0", transform: "translateY(8px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+      },
+    },
   },
-  plugins: []
+  plugins: [],
 };

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
-import '../../core/api.dart';                       
+import '../../core/api.dart';
 import '../../models/module_config.dart';
 import '../../models/field_config.dart';
 import '../../services/crud_service.dart';
+import '../../core/i18n.dart';
 
 class FormScreen extends StatefulWidget {
   final ModuleConfig module;
@@ -17,7 +18,7 @@ class _FormScreenState extends State<FormScreen> {
   late final CrudService service = CrudService(widget.module.path);
   final Map<String, TextEditingController> controllers = {};
   final Map<String, String?> selects = {};
-  final Map<String, List<String>> dynamicOptions = {}; 
+  final Map<String, List<String>> dynamicOptions = {};
   bool saving = false;
   String? error;
 
@@ -61,7 +62,9 @@ class _FormScreenState extends State<FormScreen> {
 
   @override
   void dispose() {
-    for (final c in controllers.values) { c.dispose(); }
+    for (final c in controllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -73,15 +76,24 @@ class _FormScreenState extends State<FormScreen> {
         value = selects[f.key];
       } else {
         final raw = controllers[f.key]!.text.trim();
-        if (f.required && raw.isEmpty) { setState(() => error = "${f.label} is required."); return; }
+        if (f.required && raw.isEmpty) {
+          setState(() => error = "${f.label} is required.");
+          return;
+        }
         if (raw.isEmpty) continue;
         value = f.type == "number" ? (num.tryParse(raw) ?? 0) : raw;
-        if (f.type == "number" && (value as num) < 0) { setState(() => error = "${f.label} cannot be negative."); return; }
+        if (f.type == "number" && (value as num) < 0) {
+          setState(() => error = "${f.label} cannot be negative.");
+          return;
+        }
       }
       if (value != null && value.toString().isNotEmpty) payload[f.key] = value;
     }
 
-    setState(() { saving = true; error = null; });
+    setState(() {
+      saving = true;
+      error = null;
+    });
     try {
       isEdit ? await service.update("${widget.item!["id"]}", payload) : await service.create(payload);
       if (!mounted) return;
@@ -107,23 +119,40 @@ class _FormScreenState extends State<FormScreen> {
             Container(
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: KadeColors.terra.withOpacity(0.12), borderRadius: BorderRadius.circular(14)),
-              child: Row(children: [
-                const Icon(Icons.error_outline, color: KadeColors.terra, size: 18),
-                const SizedBox(width: 8),
-                Expanded(child: Text(error!, style: const TextStyle(color: KadeColors.terra, fontSize: 13))),
-              ]),
+              decoration: BoxDecoration(
+                color: KadeColors.terra.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: KadeColors.terra, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(tr(error!), style: const TextStyle(color: KadeColors.terra, fontSize: 13)),
+                  ),
+                ],
+              ),
             ),
           ...widget.module.fields.map(_buildField),
           const SizedBox(height: 24),
           SizedBox(
             height: 52,
             child: FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: teal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999))),
+              style: FilledButton.styleFrom(
+                backgroundColor: teal,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+              ),
               onPressed: saving ? null : _save,
               child: saving
-                  ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-                  : Text(isEdit ? "Update" : "Save", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: "Nunito")),
+                  ? const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                    )
+                  : Text(
+                      isEdit ? tr("Update") : tr("Save"),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                    ),
             ),
           ),
         ],
@@ -143,26 +172,28 @@ class _FormScreenState extends State<FormScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontFamily: "Nunito")),
+          Text(tr(label), style: const TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 6),
           if (isSelect && isDynamic && opts.isEmpty)
             TextField(
               onChanged: (val) => selects[f.key] = val,
               controller: TextEditingController(text: selects[f.key] ?? ""),
-              decoration: const InputDecoration(hintText: "No suppliers yet — type a name"),
+              decoration: InputDecoration(hintText: tr("No suppliers yet — type a name")),
             )
           else if (isSelect)
             DropdownButtonFormField<String>(
               initialValue: (opts.contains(selects[f.key])) ? selects[f.key] : null,
-              hint: const Text("— Select —"),
-              items: opts.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
+              hint: Text(tr("— Select —")),
+              items: opts.map((o) => DropdownMenuItem(value: o, child: Text(tr(o)))).toList(),
               onChanged: (val) => setState(() => selects[f.key] = val),
             )
           else
             TextField(
               controller: controllers[f.key],
-              keyboardType: f.type == "number" ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
-              decoration: InputDecoration(hintText: f.label),
+              keyboardType: f.type == "number"
+                  ? const TextInputType.numberWithOptions(decimal: true)
+                  : TextInputType.text,
+              decoration: InputDecoration(hintText: tr(f.label)),
             ),
         ],
       ),

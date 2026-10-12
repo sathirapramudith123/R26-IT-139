@@ -1,5 +1,5 @@
 const TOKEN_KEY = "access_token";
-const USER_KEY  = "lankalink_user";
+const USER_KEY = "lankalink_user";
 
 function setClientCookie(name, value, days = 1) {
   if (typeof document === "undefined") return;
@@ -33,8 +33,11 @@ export const tokenService = {
 
   getUser() {
     if (typeof window === "undefined") return null;
-    try { return JSON.parse(localStorage.getItem(USER_KEY)); }
-    catch { return null; }
+    try {
+      return JSON.parse(localStorage.getItem(USER_KEY));
+    } catch {
+      return null;
+    }
   },
 
   setUser(u) {
@@ -56,9 +59,9 @@ export const tokenService = {
   getAvailableRoles() {
     const actual = this.getActualRole();
     const map = {
-      merchant:   ["merchant"],
+      merchant: ["merchant"],
       bank_agent: ["merchant", "bank_agent"],
-      admin:      ["merchant", "bank_agent", "admin"],
+      admin: ["merchant", "bank_agent", "admin"],
     };
     return map[actual] ?? ["merchant"];
   },

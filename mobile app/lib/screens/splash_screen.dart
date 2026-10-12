@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
+import '../core/i18n.dart';
 
 /// Animated splash screen shown while the app boots.
 /// Logo fades + scales in, a spinner runs underneath, then it routes onward.
@@ -10,8 +11,8 @@ import '../core/theme.dart';
 /// or with a login check:
 ///   home: SplashScreen(next: () => token != null ? Dashboard() : LoginScreen()),
 class SplashScreen extends StatefulWidget {
-  final Widget Function() next;          // what to open after the splash
-  final Duration duration;               // how long to show it
+  final Widget Function() next; // what to open after the splash
+  final Duration duration; // how long to show it
   const SplashScreen({super.key, required this.next, this.duration = const Duration(milliseconds: 2600)});
 
   @override
@@ -19,8 +20,8 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
-  late final AnimationController _logoCtrl;   // fade + scale
-  late final AnimationController _pulseCtrl;  // subtle breathing loop
+  late final AnimationController _logoCtrl; // fade + scale
+  late final AnimationController _pulseCtrl; // subtle breathing loop
   late final Animation<double> _fade;
   late final Animation<double> _scale;
 
@@ -29,9 +30,11 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     super.initState();
 
     _logoCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100));
-    _fade  = CurvedAnimation(parent: _logoCtrl, curve: Curves.easeIn);
-    _scale = Tween<double>(begin: 0.7, end: 1.0)
-        .animate(CurvedAnimation(parent: _logoCtrl, curve: Curves.elasticOut));
+    _fade = CurvedAnimation(parent: _logoCtrl, curve: Curves.easeIn);
+    _scale = Tween<double>(
+      begin: 0.7,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _logoCtrl, curve: Curves.elasticOut));
     _logoCtrl.forward();
 
     _pulseCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))
@@ -43,9 +46,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           transitionDuration: const Duration(milliseconds: 500),
-          pageBuilder: (_, __, ___) => widget.next(),
-          transitionsBuilder: (_, anim, __, child) =>
-              FadeTransition(opacity: anim, child: child),
+          pageBuilder: (_, _, _) => widget.next(),
+          transitionsBuilder: (_, anim, _, child) => FadeTransition(opacity: anim, child: child),
         ),
       );
     });
@@ -60,23 +62,20 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    final teal = KadeColors.teal;
-    final tealDark = KadeColors.tealDark;
-
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [teal, tealDark, const Color(0xFF063A34)],
+            colors: const [Color(0xFF1E46B8), KadeColors.teal, Color(0xFF4A8BF0)],
           ),
         ),
         child: Stack(
           children: [
             // soft decorative circles
-            Positioned(top: -60, left: -40, child: _circle(160, Colors.white.withOpacity(0.06))),
-            Positioned(bottom: -50, right: -30, child: _circle(200, Colors.white.withOpacity(0.05))),
+            Positioned(top: -60, left: -40, child: _circle(160, Colors.white.withValues(alpha: 0.06))),
+            Positioned(bottom: -50, right: -30, child: _circle(200, Colors.white.withValues(alpha: 0.05))),
 
             Center(
               child: Column(
@@ -102,11 +101,13 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                   // App name
                   FadeTransition(
                     opacity: _fade,
-                    child: const Text(
-                      "Lanka-Link",
+                    child: Text(
+                      tr("Lanka-Link"),
                       style: TextStyle(
-                        fontSize: 30, fontWeight: FontWeight.w900,
-                        color: Colors.white, fontFamily: "Nunito", letterSpacing: 0.5,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ),
@@ -114,10 +115,12 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                   FadeTransition(
                     opacity: _fade,
                     child: Text(
-                      "Smart Merchant Platform",
+                      tr("Smart Merchant Platform"),
                       style: TextStyle(
-                        fontSize: 13, color: Colors.white.withOpacity(0.85),
-                        fontWeight: FontWeight.w500, letterSpacing: 0.3,
+                        fontSize: 13,
+                        color: Colors.white.withValues(alpha: 0.85),
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.3,
                       ),
                     ),
                   ),
@@ -125,10 +128,11 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
                   // Loading spinner
                   SizedBox(
-                    width: 30, height: 30,
+                    width: 30,
+                    height: 30,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.6,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.9)),
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withValues(alpha: 0.9)),
                     ),
                   ),
                 ],
@@ -137,13 +141,15 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
             // Footer
             Positioned(
-              left: 0, right: 0, bottom: 28,
+              left: 0,
+              right: 0,
+              bottom: 28,
               child: FadeTransition(
                 opacity: _fade,
                 child: Text(
-                  "© 2026 Lanka-Link",
+                  tr("© 2026 Lanka-Link"),
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.6)),
+                  style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.6)),
                 ),
               ),
             ),
@@ -153,19 +159,22 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     );
   }
 
-  Widget _circle(double size, Color color) =>
-      Container(width: size, height: size,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle));
+  Widget _circle(double size, Color color) => Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+  );
 
   // Logo badge — uses the asset if present, else a leaf emoji fallback.
   Widget _logoBadge() {
     return Container(
-      width: 120, height: 120,
+      width: 120,
+      height: 120,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 24, offset: const Offset(0, 10)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 24, offset: const Offset(0, 10)),
         ],
       ),
       child: ClipRRect(
@@ -175,9 +184,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
           child: Image.asset(
             "assets/icon/app_icon.png",
             fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => const Center(
-              child: Text("assets/images/app_icon.png", style: TextStyle(fontSize: 56)),
-            ),
+            errorBuilder: (_, _, _) =>
+                const Center(child: Text("assets/images/app_icon.png", style: TextStyle(fontSize: 56))),
           ),
         ),
       ),

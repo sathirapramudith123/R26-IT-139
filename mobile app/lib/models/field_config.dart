@@ -1,10 +1,10 @@
 class FieldConfig {
   final String key;
   final String label;
-  final String type; 
-  final List<String> options;       
-  final String? optionsSource;      
-  final String? optionsLabelKey;    
+  final String type;
+  final List<String> options;
+  final String? optionsSource;
+  final String? optionsLabelKey;
   final bool required;
 
   const FieldConfig(

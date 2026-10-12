@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
+import '../../core/i18n.dart';
 
 /// Shared visual building blocks for the prediction screens.
 ///
@@ -31,10 +32,7 @@ String humanizeFeature(String raw) {
   if (_featureLabels.containsKey(raw)) return _featureLabels[raw]!;
   final spaced = raw.replaceAll("_", " ").trim();
   if (spaced.isEmpty) return spaced;
-  return spaced
-      .split(" ")
-      .map((w) => w.isEmpty ? w : "${w[0].toUpperCase()}${w.substring(1)}")
-      .join(" ");
+  return spaced.split(" ").map((w) => w.isEmpty ? w : "${w[0].toUpperCase()}${w.substring(1)}").join(" ");
 }
 
 /* -------------------------------------------------------------------------- */
@@ -50,10 +48,8 @@ class RingGauge extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final pct = score.clamp(0, 100).toDouble();
-    final color = pct >= 70
-        ? KadeColors.teal
-        : (pct >= 40 ? KadeColors.amber : KadeColors.terra);
-    final track = isDark ? Colors.white10 : const Color(0xFFECE3D5);
+    final color = pct >= 70 ? KadeColors.teal : (pct >= 40 ? KadeColors.amber : KadeColors.terra);
+    final track = isDark ? Colors.white10 : KadeColors.surfaceMutedLight;
 
     return SizedBox(
       width: size,
@@ -68,14 +64,11 @@ class RingGauge extends StatelessWidget {
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(pct.toStringAsFixed(0),
-                  style: TextStyle(
-                      fontSize: size * 0.26,
-                      fontWeight: FontWeight.w800,
-                      fontFamily: "Nunito",
-                      color: color)),
-              const Text("out of 100",
-                  style: TextStyle(fontSize: 9, color: Colors.grey)),
+              Text(
+                tr(pct.toStringAsFixed(0)),
+                style: TextStyle(fontSize: size * 0.26, fontWeight: FontWeight.w800, color: color),
+              ),
+              Text(tr("out of 100"), style: TextStyle(fontSize: 9, color: Colors.grey)),
             ],
           ),
         ],
@@ -108,18 +101,11 @@ class _RingPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..color = color;
     final sweep = 2 * math.pi * (pct.clamp(0, 100) / 100);
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -math.pi / 2,
-      sweep,
-      false,
-      arcPaint,
-    );
+    canvas.drawArc(Rect.fromCircle(center: center, radius: radius), -math.pi / 2, sweep, false, arcPaint);
   }
 
   @override
-  bool shouldRepaint(_RingPainter old) =>
-      old.pct != pct || old.color != color || old.track != track;
+  bool shouldRepaint(_RingPainter old) => old.pct != pct || old.color != color || old.track != track;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -137,15 +123,12 @@ class InfluenceBars extends StatelessWidget {
     final items = explanation.whereType<Map>().map((e) {
       final impact = (e["impact"] is num) ? (e["impact"] as num).toDouble() : 0.0;
       return _Factor(humanizeFeature("${e["feature"]}"), impact);
-    }).toList()
-      ..sort((a, b) => b.impact.abs().compareTo(a.impact.abs()));
+    }).toList()..sort((a, b) => b.impact.abs().compareTo(a.impact.abs()));
 
     final shown = items.take(maxItems).toList();
     if (shown.isEmpty) return const SizedBox.shrink();
 
-    final maxImpact = shown
-        .map((e) => e.impact.abs())
-        .fold<double>(0.01, (p, c) => c > p ? c : p);
+    final maxImpact = shown.map((e) => e.impact.abs()).fold<double>(0.01, (p, c) => c > p ? c : p);
     final sub = Theme.of(context).textTheme.bodySmall?.color;
 
     return Padding(
@@ -153,55 +136,65 @@ class InfluenceBars extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Text("What's affecting this",
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: sub)),
-            const Spacer(),
-            _legendDot(KadeColors.teal, "Helping"),
-            const SizedBox(width: 10),
-            _legendDot(KadeColors.terra, "Holding back"),
-          ]),
+          Row(
+            children: [
+              Text(
+                tr("What's affecting this"),
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: sub),
+              ),
+              const Spacer(),
+              _legendDot(KadeColors.teal, "Helping"),
+              const SizedBox(width: 10),
+              _legendDot(KadeColors.terra, "Holding back"),
+            ],
+          ),
           const SizedBox(height: 10),
           ...shown.map((f) {
             final factor = (f.impact.abs() / maxImpact).clamp(0.0, 1.0);
             final positive = f.impact >= 0;
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Row(children: [
-                SizedBox(
-                  width: 104,
-                  child: Text(f.label,
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 104,
+                    child: Text(
+                      tr(f.label),
                       style: const TextStyle(fontSize: 12),
                       maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                ),
-                Expanded(
-                  child: SizedBox(
-                    height: 14,
-                    child: Row(children: [
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: FractionallySizedBox(
-                            widthFactor: positive ? 0.0 : factor,
-                            child: _bar(KadeColors.terra, roundedLeft: true),
-                          ),
-                        ),
-                      ),
-                      Container(width: 1.5, height: 14, color: sub?.withOpacity(0.3)),
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: FractionallySizedBox(
-                            widthFactor: positive ? factor : 0.0,
-                            child: _bar(KadeColors.teal, roundedLeft: false),
-                          ),
-                        ),
-                      ),
-                    ]),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-              ]),
+                  Expanded(
+                    child: SizedBox(
+                      height: 14,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: FractionallySizedBox(
+                                widthFactor: positive ? 0.0 : factor,
+                                child: _bar(KadeColors.terra, roundedLeft: true),
+                              ),
+                            ),
+                          ),
+                          Container(width: 1.5, height: 14, color: sub?.withValues(alpha: 0.3)),
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: FractionallySizedBox(
+                                widthFactor: positive ? factor : 0.0,
+                                child: _bar(KadeColors.teal, roundedLeft: false),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             );
           }),
         ],
@@ -210,24 +203,31 @@ class InfluenceBars extends StatelessWidget {
   }
 
   Widget _legendDot(Color c, String t) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(width: 8, height: 8, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
-          const SizedBox(width: 4),
-          Text(t, style: TextStyle(fontSize: 10, color: c, fontWeight: FontWeight.w600)),
-        ],
-      );
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+      ),
+      const SizedBox(width: 4),
+      Text(
+        tr(t),
+        style: TextStyle(fontSize: 10, color: c, fontWeight: FontWeight.w600),
+      ),
+    ],
+  );
 
   Widget _bar(Color c, {required bool roundedLeft}) => Container(
-        height: 10,
-        decoration: BoxDecoration(
-          color: c,
-          borderRadius: BorderRadius.horizontal(
-            left: Radius.circular(roundedLeft ? 6 : 0),
-            right: Radius.circular(roundedLeft ? 0 : 6),
-          ),
-        ),
-      );
+    height: 10,
+    decoration: BoxDecoration(
+      color: c,
+      borderRadius: BorderRadius.horizontal(
+        left: Radius.circular(roundedLeft ? 6 : 0),
+        right: Radius.circular(roundedLeft ? 0 : 6),
+      ),
+    ),
+  );
 }
 
 class _Factor {
@@ -244,12 +244,7 @@ class MiniTrendChart extends StatelessWidget {
   final List<double> values;
   final List<String> labels;
   final Color color;
-  const MiniTrendChart({
-    super.key,
-    required this.values,
-    required this.labels,
-    required this.color,
-  });
+  const MiniTrendChart({super.key, required this.values, required this.labels, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -265,13 +260,17 @@ class MiniTrendChart extends StatelessWidget {
         const SizedBox(height: 6),
         Row(
           children: labels
-              .map((l) => Expanded(
-                    child: Text(l,
-                        style: const TextStyle(fontSize: 9, color: Colors.grey),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
-                  ))
+              .map(
+                (l) => Expanded(
+                  child: Text(
+                    tr(l),
+                    style: const TextStyle(fontSize: 9, color: Colors.grey),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              )
               .toList(),
         ),
       ],
@@ -302,7 +301,7 @@ class _TrendPainter extends CustomPainter {
 
     // Faint horizontal guide lines.
     final grid = Paint()
-      ..color = (isDark ? Colors.white : Colors.black).withOpacity(0.06)
+      ..color = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06)
       ..strokeWidth = 1;
     for (int g = 0; g <= 2; g++) {
       final yy = pad + h * g / 2;
@@ -320,7 +319,7 @@ class _TrendPainter extends CustomPainter {
       ..lineTo(pt(values.length - 1).dx, size.height - pad)
       ..lineTo(pt(0).dx, size.height - pad)
       ..close();
-    canvas.drawPath(area, Paint()..color = color.withOpacity(0.12));
+    canvas.drawPath(area, Paint()..color = color.withValues(alpha: 0.12));
 
     canvas.drawPath(
       line,
@@ -336,7 +335,7 @@ class _TrendPainter extends CustomPainter {
     for (int i = 0; i < values.length; i++) {
       final last = i == values.length - 1;
       if (last) {
-        canvas.drawCircle(pt(i), 8, Paint()..color = color.withOpacity(0.25));
+        canvas.drawCircle(pt(i), 8, Paint()..color = color.withValues(alpha: 0.25));
       }
       canvas.drawCircle(pt(i), last ? 5 : 3, Paint()..color = color);
     }

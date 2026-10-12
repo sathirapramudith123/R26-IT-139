@@ -1,10 +1,12 @@
 const TOKEN_KEY = "access_token";
-const USER_KEY  = "lankalink_user";
+const USER_KEY = "lankalink_user";
 
 function setCookie(name, value, days = 1) {
   if (typeof document === "undefined") return;
   const expires = new Date(Date.now() + days * 864e5).toUTCString();
-  document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires};path=/;SameSite=Strict`;
+  // Secure: only sent over HTTPS once deployed (plain http on localhost would drop it)
+  const secure = window.location.protocol === "https:" ? ";Secure" : "";
+  document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires};path=/;SameSite=Strict${secure}`;
 }
 function clearCookie(name) {
   if (typeof document === "undefined") return;
@@ -12,9 +14,30 @@ function clearCookie(name) {
 }
 
 export const tokenService = {
-  getToken()  { return typeof window === "undefined" ? null : localStorage.getItem(TOKEN_KEY); },
-  setToken(t) { if (typeof window === "undefined") return; localStorage.setItem(TOKEN_KEY, t); setCookie(TOKEN_KEY, t, 1); },
-  clearToken(){ if (typeof window === "undefined") return; localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY); clearCookie(TOKEN_KEY); },
-  getUser()   { if (typeof window === "undefined") return null; try { return JSON.parse(localStorage.getItem(USER_KEY)); } catch { return null; } },
-  setUser(u)  { if (typeof window === "undefined") return; localStorage.setItem(USER_KEY, JSON.stringify(u)); },
+  getToken() {
+    return typeof window === "undefined" ? null : localStorage.getItem(TOKEN_KEY);
+  },
+  setToken(t) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(TOKEN_KEY, t);
+    setCookie(TOKEN_KEY, t, 1);
+  },
+  clearToken() {
+    if (typeof window === "undefined") return;
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    clearCookie(TOKEN_KEY);
+  },
+  getUser() {
+    if (typeof window === "undefined") return null;
+    try {
+      return JSON.parse(localStorage.getItem(USER_KEY));
+    } catch {
+      return null;
+    }
+  },
+  setUser(u) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(USER_KEY, JSON.stringify(u));
+  },
 };
