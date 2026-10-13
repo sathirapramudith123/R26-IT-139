@@ -45,6 +45,8 @@ no easy access to banking, and no way to know if a bank will give them a loan.
 
 Each AI answer comes with the **factors that pushed it up or down**, so the shop owner can trust it.
 
+website link -> https://lanka-link-reasearch.netlify.app/
+
 ---
 
 ## What's inside the app? (The modules)
@@ -226,3 +228,5 @@ performance. Each model card lists its limitations.
 
 
 Built for real-world impact in rural Sri Lanka · Lanka-Link
+
+
