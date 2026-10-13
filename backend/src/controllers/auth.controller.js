@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { supabase } from "../config/supabase.js";
 import { sendResetEmail } from "../utils/mailer.js";
 import { bumpTokenVersion } from "../utils/tokenVersion.js";
+import { passwordProblem } from "../utils/passwordPolicy.js";
 
 // Reset tokens are stored hashed, so a leaked DB row cannot be used to reset a password
 const hashToken = (t) => crypto.createHash("sha256").update(String(t)).digest("hex");
@@ -28,7 +29,7 @@ export const register = async (req, res, next) => {
     const { email, password } = req.body;
     if (!name || !email || !password)
       return res.status(400).json({ error: "fullName, email and password are required" });
-    if (password.length < 6) return res.status(400).json({ error: "Password must be at least 6 characters" });
+    if (passwordProblem(password)) return res.status(400).json({ error: passwordProblem(password) });
 
     const { data: existing } = await supabase
       .from("users")
@@ -117,7 +118,7 @@ export const resetPassword = async (req, res, next) => {
   try {
     const { token, password } = req.body;
     if (!token || !password) return res.status(400).json({ error: "token and password are required" });
-    if (password.length < 6) return res.status(400).json({ error: "Password must be at least 6 characters" });
+    if (passwordProblem(password)) return res.status(400).json({ error: passwordProblem(password) });
 
     const { data: user } = await supabase
       .from("users")

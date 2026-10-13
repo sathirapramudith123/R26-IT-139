@@ -4,6 +4,7 @@
 // optional fields). The DB CHECK constraints in schema.sql stay as the second line
 // of defence.
 import Joi from "joi";
+import { passwordProblem } from "../utils/passwordPolicy.js";
 
 const MAX_MONEY = 1e10;
 const money = Joi.number().min(0).max(MAX_MONEY);
@@ -194,11 +195,15 @@ export const amountOnly = Joi.object({ amount: positive.required() });
 // earlier with an unusual email must still be able to sign in.
 // Emails are not lower-cased, because existing accounts are matched exactly.
 const anyEmail = Joi.string().trim().min(1).max(255);
+// New passwords must follow the password rules (utils/passwordPolicy.js)
+const newPassword = Joi.string()
+  .max(128)
+  .custom((v, h) => (passwordProblem(v) ? h.message({ custom: passwordProblem(v) }) : v));
 export const register = Joi.object({
   fullName: optStr(150),
   full_name: optStr(150),
   email: Joi.string().trim().email({ tlds: false }).max(255).required(),
-  password: Joi.string().min(6).max(128).required(),
+  password: newPassword.required(),
 }).custom((v, h) =>
   String(v.fullName || v.full_name || "").trim() ? v : h.message({ custom: "Full name is required" }),
 );
@@ -209,7 +214,7 @@ export const resetPassword = Joi.object({
     "string.hex": "Invalid or expired reset token",
     "string.length": "Invalid or expired reset token",
   }),
-  password: Joi.string().min(6).max(128).required(),
+  password: newPassword.required(),
 });
 
 // What-if credit scenario: only the shop measures a merchant can change, within valid ranges
@@ -228,7 +233,7 @@ export const creditWhatIf = Joi.object({
 export const updateProfile = Joi.object({ full_name: Joi.string().trim().min(2).max(150).required() });
 export const changePassword = Joi.object({
   current_password: Joi.string().max(200).required(),
-  new_password: Joi.string().min(6).max(128).invalid(Joi.ref("current_password")).required().messages({
+  new_password: newPassword.invalid(Joi.ref("current_password")).required().messages({
     "any.invalid": "New password must be different from the current one",
   }),
 });

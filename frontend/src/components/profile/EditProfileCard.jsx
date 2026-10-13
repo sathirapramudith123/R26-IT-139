@@ -3,6 +3,8 @@ import { useState } from "react";
 import { KeyRound, UserPen } from "lucide-react";
 import { authApi } from "@/services/api/auth";
 import { tokenService } from "@/lib/auth/tokenService";
+import { passwordProblem } from "@/lib/auth/passwordPolicy";
+import PasswordGuidelines from "@/components/forms/PasswordGuidelines";
 import { t } from "@/lib/i18n";
 
 // Change your name, and your password (the backend checks the current password)
@@ -34,7 +36,7 @@ export default function EditProfileCard({ name, onNameSaved }) {
     e.preventDefault();
     const fail = (text) => setMsg({ password: { ok: false, text } });
     if (!pw.current) return fail(t("Enter your current password."));
-    if (pw.next.length < 6) return fail(t("At least 6 characters"));
+    if (passwordProblem(pw.next)) return fail(t(passwordProblem(pw.next)));
     if (pw.next !== pw.confirm) return fail(t("The new passwords don't match."));
     setBusy("password");
     try {
@@ -105,6 +107,7 @@ export default function EditProfileCard({ name, onNameSaved }) {
           placeholder={t("New password")}
           autoComplete="new-password"
         />
+        <PasswordGuidelines password={pw.next} />
         <input
           type="password"
           className="input-field"

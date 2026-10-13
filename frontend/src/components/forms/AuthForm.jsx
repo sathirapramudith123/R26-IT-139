@@ -5,13 +5,16 @@ import Link from "next/link";
 import FormField from "./FormField";
 import Button from "@/components/ui/Button";
 import { isValidEmail, isRequired } from "@/lib/validators";
-import { User, Mail, Lock, AlertCircle } from "lucide-react";
+import { passwordProblem } from "@/lib/auth/passwordPolicy";
+import PasswordGuidelines from "./PasswordGuidelines";
+import { User, Mail, Lock, AlertCircle, Eye, EyeOff } from "lucide-react";
 
 import { t } from "@/lib/i18n";
 export default function AuthForm({ mode = "login", onSubmit, loading, error }) {
   const isLogin = mode === "login";
   const isRegister = mode === "register";
   const [fieldErrors, setFieldErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
   const [values, setValues] = useState({ full_name: "", email: "", password: "" });
 
   function set(k, v) {
@@ -25,7 +28,7 @@ export default function AuthForm({ mode = "login", onSubmit, loading, error }) {
     if (!isRequired(values.email)) e.email = "Email is required.";
     else if (!isValidEmail(values.email)) e.email = "Enter a valid email address.";
     if (!isRequired(values.password)) e.password = "Password is required.";
-    else if (isRegister && values.password.length < 6) e.password = "Password must be at least 6 characters.";
+    else if (isRegister && passwordProblem(values.password)) e.password = t(passwordProblem(values.password));
     return e;
   }
 
@@ -82,23 +85,29 @@ export default function AuthForm({ mode = "login", onSubmit, loading, error }) {
         </div>
       </FormField>
 
-      <FormField
-        label={t("Password")}
-        error={fieldErrors.password}
-        hint={isRegister ? t("Minimum 6 characters.") : undefined}
-        required
-      >
+      <FormField label={t("Password")} error={fieldErrors.password} required>
         <div className="relative">
           <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
           <input
-            className={getInputClass("password")}
-            type="password"
+            className={`${getInputClass("password")} pr-11`}
+            type={showPassword ? "text" : "password"}
             value={values.password}
             onChange={(e) => set("password", e.target.value)}
             placeholder={isRegister ? t("Create a password") : t("Your password")}
+            autoComplete={isRegister ? "new-password" : "current-password"}
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
+            aria-label={showPassword ? t("Hide password") : t("Show password")}
+            title={showPassword ? t("Hide password") : t("Show password")}
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
         </div>
       </FormField>
+      {isRegister && <PasswordGuidelines password={values.password} />}
 
       {isLogin && (
         <div className="flex justify-end">
