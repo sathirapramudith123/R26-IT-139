@@ -3,6 +3,8 @@ import '../../core/theme.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/main_navigation.dart';
 import '../../core/i18n.dart';
+import '../../core/password_policy.dart';
+import '../../widgets/password_guidelines.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -19,6 +21,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? error;
 
   Future<void> _register() async {
+    final problem = passwordProblem(password.text);
+    if (problem != null) {
+      setState(() => error = tr(problem));
+      return;
+    }
     setState(() {
       loading = true;
       error = null;
@@ -164,8 +171,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       TextField(
                         controller: password,
                         obscureText: obscure,
+                        onChanged: (_) => setState(() {}),
                         decoration: InputDecoration(
-                          hintText: tr("At least 6 characters"),
+                          hintText: tr("At least 12 characters"),
                           prefixIcon: const Icon(Icons.lock_outline),
                           suffixIcon: IconButton(
                             icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
@@ -173,6 +181,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      PasswordGuidelines(password: password.text),
                       const SizedBox(height: 24),
 
                       SizedBox(
