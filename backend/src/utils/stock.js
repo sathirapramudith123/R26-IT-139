@@ -74,12 +74,27 @@ export async function hasEnoughStock(userId, itemName, qty) {
   return { ok: true };
 }
 
+// Batches in the order a sale takes them: those whose selling price equals the sale price first
+// (oldest first), then the rest in FIFO order. Without a sale price: plain FIFO.
+export const saleOrder = (fifo, sellingPrice) => {
+  const sell = num(sellingPrice);
+  if (!(sell > 0)) return fifo;
+  return [
+    ...fifo.filter((b) => num(b.selling_price) === sell),
+    ...fifo.filter((b) => num(b.selling_price) !== sell),
+  ];
+};
+
 // ── SALE: FIFO consume — oldest batch first, returns the COGS ──────
-export async function consumeStock(userId, itemName, qty, reason = "") {
+// sellingPrice (optional): a sale at a batch's own selling price / MRP is taken from that batch
+// first (e.g. a new LKR 260 packet sold while LKR 240 stock is left comes out of the 260 batch),
+// so the units left at each price and the COGS match the shelf. The rest is FIFO.
+export async function consumeStock(userId, itemName, qty, reason = "", sellingPrice = null) {
   const need = num(qty);
   if (!itemName || need <= 0) return { ok: true, cogs: 0 };
 
-  const batches = await itemBatches(userId, itemName);
+  const fifo = await itemBatches(userId, itemName);
+  const batches = saleOrder(fifo, sellingPrice);
   if (!batches.length) return { ok: true, cogs: 0 };
 
   const totalBefore = totalQty(batches);
@@ -114,21 +129,34 @@ export async function consumeStock(userId, itemName, qty, reason = "") {
   return { ok: true, cogs: +cogs.toFixed(2) };
 }
 
-// ── PURCHASE / stock-in: new batch if the cost differs, merge if it is the same ──
-export async function receiveStock(userId, itemName, qty, costPrice, reason = "") {
+// ── PURCHASE / stock-in: new batch if the cost (or the selling price) differs, merge if the same ──
+// sellingPrice (optional) is the shop's selling price / MRP for this batch; a sale suggests the
+// selling price of the oldest batch still in stock (FIFO), so old stock keeps its old price.
+export async function receiveStock(userId, itemName, qty, costPrice, reason = "", sellingPrice = null) {
   const addQty = num(qty);
   if (!itemName || addQty <= 0) return null;
 
   const batches = await itemBatches(userId, itemName);
   const cost = num(costPrice);
+  const sell = num(sellingPrice) > 0 ? num(sellingPrice) : null;
 
-  // add to an existing batch with the same cost
-  const sameCost = batches.find((b) => num(b.cost_price ?? b.unit_price) === cost);
+  // add to an existing batch with the same cost (and the same selling price, when one is given;
+  // a batch without a selling price takes the new one)
+  const sameCost = batches.find(
+    (b) =>
+      num(b.cost_price ?? b.unit_price) === cost &&
+      (sell == null || !num(b.selling_price) || num(b.selling_price) === sell),
+  );
   if (sameCost) {
     const newQty = num(sameCost.quantity) + addQty;
     const { data } = await supabase
       .from("inventory")
-      .update({ quantity: newQty, item_status: batchStatus(newQty), updated_at: now() })
+      .update({
+        quantity: newQty,
+        item_status: batchStatus(newQty),
+        updated_at: now(),
+        ...(sell != null && { selling_price: sell }),
+      })
       .eq("inventory_id", sameCost.inventory_id)
       .select()
       .single();
@@ -152,6 +180,7 @@ export async function receiveStock(userId, itemName, qty, costPrice, reason = ""
         unit: t.unit ?? "UNIT",
         cost_price: cost,
         unit_price: cost,
+        selling_price: sell ?? 0, // 0 = not set (the sale then suggests the last sold price)
         lead_time_days: num(t.lead_time_days ?? 1),
         received_at: now(),
         item_status: batchStatus(addQty),

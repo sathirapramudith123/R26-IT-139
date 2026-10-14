@@ -126,3 +126,72 @@ export const remove = async (req, res, next) => {
     next(e);
   }
 };
+
+// What the shop owes each supplier: received procurement orders minus Supplier Payments to them.
+//   received    = total cost of RECEIVED orders (goods delivered)
+//   on_order    = total cost of ORDERED orders (not delivered yet, not owed yet)
+//   paid        = Supplier Payment transactions recorded for the supplier
+//   outstanding = received - paid (negative = paid in advance)
+// payments_tracked is false until the transactions.supplier_name column exists (sql/schema.sql).
+export const balances = async (req, res, next) => {
+  try {
+    const uid = req.user.id;
+    const key = (s) =>
+      String(s || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ");
+    const [sup, orders, pays] = await Promise.all([
+      supabase.from(TABLE).select("supplier_name").eq("user_id", uid),
+      supabase
+        .from("procurement")
+        .select("selected_supplier_name, total_cost, procurement_status, updated_at")
+        .eq("user_id", uid),
+      supabase
+        .from("transactions")
+        .select("supplier_name, amount, created_at")
+        .eq("user_id", uid)
+        .eq("category", "Supplier Payment"),
+    ]);
+    if (sup.error) throw sup.error;
+    if (orders.error) throw orders.error;
+    const tracked = !pays.error;
+    if (pays.error && !(pays.error.code === "42703" || /supplier_name/.test(pays.error.message || "")))
+      throw pays.error;
+
+    const out = {};
+    const row = (name) =>
+      (out[key(name)] ??= {
+        supplier_name: String(name).trim(),
+        received: 0,
+        on_order: 0,
+        paid: 0,
+        last_payment_at: null,
+      });
+    for (const s of sup.data || []) if (key(s.supplier_name)) row(s.supplier_name);
+    for (const o of orders.data || []) {
+      if (!key(o.selected_supplier_name)) continue;
+      const status = String(o.procurement_status || "").toUpperCase();
+      if (status === "RECEIVED") row(o.selected_supplier_name).received += Number(o.total_cost) || 0;
+      else if (status === "ORDERED") row(o.selected_supplier_name).on_order += Number(o.total_cost) || 0;
+    }
+    for (const t of (tracked && pays.data) || []) {
+      if (!key(t.supplier_name)) continue;
+      const r = row(t.supplier_name);
+      r.paid += Number(t.amount) || 0;
+      if (!r.last_payment_at || t.created_at > r.last_payment_at) r.last_payment_at = t.created_at;
+    }
+    const list = Object.values(out)
+      .map((r) => ({
+        ...r,
+        received: +r.received.toFixed(2),
+        on_order: +r.on_order.toFixed(2),
+        paid: +r.paid.toFixed(2),
+        outstanding: +(r.received - r.paid).toFixed(2),
+      }))
+      .sort((a, b) => b.outstanding - a.outstanding || a.supplier_name.localeCompare(b.supplier_name));
+    res.json({ payments_tracked: tracked, suppliers: list });
+  } catch (e) {
+    next(e);
+  }
+};

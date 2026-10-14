@@ -58,12 +58,16 @@ Widget _transaction(Map<String, dynamic> t) {
             DetailRow(tr("Total"), money(t["amount"])),
           ],
         ),
-      if (hasText(t["category"]) || hasText(t["description"]))
+      if (hasText(t["category"]) || hasText(t["description"]) || hasText(t["supplier_name"]))
         DetailCard(
           title: tr("Details"),
           icon: Icons.notes_outlined,
           children: [
             if (hasText(t["category"])) DetailRow(tr("Category"), tr("${t["category"]}")),
+            if (hasText(t["supplier_name"])) ...[
+              DetailRow(tr("Paid to"), "${t["supplier_name"]}"),
+              DetailRow(tr("Paid on"), dateOf(t["created_at"], time: true)),
+            ],
             if (hasText(t["description"])) DetailRow(tr("Description"), "${t["description"]}"),
           ],
         ),
