@@ -6,10 +6,19 @@ import FormField from "./FormField";
 import Button from "@/components/ui/Button";
 import { transactionApi } from "@/services/api/transaction";
 import { inventoryApi } from "@/services/api/inventory";
+import { supplierApi } from "@/services/api/supplier";
 import { TRANSACTION_TYPES, PAYMENT_METHODS } from "@/lib/constants";
 
 import { t } from "@/lib/i18n";
 import { formatCurrency } from "@/lib/formatters";
+import {
+  priceKey,
+  saleSuggestion,
+  purchaseSellingPrice,
+  priceOptions,
+  splitByBatch,
+  afterCart,
+} from "@/lib/priceHints";
 // 1. Config for Transaction Modes
 const TYPE_CONFIG = {
   sale: { mode: "items" },
@@ -40,6 +49,8 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
   const [serverError, setServerError] = useState(null);
   const [errors, setErrors] = useState({});
   const [items, setItems] = useState([]);
+  const [priceHints, setPriceHints] = useState({}); // per item: last sale + FIFO batches (lib/priceHints.js)
+  const [balances, setBalances] = useState(null); // what each supplier is owed (Supplier Payment)
 
   const [v, setV] = useState({
     transaction_type: initialData.transaction_type ?? "sale",
@@ -48,7 +59,9 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
     item_name: "", // picker only
     quantity: "", // picker only
     unit_price: "", // picker only  >>> NEW: typed at add time
+    selling_price: "", // picker only — purchase: selling price / MRP of the new batch
     category: initialData.category ?? "",
+    supplier_name: initialData.supplier_name ?? "", // Supplier Payment only
     description: initialData.description ?? "",
   });
 
@@ -58,6 +71,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
       quantity: Number(l.quantity),
       unit_price: Number(l.unit_price) || 0,
       cost_price: Number(l.cost_price) || 0, // COGS snapshot
+      selling_price: Number(l.selling_price) || 0, // purchase: MRP of the batch
       amount: Number(l.amount) || 0,
     })),
   );
@@ -77,9 +91,49 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
 
   // >>> Price field labels/hints depend on the mode
   const priceLabel = isPurchase ? t("Cost Price per Unit (LKR)") : t("Selling Price per Unit (LKR)");
+  // the item's price hint, less the units newly added to the cart (they use the oldest batches
+  // first). When editing, the saved lines were already taken out of stock, so they do not count.
+  const hintFor = (name) => {
+    // per price: units in the cart minus the units of the saved transaction (when editing)
+    const byPrice = {};
+    for (const l of cart.filter((x) => x.item_name === name))
+      byPrice[l.unit_price] = (byPrice[l.unit_price] || 0) + l.quantity;
+    if (isEdit)
+      for (const l of (initialData.items ?? []).filter((x) => x.item_name === name))
+        byPrice[Number(l.unit_price)] = (byPrice[Number(l.unit_price)] || 0) - Number(l.quantity || 0);
+    const lines = Object.entries(byPrice)
+      .filter(([, q]) => q > 0)
+      .map(([p, q]) => ({ unit_price: Number(p), quantity: q }));
+    return afterCart(priceHints[priceKey(name)], lines);
+  };
+  const saleHint = isSale && v.item_name ? hintFor(v.item_name) : null;
+  const suggestion = isSale ? saleSuggestion(saleHint) : null;
+  const options = isSale ? priceOptions(saleHint) : [];
   const priceHint = isPurchase
     ? t("Auto-filled from inventory cost — editable")
-    : t("Enter your selling price per unit");
+    : suggestion?.note || t("Enter your selling price per unit");
+
+  // Supplier Payment: pick the supplier and see what is owed (received orders − payments)
+  const isSupplierPayment = type === "transfer" && v.category === "Supplier Payment";
+  useEffect(() => {
+    if (!isSupplierPayment || balances) return;
+    supplierApi
+      .balances()
+      .then((d) =>
+        setBalances(d && Array.isArray(d.suppliers) ? d : { payments_tracked: false, suppliers: [] }),
+      )
+      .catch(() => setBalances({ payments_tracked: false, suppliers: [] }));
+  }, [isSupplierPayment, balances]);
+  const owed = balances?.suppliers.find((s) => s.supplier_name === v.supplier_name);
+  // when editing a payment, this payment is already counted in "paid"
+  const owedNow =
+    owed && isEdit && initialData.supplier_name === owed.supplier_name
+      ? {
+          ...owed,
+          paid: owed.paid - Number(initialData.amount || 0),
+          outstanding: owed.outstanding + Number(initialData.amount || 0),
+        }
+      : owed;
 
   // Transfer can't be Cash; Deposit can ONLY be Cash.
   const paymentMethodOptions =
@@ -94,11 +148,16 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
     return parseFloat(item?.cost_price ?? item?.unit_price ?? item?.price) || 0;
   }
 
-  // >>> Picking an item: purchase pre-fills the cost, sale leaves price empty for typing
+  // Picking an item: purchase pre-fills the cost (and the newest selling price as the batch MRP);
+  // sale pre-fills the oldest batch's selling price, else the last price it was sold at. All editable.
   function pickItem(name) {
     set("item_name", name);
     const inv = items.find((i) => i.name === name);
-    set("unit_price", isPurchase && inv ? String(costOf(inv)) : "");
+    const hint = hintFor(name);
+    const suggested = isSale ? saleSuggestion(hint).price : null;
+    set("unit_price", isPurchase && inv ? String(costOf(inv)) : suggested ? String(suggested) : "");
+    const mrp = isPurchase ? purchaseSellingPrice(hint) : null;
+    set("selling_price", mrp ? String(mrp) : "");
   }
 
   function changeType(val) {
@@ -106,6 +165,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
     set("item_name", "");
     set("quantity", "");
     set("unit_price", "");
+    set("selling_price", "");
     set("amount", "");
     set("category", "");
     setCart([]);
@@ -126,6 +186,10 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
       .then((d) => setItems(Array.isArray(d) ? d : []))
       .catch(() => setItems([]))
       .finally(() => setLoadingInventory(false));
+    transactionApi
+      .priceHints()
+      .then((d) => setPriceHints(d && typeof d === "object" ? d : {}))
+      .catch(() => setPriceHints({})); // no suggestion is fine — the price is typed as before
   }, []);
 
   // Edit mode: backfill only PURCHASE line costs from inventory when missing.
@@ -189,35 +253,37 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
       }
     }
 
+    // a sale at the oldest batch's price is split over the batches (FIFO): 8 units with 5 left at
+    // 240 -> 5 × 240 + 3 × 260. Lines with the same item and price are merged.
+    const parts = isSale
+      ? splitByBatch(hintFor(picked.name), units, price)
+      : [{ quantity: units, unit_price: price }];
     setCart((prev) => {
-      const existing = prev.find((l) => l.item_name === picked.name);
-      if (existing) {
-        // merge: keep the existing line's unit price, just add the units
-        return prev.map((l) =>
-          l.item_name === picked.name
-            ? {
-                ...l,
-                quantity: l.quantity + units,
-                amount: +((l.quantity + units) * l.unit_price).toFixed(2),
-              }
-            : l,
-        );
+      let next = [...prev];
+      for (const part of parts) {
+        const idx = next.findIndex((l) => l.item_name === picked.name && l.unit_price === part.unit_price);
+        if (idx >= 0) {
+          const q = next[idx].quantity + part.quantity;
+          next[idx] = { ...next[idx], quantity: q, amount: +(q * next[idx].unit_price).toFixed(2) };
+        } else {
+          next.push({
+            item_name: picked.name,
+            quantity: part.quantity,
+            unit_price: part.unit_price, // sale: selling price | purchase: cost price
+            cost_price: costOf(picked), // snapshot of unit cost for accurate COGS
+            ...(isPurchase &&
+              parseFloat(v.selling_price) > 0 && { selling_price: parseFloat(v.selling_price) }),
+            amount: +(part.quantity * part.unit_price).toFixed(2),
+          });
+        }
       }
-      return [
-        ...prev,
-        {
-          item_name: picked.name,
-          quantity: units,
-          unit_price: price, // sale: selling price | purchase: cost price
-          cost_price: costOf(picked), // snapshot of unit cost for accurate COGS
-          amount: +(units * price).toFixed(2),
-        },
-      ];
+      return next;
     });
 
     set("item_name", "");
     set("quantity", "");
     set("unit_price", "");
+    set("selling_price", "");
   }
 
   function removeLine(idx) {
@@ -230,6 +296,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
     if (usesItems && cart.length === 0) er.amount = t("Add at least one item.");
     if (!v.amount || Number(v.amount) <= 0) er.amount = er.amount || t("Enter an amount greater than 0.");
     if (cfg.category && !v.category) er.category = t("Please select a category.");
+    if (isSupplierPayment && !v.supplier_name) er.supplier_name = t("Select the supplier you are paying.");
 
     if (type === "transfer" && v.payment_method === "cash") {
       er.payment_method = t("Cash isn't allowed for Transfer transactions.");
@@ -260,6 +327,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
             quantity: l.quantity,
             unit_price: l.unit_price, // sale -> selling price | purchase -> cost price
             cost_price: l.cost_price ?? 0, // cost snapshot for accurate COGS
+            ...(isPurchase && l.selling_price > 0 && { selling_price: l.selling_price }), // batch MRP
             amount: l.amount,
           })),
         }
@@ -271,6 +339,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
           quantity: null,
           category: cfg.category ? v.category || null : null,
           description: cfg.description ? v.description || null : null,
+          ...(isSupplierPayment && { supplier_name: v.supplier_name }),
         };
 
     try {
@@ -401,6 +470,54 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
                   placeholder="0.00"
                 />
               </FormField>
+              {options.length > 0 && (
+                <div className="-mt-2 flex flex-wrap gap-2" role="group" aria-label={t("Choose a price")}>
+                  {options.map((o) => {
+                    const on = Number(v.unit_price) === o.price;
+                    return (
+                      <button
+                        key={o.price}
+                        type="button"
+                        onClick={() => set("unit_price", String(o.price))}
+                        aria-pressed={on}
+                        className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                          on
+                            ? "border-primary bg-primary text-white"
+                            : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                        }`}
+                      >
+                        {o.last
+                          ? `${t("Last sold")} ${formatCurrency(o.price)}`
+                          : `${formatCurrency(o.price)} · ${o.left} ${t("left")}`}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {suggestion?.warning && (
+                <p className="-mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                  ⚠ {suggestion.warning}
+                </p>
+              )}
+
+              {/* purchase: the selling price / MRP of this batch — sales suggest it while this stock lasts */}
+              {isPurchase && (
+                <FormField
+                  label={t("Selling price / MRP per unit (LKR)")}
+                  hint={t("Optional — suggested on sales while this stock lasts")}
+                >
+                  <input
+                    className={cls("selling_price")}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={v.selling_price}
+                    onChange={(e) => set("selling_price", e.target.value)}
+                    disabled={!v.item_name}
+                    placeholder="0.00"
+                  />
+                </FormField>
+              )}
 
               <Button
                 type="button"
@@ -425,6 +542,9 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
                         <p className="font-medium text-slate-800">{line.item_name}</p>
                         <p className="text-xs text-slate-500">
                           {line.quantity} × {formatCurrency(line.unit_price || 0)}
+                          {isPurchase &&
+                            line.selling_price > 0 &&
+                            ` · ${t("MRP")} ${formatCurrency(line.selling_price)}`}
                         </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-3">
@@ -511,6 +631,77 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
                 ))}
               </select>
             </FormField>
+          )}
+
+          {isSupplierPayment && (
+            <>
+              <FormField label={t("Supplier")} error={errors.supplier_name} required>
+                <select
+                  className={`select-field ${errors.supplier_name ? "border-red-400" : ""}`}
+                  value={v.supplier_name}
+                  onChange={(e) => set("supplier_name", e.target.value)}
+                >
+                  <option value="">{balances ? t("Select supplier...") : t("Loading...")}</option>
+                  {(balances?.suppliers || []).map((s) => (
+                    <option key={s.supplier_name} value={s.supplier_name}>
+                      {s.supplier_name}
+                      {s.outstanding > 0 ? ` — ${t("owed")} ${formatCurrency(s.outstanding)}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm dark:border-slate-800">
+                {!owedNow ? (
+                  <p className="text-xs text-slate-500">
+                    {t("Select a supplier to see how much you owe them.")}
+                  </p>
+                ) : (
+                  <>
+                    <div className="flex justify-between py-0.5">
+                      <span className="text-slate-600">{t("Received orders")}</span>
+                      <span className="font-medium">{formatCurrency(owedNow.received)}</span>
+                    </div>
+                    <div className="flex justify-between py-0.5">
+                      <span className="text-slate-600">{t("Already paid")}</span>
+                      <span className="font-medium">− {formatCurrency(owedNow.paid)}</span>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between border-t border-slate-200 pt-2 font-semibold">
+                      <span>{owedNow.outstanding >= 0 ? t("To pay") : t("Paid in advance")}</span>
+                      <span className={owedNow.outstanding > 0 ? "text-red-600" : "text-emerald-600"}>
+                        {formatCurrency(Math.abs(owedNow.outstanding))}
+                      </span>
+                    </div>
+                    {owedNow.on_order > 0 && (
+                      <p className="mt-1 text-xs text-slate-500">
+                        {t("On order, not received yet")}: {formatCurrency(owedNow.on_order)}
+                      </p>
+                    )}
+                    {owedNow.outstanding > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => set("amount", String(owedNow.outstanding))}
+                        className="mt-2 rounded-full border border-primary px-3 py-1 text-xs font-semibold text-primary hover:bg-primary hover:text-white"
+                      >
+                        {t("Pay full amount")} ({formatCurrency(owedNow.outstanding)})
+                      </button>
+                    )}
+                    {Number(v.amount) > owedNow.outstanding && owedNow.outstanding >= 0 && (
+                      <p className="mt-2 text-xs font-medium text-amber-700">
+                        ⚠ {t("This is more than you owe this supplier.")}
+                      </p>
+                    )}
+                    {!balances.payments_tracked && (
+                      <p className="mt-2 text-xs text-amber-700">
+                        {t(
+                          "Earlier payments are not linked to suppliers yet, so 'Already paid' may be incomplete.",
+                        )}
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            </>
           )}
 
           {cfg.description && (

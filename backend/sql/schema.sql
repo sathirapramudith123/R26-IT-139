@@ -607,6 +607,10 @@ CREATE INDEX IF NOT EXISTS idx_afl_journal   ON agent_float_ledger(journal_ref);
 ALTER TABLE transactions
   ADD COLUMN IF NOT EXISTS items JSONB;                 -- cart lines [{item_name, quantity, unit_price, cost_price}]
 
+-- Supplier Payment transactions: the supplier paid (amount owed = received orders - payments)
+ALTER TABLE transactions
+  ADD COLUMN IF NOT EXISTS supplier_name VARCHAR(150);
+
 ALTER TABLE suppliers
   ADD COLUMN IF NOT EXISTS items_supplied JSONB NOT NULL DEFAULT '[]'::jsonb,  -- [{item_name, quantity, unit_price}]
   ADD COLUMN IF NOT EXISTS latitude       DOUBLE PRECISION,

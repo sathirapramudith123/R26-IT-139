@@ -323,9 +323,15 @@ function Transaction({ d }) {
           <Row label={t("Total")} value={money(d.amount)} />
         </Section>
       )}
-      {(hasText(d.category) || hasText(d.description)) && (
+      {(hasText(d.category) || hasText(d.description) || hasText(d.supplier_name)) && (
         <Section title={t("Details")} icon={NotebookText}>
           {hasText(d.category) && <Row label={t("Category")} value={t(d.category)} />}
+          {hasText(d.supplier_name) && (
+            <>
+              <Row label={t("Paid to")} value={d.supplier_name} />
+              <Row label={t("Paid on")} value={dateOf(d.created_at, true)} />
+            </>
+          )}
           {hasText(d.description) && <Row label={t("Description")} value={d.description} />}
         </Section>
       )}
