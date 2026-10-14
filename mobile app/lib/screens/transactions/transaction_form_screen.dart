@@ -5,6 +5,7 @@ import '../../core/api.dart';
 import '../../services/crud_service.dart';
 import '../../core/i18n.dart';
 import '../common/record_details.dart' show money;
+import '../../core/price_hints.dart';
 
 const List<Map<String, String>> _txTypes = [
   {"value": "sale", "label": "Sale"},
@@ -60,10 +61,15 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   final descriptionCtrl = TextEditingController();
   final qtyCtrl = TextEditingController();
   final priceCtrl = TextEditingController(); // NEW: per-unit price (typed)
+  final sellingCtrl = TextEditingController(); // purchase: selling price / MRP of the new batch
 
   String? category;
+  String? supplierName; // Supplier Payment: the supplier paid
+  Map? balances; // {payments_tracked, suppliers:[{supplier_name, received, on_order, paid, outstanding}]}
 
   List<Map<String, dynamic>> inventory = [];
+  // per item (priceKey): {last_sale, batches} — see core/price_hints.dart
+  Map<String, Map> priceHints = {};
   final List<Map<String, dynamic>> cart = [];
   String? pickItem;
 
@@ -75,6 +81,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   bool get usesItems => _typeConfig[txType]?["items"] == true;
   bool get isPurchase => txType == "purchase";
   bool get showCategory => _typeConfig[txType]?["category"] == true;
+  bool get isSupplierPayment => txType == "transfer" && category == "Supplier Payment";
   bool get showDescription => _typeConfig[txType]?["description"] == true;
 
   double get cartTotal => cart.fold(0.0, (s, l) => s + (l["amount"] as num).toDouble());
@@ -103,6 +110,9 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     amountCtrl.text = it?["amount"]?.toString() ?? "";
     final c = it?["category"]?.toString();
     category = (c != null && c.isNotEmpty) ? c : null;
+    final sn = it?["supplier_name"]?.toString();
+    supplierName = (sn != null && sn.isNotEmpty) ? sn : null;
+    if (isSupplierPayment) _loadBalances();
     descriptionCtrl.text = it?["description"]?.toString() ?? "";
 
     final saved = it?["items"];
@@ -116,6 +126,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
             "quantity": q,
             "unit_price": up,
             "cost_price": num.tryParse("${l["cost_price"]}") ?? 0,
+            "selling_price": num.tryParse("${l["selling_price"]}") ?? 0,
             "amount": num.tryParse("${l["amount"]}") ?? (q * up),
           });
         }
@@ -123,6 +134,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     }
     _enforcePayment();
     _loadInventory();
+    _loadPriceHints();
   }
 
   // current inventory cost (batch weighted average) — purchase pre-fill / cost snapshot
@@ -150,6 +162,73 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     }
   }
 
+  // Price hints (last sale + FIFO batches) to pre-fill prices; no suggestion if it fails
+  Future<void> _loadPriceHints() async {
+    try {
+      final data = await Api.get("/transactions/price-hints");
+      if (!mounted || data is! Map) return;
+      setState(() {
+        priceHints = {
+          for (final e in data.entries)
+            if (e.value is Map) "${e.key}": e.value as Map,
+        };
+      });
+    } catch (_) {}
+  }
+
+  // the item's price hint, less the cart lines (they come out of stock first: same-price batch,
+  // then FIFO). When editing, the saved lines were already taken out of stock, so they do not count.
+  // What each supplier is owed: received orders − Supplier Payments (loaded once, when needed)
+  Future<void> _loadBalances() async {
+    if (balances != null) return;
+    try {
+      final data = await Api.get("/suppliers/balances");
+      if (mounted) {
+        setState(() => balances = data is Map ? data : {"payments_tracked": false, "suppliers": []});
+      }
+    } catch (_) {
+      if (mounted) setState(() => balances = {"payments_tracked": false, "suppliers": []});
+    }
+  }
+
+  List<Map> get _supplierRows =>
+      (balances?["suppliers"] is List) ? (balances!["suppliers"] as List).whereType<Map>().toList() : <Map>[];
+
+  // the chosen supplier's balance; when editing, this payment is already counted in "paid"
+  Map? get _owed {
+    final r = _supplierRows.where((s) => s["supplier_name"] == supplierName).firstOrNull;
+    if (r == null) return null;
+    final it = widget.item;
+    if (isEdit && it?["supplier_name"] == supplierName) {
+      final a = double.tryParse("${it?["amount"]}") ?? 0;
+      return {
+        ...r,
+        "paid": ((r["paid"] as num?) ?? 0) - a,
+        "outstanding": ((r["outstanding"] as num?) ?? 0) + a,
+      };
+    }
+    return r;
+  }
+
+  Map? _hint(String? name) {
+    if (name == null) return null;
+    final byPrice = <double, double>{};
+    void add(Iterable lines, double sign) {
+      for (final l in lines.whereType<Map>().where((l) => l["item_name"] == name)) {
+        final p = double.tryParse("${l["unit_price"]}") ?? 0;
+        byPrice[p] = (byPrice[p] ?? 0) + sign * (double.tryParse("${l["quantity"]}") ?? 0);
+      }
+    }
+
+    add(cart, 1);
+    if (isEdit && widget.item?["items"] is List) add(widget.item!["items"] as List, -1);
+    final lines = [
+      for (final e in byPrice.entries)
+        if (e.value > 0) (quantity: e.value, unitPrice: e.key),
+    ];
+    return afterCart(priceHints[priceKey(name)], lines);
+  }
+
   Map<String, dynamic> _findItem(String name) =>
       inventory.firstWhere((i) => "${i["name"] ?? ""}" == name, orElse: () => {});
 
@@ -159,6 +238,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     descriptionCtrl.dispose();
     qtyCtrl.dispose();
     priceCtrl.dispose();
+    sellingCtrl.dispose();
     super.dispose();
   }
 
@@ -180,6 +260,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       pickItem = null;
       qtyCtrl.clear();
       priceCtrl.clear();
+      sellingCtrl.clear();
       amountCtrl.clear();
       category = null;
       error = null;
@@ -187,12 +268,19 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     });
   }
 
-  // picking an item: purchase -> pre-fill inventory cost | sale -> left empty
+  // picking an item: purchase -> pre-fill inventory cost (+ newest selling price as the batch MRP)
+  // sale -> the oldest batch's selling price, else the last price it was sold at. All editable.
   void _onPickItem(String? val) {
     setState(() {
       pickItem = val;
+      final hint = _hint(val);
+      sellingCtrl.clear();
       if (val != null && isPurchase) {
         priceCtrl.text = _invCost(_findItem(val)).toStringAsFixed(2);
+        final mrp = purchaseSellingPrice(hint);
+        if (mrp != null) sellingCtrl.text = mrp.toStringAsFixed(2);
+      } else if (val != null && saleSuggestion(hint).price != null) {
+        priceCtrl.text = saleSuggestion(hint).price!.toStringAsFixed(2);
       } else {
         priceCtrl.clear();
       }
@@ -240,26 +328,37 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     }
 
     final costSnap = isPurchase ? price : _invCost(inv); // COGS snapshot
+    final mrp = double.tryParse(sellingCtrl.text.trim()) ?? 0;
+    // a sale at the oldest batch's price is split over the batches (FIFO): 8 units with 5 left at
+    // 240 -> 5 × 240 + 3 × 260. Lines with the same item and price are merged.
+    final parts = isPurchase
+        ? [(quantity: units, unitPrice: price)]
+        : splitByBatch(_hint(name), units, price);
     setState(() {
       error = null;
-      final idx = cart.indexWhere((l) => l["item_name"] == name);
-      if (idx >= 0) {
-        final q = (cart[idx]["quantity"] as num).toDouble() + units;
-        final up = (cart[idx]["unit_price"] as num).toDouble();
-        cart[idx]["quantity"] = q;
-        cart[idx]["amount"] = double.parse((q * up).toStringAsFixed(2));
-      } else {
-        cart.add({
-          "item_name": name,
-          "quantity": units,
-          "unit_price": price, // sale: selling | purchase: cost
-          "cost_price": costSnap, // COGS snapshot
-          "amount": double.parse((units * price).toStringAsFixed(2)),
-        });
+      for (final part in parts) {
+        final idx = cart.indexWhere(
+          (l) => l["item_name"] == name && (l["unit_price"] as num).toDouble() == part.unitPrice,
+        );
+        if (idx >= 0) {
+          final q = (cart[idx]["quantity"] as num).toDouble() + part.quantity;
+          cart[idx]["quantity"] = q;
+          cart[idx]["amount"] = double.parse((q * part.unitPrice).toStringAsFixed(2));
+        } else {
+          cart.add({
+            "item_name": name,
+            "quantity": part.quantity,
+            "unit_price": part.unitPrice, // sale: selling | purchase: cost
+            "cost_price": costSnap, // COGS snapshot
+            if (isPurchase && mrp > 0) "selling_price": mrp, // batch MRP
+            "amount": double.parse((part.quantity * part.unitPrice).toStringAsFixed(2)),
+          });
+        }
       }
       pickItem = null;
       qtyCtrl.clear();
       priceCtrl.clear();
+      sellingCtrl.clear();
     });
   }
 
@@ -290,6 +389,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               "quantity": l["quantity"],
               "unit_price": l["unit_price"],
               "cost_price": l["cost_price"],
+              if (isPurchase && ((l["selling_price"] as num?) ?? 0) > 0) "selling_price": l["selling_price"],
               "amount": l["amount"],
             },
           )
@@ -305,10 +405,15 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         setState(() => error = tr("Please select a category."));
         return;
       }
+      if (isSupplierPayment && (supplierName == null || supplierName!.isEmpty)) {
+        setState(() => error = tr("Select the supplier you are paying."));
+        return;
+      }
       payload["amount"] = amt;
       if (showCategory && category != null && category!.isNotEmpty) {
         payload["category"] = category;
       }
+      if (isSupplierPayment) payload["supplier_name"] = supplierName;
       if (showDescription && descriptionCtrl.text.trim().isNotEmpty) {
         payload["description"] = descriptionCtrl.text.trim();
       }
@@ -431,12 +536,107 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     child: Text(tr(t), style: const TextStyle(fontWeight: FontWeight.w700)),
   );
 
+  List<Widget> _supplierSection() {
+    final owed = _owed;
+    final amt = double.tryParse(amountCtrl.text.trim()) ?? 0;
+    double n(dynamic v) => (v as num?)?.toDouble() ?? 0;
+    Widget row(String k, String v, {Color? color, bool bold = false}) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(k, style: TextStyle(fontWeight: bold ? FontWeight.w700 : FontWeight.w400)),
+          Text(
+            v,
+            style: TextStyle(fontWeight: FontWeight.w700, color: color),
+          ),
+        ],
+      ),
+    );
+    return [
+      const SizedBox(height: 16),
+      _label(tr("Supplier *")),
+      DropdownButtonFormField<String>(
+        initialValue: _supplierRows.any((s) => s["supplier_name"] == supplierName) ? supplierName : null,
+        isExpanded: true,
+        hint: Text(balances == null ? tr("Loading...") : tr("Select supplier...")),
+        items: _supplierRows.map((s) {
+          final o = n(s["outstanding"]);
+          return DropdownMenuItem(
+            value: "${s["supplier_name"]}",
+            child: Text(
+              "${s["supplier_name"]}${o > 0 ? " — ${tr("owed")} ${money(o)}" : ""}",
+              overflow: TextOverflow.ellipsis,
+            ),
+          );
+        }).toList(),
+        onChanged: saving ? null : (v) => setState(() => supplierName = v),
+      ),
+      const SizedBox(height: 10),
+      Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: owed == null
+            ? Text(
+                tr("Select a supplier to see how much you owe them."),
+                style: const TextStyle(fontSize: 12),
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  row(tr("Received orders"), money(n(owed["received"]))),
+                  row(tr("Already paid"), "− ${money(n(owed["paid"]))}"),
+                  const Divider(),
+                  row(
+                    n(owed["outstanding"]) >= 0 ? tr("To pay") : tr("Paid in advance"),
+                    money(n(owed["outstanding"]).abs()),
+                    color: n(owed["outstanding"]) > 0 ? KadeColors.danger : KadeColors.success,
+                    bold: true,
+                  ),
+                  if (n(owed["on_order"]) > 0)
+                    Text(
+                      "${tr("On order, not received yet")}: ${money(n(owed["on_order"]))}",
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  if (n(owed["outstanding"]) > 0)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: saving
+                            ? null
+                            : () =>
+                                  setState(() => amountCtrl.text = n(owed["outstanding"]).toStringAsFixed(2)),
+                        child: Text("${tr("Pay full amount")} (${money(n(owed["outstanding"]))})"),
+                      ),
+                    ),
+                  if (amt > n(owed["outstanding"]) && n(owed["outstanding"]) >= 0)
+                    Text(
+                      "⚠ ${tr("This is more than you owe this supplier.")}",
+                      style: const TextStyle(fontSize: 12, color: KadeColors.warning),
+                    ),
+                  if (balances?["payments_tracked"] == false)
+                    Text(
+                      tr(
+                        "Earlier payments are not linked to suppliers yet, so 'Already paid' may be incomplete.",
+                      ),
+                      style: const TextStyle(fontSize: 12, color: KadeColors.warning),
+                    ),
+                ],
+              ),
+      ),
+    ];
+  }
+
   List<Widget> _simpleSection() {
     return [
       _label(tr("Amount (LKR) *")),
       TextField(
         controller: amountCtrl,
         enabled: !saving,
+        onChanged: (_) => setState(() {}),
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
         decoration: InputDecoration(hintText: "0.00", prefixText: tr("LKR ")),
@@ -448,9 +648,15 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           initialValue: _categoryOptions.contains(category) ? category : null,
           hint: Text(tr("Select category…")),
           items: _categoryOptions.map((c) => DropdownMenuItem(value: c, child: Text(tr(c)))).toList(),
-          onChanged: saving ? null : (v) => setState(() => category = v),
+          onChanged: saving
+              ? null
+              : (v) {
+                  setState(() => category = v);
+                  if (isSupplierPayment) _loadBalances();
+                },
         ),
       ],
+      if (isSupplierPayment) ..._supplierSection(),
       if (showDescription) ...[
         const SizedBox(height: 16),
         _label(tr("Description")),
@@ -469,9 +675,13 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     final itemLabel = isPurchase ? "Item Purchased *" : "Item Sold *";
     final unitsLabel = isPurchase ? "Units bought" : "Units sold";
     final priceLabel = isPurchase ? "Cost Price per Unit (LKR)" : "Selling Price per Unit (LKR)";
+    final suggestion = isPurchase ? null : saleSuggestion(_hint(pickItem));
+    final options = isPurchase
+        ? const <({double price, double? left, bool last})>[]
+        : priceOptions(_hint(pickItem));
     final priceHint = isPurchase
-        ? "Auto-filled from inventory cost — editable"
-        : "Enter your selling price per unit";
+        ? tr("Auto-filled from inventory cost — editable")
+        : (suggestion?.note ?? tr("Enter your selling price per unit"));
 
     return [
       _label(tr(itemLabel)),
@@ -509,11 +719,68 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       TextField(
         controller: priceCtrl,
         enabled: !saving,
+        onChanged: (_) => setState(() {}), // keeps the selected price button in step
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-        decoration: InputDecoration(hintText: "0.00", prefixText: tr("LKR "), helperText: tr(priceHint)),
+        decoration: InputDecoration(
+          hintText: "0.00",
+          prefixText: tr("LKR "),
+          helperText: priceHint,
+          helperMaxLines: 2,
+        ),
       ),
+      if (options.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              for (final o in options)
+                ChoiceChip(
+                  label: Text(
+                    o.last
+                        ? "${tr("Last sold")} ${money(o.price)}"
+                        : "${money(o.price)} · ${o.left!.toStringAsFixed(0)} ${tr("left")}",
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  selected: (double.tryParse(priceCtrl.text.trim()) ?? -1) == o.price,
+                  onSelected: saving
+                      ? null
+                      : (_) => setState(() => priceCtrl.text = o.price.toStringAsFixed(2)),
+                ),
+            ],
+          ),
+        ),
+      if (suggestion?.warning != null)
+        Container(
+          margin: const EdgeInsets.only(top: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: KadeColors.warning.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text("⚠ ${suggestion!.warning}", style: const TextStyle(fontSize: 12)),
+        ),
       const SizedBox(height: 10),
+
+      // purchase: the selling price / MRP of this batch — sales suggest it while this stock lasts
+      if (isPurchase) ...[
+        _label(tr("Selling price / MRP per unit (LKR)")),
+        TextField(
+          controller: sellingCtrl,
+          enabled: !saving,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+          decoration: InputDecoration(
+            hintText: "0.00",
+            prefixText: tr("LKR "),
+            helperText: tr("Optional — suggested on sales while this stock lasts"),
+            helperMaxLines: 2,
+          ),
+        ),
+        const SizedBox(height: 10),
+      ],
 
       Align(
         alignment: Alignment.centerRight,
@@ -560,16 +827,14 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                           children: [
                             Text("${l["item_name"]}", style: const TextStyle(fontWeight: FontWeight.w700)),
                             Text(
-                              "${q.toString()} × ${money(up)}",
+                              "${q.toString()} × ${money(up)}"
+                              "${isPurchase && ((l["selling_price"] as num?) ?? 0) > 0 ? " · ${tr("MRP")} ${money(l["selling_price"])}" : ""}",
                               style: const TextStyle(fontSize: 12, color: Colors.grey),
                             ),
                           ],
                         ),
                       ),
-                      Text(
-                        money(amt),
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
+                      Text(money(amt), style: const TextStyle(fontWeight: FontWeight.w700)),
                       IconButton(
                         icon: const Icon(Icons.close, size: 18),
                         onPressed: saving ? null : () => setState(() => cart.removeAt(i)),
@@ -583,10 +848,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(tr("Total"), style: TextStyle(fontWeight: FontWeight.w800)),
-                Text(
-                  money(cartTotal),
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
+                Text(money(cartTotal), style: const TextStyle(fontWeight: FontWeight.w800)),
               ],
             ),
           ],
