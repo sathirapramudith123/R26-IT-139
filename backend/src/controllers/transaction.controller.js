@@ -1,7 +1,13 @@
 import { supabase } from "../config/supabase.js";
 import { toClient, toClientList, up } from "../utils/mappers.js";
 import { consumeStock, receiveStock, hasEnoughStock } from "../utils/stock.js";
-import { buildJournal, journalTotals, buildGoodsSummary, buildProfitAndLoss, buildLedger } from "../utils/doubleEntry.js";
+import {
+  buildJournal,
+  journalTotals,
+  buildGoodsSummary,
+  buildProfitAndLoss,
+  buildLedger,
+} from "../utils/doubleEntry.js";
 import { localDayStart, localDateStr, addDays } from "../utils/time.js";
 
 const TABLE = "transactions";
@@ -19,7 +25,17 @@ const toDb = (b) => ({
   quantity: numOrNull(b.quantity),
   // Cart / multiple items (JSONB), each with its cost_price snapshot
   items: Array.isArray(b.items) ? b.items : null,
+  // Supplier Payment: who was paid (only sent when given, so the API keeps working before
+  // the supplier_name column is added — see sql/schema.sql)
+  ...(b.supplier_name && { supplier_name: String(b.supplier_name).trim() }),
 });
+
+// The supplier_name column is missing in this database: say how to add it
+const missingSupplierColumn = (e) =>
+  e && (e.code === "42703" || e.code === "PGRST204") && /supplier_name/.test(e.message || "");
+const SUPPLIER_COLUMN_MSG =
+  "Supplier payments need the supplier_name column. Run in the Supabase SQL editor: " +
+  "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS supplier_name VARCHAR(150);";
 
 // Lines as a list, from items[] or the single item columns
 const getItemList = (record) => {
@@ -45,8 +61,9 @@ async function applySaleFifo(userId, txRow, reason) {
   for (let i = 0; i < items.length; i++) {
     const line = items[i];
     const qty = Number(line.quantity) || 0;
-    const r = await consumeStock(userId, line.item_name, qty, reason);
-    // store the actual FIFO cost (used by the reports)
+    // a line sold at a batch's own selling price comes out of that batch, the rest FIFO
+    const r = await consumeStock(userId, line.item_name, qty, reason, line.unit_price);
+    // store the actual cost of the units taken (used by the reports)
     items[i] = { ...line, cost_price: qty ? +(r.cogs / qty).toFixed(2) : 0 };
   }
   await supabase.from(TABLE).update({ items }).eq(ID, txRow.transaction_id).eq("user_id", userId);
@@ -59,7 +76,7 @@ async function applyPurchase(userId, txRow, reason) {
     // A purchased batch costs the unit_price paid now. (The cost_price snapshot is the old
     // inventory cost at the time the item was picked, not the new batch's cost.)
     const cost = Number(line.unit_price ?? line.cost_price ?? 0);
-    await receiveStock(userId, line.item_name, Number(line.quantity), cost, reason);
+    await receiveStock(userId, line.item_name, Number(line.quantity), cost, reason, line.selling_price);
   }
 }
 
@@ -69,11 +86,12 @@ async function revertTransaction(userId, oldRow, reason) {
   for (const line of getItemList(oldRow)) {
     if (oldType === "SALE") {
       // sold units go back into stock (as a batch, at the stored cost)
+      // (back at the price they were sold for)
       const cost = Number(line.cost_price ?? line.unit_price ?? 0);
-      await receiveStock(userId, line.item_name, Number(line.quantity), cost, reason);
+      await receiveStock(userId, line.item_name, Number(line.quantity), cost, reason, line.unit_price);
     } else if (oldType === "PURCHASE") {
-      // purchased units are taken out again (FIFO)
-      await consumeStock(userId, line.item_name, Number(line.quantity), reason);
+      // purchased units are taken out again (from the batch with their selling price, then FIFO)
+      await consumeStock(userId, line.item_name, Number(line.quantity), reason, line.selling_price);
     }
   }
 }
@@ -188,6 +206,70 @@ export const journal = async (req, res, next) => {
   }
 };
 
+// Price hints for the sale form, per item (key = lower-cased, trimmed name):
+//   last_sale: the newest SALE line of the item { unit_price, cost_price, sold_at } — or null
+//   batches:   batches still in stock, oldest first (FIFO) { quantity, selling_price, unit_cost }
+// The form suggests the oldest batch's selling price (old stock keeps its old price / MRP), else the
+// last sold price, and warns when the next batch costs more than the stock sold last time.
+const priceKey = (s) =>
+  String(s || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+
+export const priceHints = async (req, res, next) => {
+  try {
+    const [sales, stock] = await Promise.all([
+      supabase
+        .from(TABLE)
+        .select("items, item_name, quantity, amount, created_at")
+        .eq("user_id", req.user.id)
+        .eq("transaction_type", "SALE")
+        .order("created_at", { ascending: false })
+        .limit(500),
+      supabase
+        .from("inventory")
+        .select("item_name, quantity, selling_price, cost_price, unit_price, received_at")
+        .eq("user_id", req.user.id)
+        .gt("quantity", 0)
+        .order("received_at", { ascending: true }),
+    ]);
+    if (sales.error) throw sales.error;
+    if (stock.error) throw stock.error;
+
+    const hints = {};
+    const entry = (name) => (hints[priceKey(name)] ??= { item_name: name, last_sale: null, batches: [] });
+
+    for (const b of stock.data || []) {
+      if (!priceKey(b.item_name)) continue;
+      entry(b.item_name).batches.push({
+        quantity: Number(b.quantity),
+        selling_price: Number(b.selling_price) || 0,
+        unit_cost: Number(b.cost_price ?? b.unit_price) || 0,
+      });
+    }
+    for (const row of sales.data || []) {
+      const lines = Array.isArray(row.items) && row.items.length ? row.items : [];
+      if (!lines.length && row.item_name && Number(row.quantity) > 0)
+        lines.push({ item_name: row.item_name, unit_price: Number(row.amount) / Number(row.quantity) });
+      for (const l of lines) {
+        const price = Number(l.unit_price);
+        if (!priceKey(l.item_name) || !(price > 0)) continue;
+        const h = entry(l.item_name);
+        if (h.last_sale) continue; // newest first: keep the first one seen
+        h.last_sale = {
+          unit_price: +price.toFixed(2),
+          cost_price: Number(l.cost_price) || 0,
+          sold_at: row.created_at,
+        };
+      }
+    }
+    res.json(hints);
+  } catch (e) {
+    next(e);
+  }
+};
+
 // 1. Get All
 export const getAll = async (req, res, next) => {
   try {
@@ -248,6 +330,7 @@ export const create = async (req, res, next) => {
 
     res.status(201).json(toClient(data, ID));
   } catch (e) {
+    if (missingSupplierColumn(e)) return res.status(400).json({ error: SUPPLIER_COLUMN_MSG });
     next(e);
   }
 };
@@ -285,6 +368,7 @@ export const update = async (req, res, next) => {
 
     res.json(toClient(data, ID));
   } catch (e) {
+    if (missingSupplierColumn(e)) return res.status(400).json({ error: SUPPLIER_COLUMN_MSG });
     next(e);
   }
 };

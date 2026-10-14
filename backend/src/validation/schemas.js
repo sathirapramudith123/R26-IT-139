@@ -46,6 +46,7 @@ export const transaction = Joi.object({
   description: optStr(1000),
   item_name: optStr(150),
   quantity: optNum(qty),
+  supplier_name: optStr(150), // Supplier Payment: the supplier paid
   items: Joi.array()
     .max(200)
     .allow(null)
@@ -55,6 +56,7 @@ export const transaction = Joi.object({
         quantity: qty.required(),
         unit_price: optNum(money),
         cost_price: optNum(money),
+        selling_price: optNum(money), // purchase line: selling price / MRP of the new batch
         amount: optNum(money),
       }).unknown(true),
     ),

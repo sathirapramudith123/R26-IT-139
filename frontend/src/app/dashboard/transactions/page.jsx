@@ -82,7 +82,7 @@ export default function TransactionsPage() {
     return !kw
       ? items
       : items.filter((i) =>
-          [i.transaction_type, i.category, i.payment_method, i.description]
+          [i.transaction_type, i.category, i.payment_method, i.description, i.supplier_name]
             .join(" ")
             .toLowerCase()
             .includes(kw),
@@ -113,7 +113,14 @@ export default function TransactionsPage() {
         </span>
       ),
       payment_method: t(titleCase(item.payment_method || "")),
-      category: item.category ? item.category : <span className="text-slate-400">—</span>,
+      category: item.category ? (
+        <span>
+          {t(item.category)}
+          {item.supplier_name && <span className="block text-xs text-slate-500">→ {item.supplier_name}</span>}
+        </span>
+      ) : (
+        <span className="text-slate-400">—</span>
+      ),
       created_at: <span className="text-slate-500 dark:text-slate-400">{formatDate(item.created_at)}</span>,
       actions: (
         <div className="flex gap-2">

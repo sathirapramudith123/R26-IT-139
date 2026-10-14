@@ -9,6 +9,7 @@ router.use(auth);
 
 router.post("/", validateBody(S.supplier), ctrl.create);
 router.get("/", ctrl.getAll);
+router.get("/balances", ctrl.balances);
 router.get("/:id", validateId, ctrl.getOne);
 router.put("/:id", validateId, validateBody(S.supplier), ctrl.update);
 router.delete("/:id", validateId, ctrl.remove);
