@@ -169,8 +169,10 @@ export default function DashboardPage() {
   }, [fetchTx, fetchInv]);
 
   const m = useMemo(() => {
+    // Income = sales only. A deposit moves cash into the bank (Dr Bank / Cr Cash in the journal)
+    // and is not income — counting it would count the same sales money twice.
     const income = txns
-      .filter((t) => ["sale", "deposit"].includes(t.transaction_type))
+      .filter((t) => t.transaction_type === "sale")
       .reduce((s, t) => s + (Number(t.amount) || 0), 0);
     const expense = txns
       .filter((t) => ["purchase", "expense"].includes(t.transaction_type))
@@ -196,7 +198,7 @@ export default function DashboardPage() {
         return t("Total Income");
       },
       get caption() {
-        return t("money in");
+        return t("from sales");
       },
       value: formatCurrency(aIncome),
       icon: TrendingUp,

@@ -258,6 +258,7 @@ function JournalTab({ days, totals }) {
 const CLASS_TONE = {
   Asset: "bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300",
   Liability: "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
+  Drawings: "bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300",
   Income: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
   Expense: "bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300",
   Other: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
@@ -526,6 +527,12 @@ function PnLTab({ pnl }) {
           {pnl.is_profit ? t("Net Profit") : t("Net Loss")}: {formatCurrency(Math.abs(pnl.net_profit))}
         </span>
       </div>
+      {Number(pnl.drawings) > 0 && (
+        <p className="rounded-xl bg-violet-50 px-4 py-3 text-xs text-violet-800 dark:bg-violet-950/40 dark:text-violet-300">
+          {t("Owner's drawings")}: <b>{formatCurrency(pnl.drawings)}</b> —{" "}
+          {t("taken from capital, not an expense, so not in the profit above.")}
+        </p>
+      )}
     </div>
   );
 }

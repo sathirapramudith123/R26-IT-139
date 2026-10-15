@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AuthForm from "@/components/forms/AuthForm";
+import GoogleSignInButton from "@/components/forms/GoogleSignInButton";
 import useAuth from "@/hooks/useAuth";
 import { LogIn, Loader2 } from "lucide-react";
 
@@ -10,11 +11,20 @@ import { t } from "@/lib/i18n";
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, loading, error } = useAuth();
+  const { login, googleLogin, loading, error } = useAuth();
 
   async function handleSubmit(values) {
     await login(values);
     router.push(searchParams.get("redirect") || "/dashboard");
+  }
+
+  async function handleGoogle(credential) {
+    try {
+      await googleLogin(credential);
+      router.push(searchParams.get("redirect") || "/dashboard");
+    } catch {
+      // shown through `error`
+    }
   }
 
   return (
@@ -41,6 +51,9 @@ function LoginContent() {
       {/* Card */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur-xl p-8 shadow-2xl">
         <AuthForm mode="login" onSubmit={handleSubmit} loading={loading} error={error} />
+        <div className="mt-6">
+          <GoogleSignInButton onCredential={handleGoogle} text="signin_with" />
+        </div>
       </div>
     </div>
   );

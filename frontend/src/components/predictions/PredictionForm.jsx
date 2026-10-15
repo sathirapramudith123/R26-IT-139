@@ -58,6 +58,7 @@ export default function PredictionForm({ fields = [], loading = false, onSubmit 
               onChange={(e) => handleChange(e, field.type)}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
+            {field.hint && <p className="text-[11px] text-gray-500 dark:text-gray-400">{field.hint}</p>}
           </div>
         ))}
       </div>

@@ -1,6 +1,8 @@
 import { apiClient } from "./client";
 export const authApi = {
   login: (p) => apiClient.post("/auth/login", p),
+  // Sign in with Google: the ID token from Google Identity Services
+  google: (credential) => apiClient.post("/auth/google", { credential }),
   register: (p) => apiClient.post("/auth/register", p),
   forgotPassword: (p) => apiClient.post("/auth/forgot-password", p),
   resetPassword: (p) => apiClient.post("/auth/reset-password", p),

@@ -2,17 +2,27 @@
 
 import { useRouter } from "next/navigation";
 import AuthForm from "@/components/forms/AuthForm";
+import GoogleSignInButton from "@/components/forms/GoogleSignInButton";
 import useAuth from "@/hooks/useAuth";
 import { UserPlus } from "lucide-react";
 
 import { t } from "@/lib/i18n";
 export default function RegisterPage() {
   const router = useRouter();
-  const { register, loading, error } = useAuth();
+  const { register, googleLogin, loading, error } = useAuth();
 
   async function handleSubmit(values) {
     await register(values);
     router.push("/dashboard");
+  }
+
+  async function handleGoogle(credential) {
+    try {
+      await googleLogin(credential); // creates the account the first time
+      router.push("/dashboard");
+    } catch {
+      // shown through `error`
+    }
   }
 
   return (
@@ -34,6 +44,9 @@ export default function RegisterPage() {
         {/* Card */}
         <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur-xl p-8 shadow-2xl">
           <AuthForm mode="register" onSubmit={handleSubmit} loading={loading} error={error} />
+          <div className="mt-6">
+            <GoogleSignInButton onCredential={handleGoogle} text="signup_with" />
+          </div>
         </div>
       </div>
     </div>
