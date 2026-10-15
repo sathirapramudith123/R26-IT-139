@@ -74,7 +74,10 @@ export const inventory = Joi.object({
   lead_time_days: optNum(Joi.number().integer().min(0).max(365)),
   category: optStr(100),
   supplier_name: optStr(150),
-}).custom(nameRequired("Item name is required"));
+  // the item's own name (not the supplier's) must be given
+}).custom((v, h) =>
+  String(v.name || v.item_name || "").trim() ? v : h.message({ custom: "Item name is required" }),
+);
 
 // ── Suppliers ──────────────────────────────────────────────────
 export const supplier = Joi.object({
@@ -211,6 +214,8 @@ export const register = Joi.object({
 );
 export const login = Joi.object({ email: anyEmail.required(), password: Joi.string().max(200).required() });
 export const forgotPassword = Joi.object({ email: anyEmail.required() });
+// Google Identity Services ID token (a JWT)
+export const googleLogin = Joi.object({ credential: Joi.string().trim().min(20).max(4096).required() });
 export const resetPassword = Joi.object({
   token: Joi.string().trim().hex().length(64).required().messages({
     "string.hex": "Invalid or expired reset token",

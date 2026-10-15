@@ -2,9 +2,10 @@
 
 import { useState, useCallback } from "react";
 
-// ML service (FastAPI) URL
-const FASTAPI_URL = "http://127.0.0.1:8000/predict";
+import { predictionApi } from "@/services/api/prediction";
 
+// Predictions go through the backend (/api/v1/predict/:component, signed in), which calls the ML
+// service — the browser never talks to the ML service directly, so this also works when hosted.
 export default function usePrediction() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -32,28 +33,7 @@ export default function usePrediction() {
         }
       });
 
-      // send the request straight to the ML service
-      const response = await fetch(FASTAPI_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          component: component.trim().toLowerCase(),
-          features: sanitizedFeatures,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        const errorMessage =
-          typeof data.detail === "object"
-            ? JSON.stringify(data.detail)
-            : data.detail || "Prediction request failed";
-        throw new Error(errorMessage);
-      }
-
+      const data = await predictionApi.predict(component.trim().toLowerCase(), sanitizedFeatures);
       setResult(data);
       return data;
     } catch (err) {

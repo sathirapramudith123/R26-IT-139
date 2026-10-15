@@ -10,6 +10,11 @@
 const num = (v) => Number(v || 0);
 const up = (v) => String(v || "").toUpperCase();
 
+// Money the owner takes for personal use: reduces capital, not an expense (not in the P&L)
+export const isDrawings = (category) => /drawing/i.test(String(category || ""));
+// Paying a supplier settles what the shop owes them (Trade Payables), it is not a cash→bank move
+const isSupplierPayment = (category) => /^supplier payment$/i.test(String(category || "").trim());
+
 // The "cash-side" account depends on how the money moved.
 //   cash            -> Cash A/C           (asset)
 //   bank / digital  -> Bank A/C           (asset)
@@ -48,8 +53,11 @@ export function toJournalLines(txn) {
       break;
 
     case "EXPENSE":
-      // Expense increases (Debit). Paid from cash/bank (asset decreases -> Credit)
-      debit_account = `${(txn.category || "General").trim()} Expense A/C`;
+      // Expense increases (Debit). Paid from cash/bank (asset decreases -> Credit).
+      // Drawings: Dr Drawings (owner's capital goes down), not an expense account.
+      debit_account = isDrawings(txn.category)
+        ? "Drawings A/C"
+        : `${(txn.category || "General").trim()} Expense A/C`;
       credit_account = cashAccount(method);
       break;
 
@@ -60,9 +68,15 @@ export function toJournalLines(txn) {
       break;
 
     case "TRANSFER":
-      // Move between accounts (default cash -> bank)
-      debit_account = "Bank A/C";
-      credit_account = "Cash A/C";
+      if (isSupplierPayment(txn.category)) {
+        // Paying a supplier: the debt goes down (Dr Trade Payables), paid from bank/digital (Cr)
+        debit_account = "Trade Payables A/C";
+        credit_account = cashAccount(method);
+      } else {
+        // Move between accounts (default cash -> bank)
+        debit_account = "Bank A/C";
+        credit_account = "Cash A/C";
+      }
       break;
 
     default:
@@ -186,7 +200,8 @@ export function buildGoodsSummary(transactions) {
 export function buildProfitAndLoss(transactions) {
   let sales = 0,
     purchases = 0,
-    cogs = 0;
+    cogs = 0,
+    drawings = 0;
   const expenses = {}; // by category
 
   for (const t of transactions || []) {
@@ -203,6 +218,10 @@ export function buildProfitAndLoss(transactions) {
     } else if (type === "PURCHASE") {
       purchases += amt;
     } else if (type === "EXPENSE") {
+      if (isDrawings(t.category)) {
+        drawings += amt; // owner's withdrawals: shown separately, not an expense
+        continue;
+      }
       const cat = (t.category || "General").trim();
       expenses[cat] = (expenses[cat] || 0) + amt;
     }
@@ -226,6 +245,7 @@ export function buildProfitAndLoss(transactions) {
     is_profit: netProfit >= 0,
     // extra context
     total_purchases: +purchases.toFixed(2),
+    drawings: +drawings.toFixed(2), // owner's withdrawals (not in net profit)
   };
 }
 
@@ -236,11 +256,12 @@ export function buildProfitAndLoss(transactions) {
 function accountClass(account) {
   if (/^(Cash|Bank|Trade Receivables) A\/C$/.test(account)) return "Asset";
   if (account === "Trade Payables A/C") return "Liability";
+  if (account === "Drawings A/C") return "Drawings";
   if (account === "Sales A/C") return "Income";
   if (account === "Purchases A/C" || / Expense A\/C$/.test(account)) return "Expense";
   return "Other";
 }
-const CLASS_ORDER = { Asset: 0, Liability: 1, Income: 2, Expense: 3, Other: 4 };
+const CLASS_ORDER = { Asset: 0, Liability: 1, Drawings: 2, Income: 3, Expense: 4, Other: 5 };
 
 /**
  * Group journal rows (from buildJournal) by account. Each debit line names the account it

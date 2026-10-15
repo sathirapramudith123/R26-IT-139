@@ -8,6 +8,7 @@ import auth from "../middlewares/auth.middleware.js";
 const router = Router();
 router.post("/register", authLimiter, validateBody(S.register), ctrl.register);
 router.post("/login", loginLimiter, validateBody(S.login), ctrl.login);
+router.post("/google", authLimiter, validateBody(S.googleLogin), ctrl.googleLogin);
 router.post("/forgot-password", forgotLimiter, validateBody(S.forgotPassword), ctrl.forgotPassword);
 router.post("/reset-password", authLimiter, validateBody(S.resetPassword), ctrl.resetPassword);
 // the signed-in user's own profile

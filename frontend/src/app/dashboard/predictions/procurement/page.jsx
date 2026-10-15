@@ -5,133 +5,109 @@ import useAuthGuard from "@/hooks/useAuthGuard";
 import PageHeader from "@/components/common/PageHeader";
 import Button from "@/components/ui/Button";
 import PredictionForm from "@/components/predictions/PredictionForm";
-import PredictionResult from "@/components/predictions/PredictionResult";
+import { InfluenceChart } from "@/components/predictions/InsightWidgets";
 import usePrediction from "@/hooks/usePrediction";
+import { formatCurrency } from "@/lib/formatters";
+import { isoWeekYear, daysToAvurudu, field } from "@/lib/predictionDefaults";
 
 import { t } from "@/lib/i18n";
-// Inputs for the manual prediction form
+
+// Inputs of the Buy now / Wait model (procurement_buy_wait_model.pkl). Defaults: a carrot whose
+// price fell 15% in 4 weeks — the model advises buying; make the change +18% to see "wait".
+const NOW = isoWeekYear();
+const DAYS = daysToAvurudu();
+
 const PROCUREMENT_FIELDS = [
-  {
-    name: "item",
-    get label() {
-      return t("Item Name");
-    },
-    type: "text",
-    default: "Rice",
-  },
-  {
-    name: "category",
-    get label() {
-      return t("Category");
-    },
-    type: "text",
-    default: "grain",
-  },
-  {
-    name: "iso_year",
-    get label() {
-      return t("ISO Year");
-    },
-    type: "number",
-    default: 2026,
-  },
-  {
-    name: "iso_week",
-    get label() {
-      return t("ISO Week");
-    },
-    type: "number",
-    default: 12,
-  },
-  {
-    name: "days_to_avurudu",
-    get label() {
-      return t("Days to Avurudu");
-    },
-    type: "number",
-    default: 30,
-  },
-  {
-    name: "festival_season",
-    get label() {
-      return t("Festival Season (1 = Yes, 0 = No)");
-    },
-    type: "number",
-    default: 0,
-  },
-  {
-    name: "avg_wholesale_price_rs",
-    get label() {
-      return t("Avg Wholesale Price (LKR)");
-    },
-    type: "number",
-    default: 180,
-  },
-  {
-    name: "avg_retail_price_rs",
-    get label() {
-      return t("Avg Retail Price (LKR)");
-    },
-    type: "number",
-    default: 220,
-  },
-  {
-    name: "lag1_price",
-    get label() {
-      return t("Lag 1 Price (LKR)");
-    },
-    type: "number",
-    default: 215,
-  },
-  {
-    name: "lag4_price",
-    get label() {
-      return t("Lag 4 Price (LKR)");
-    },
-    type: "number",
-    default: 200,
-  },
-  {
-    name: "rolling4_mean_price",
-    get label() {
-      return t("Rolling 4-Week Mean Price (LKR)");
-    },
-    type: "number",
-    default: 210,
-  },
-  {
-    name: "lag1_units",
-    get label() {
-      return t("Lag 1 Units Sold");
-    },
-    type: "number",
-    default: 150,
-  },
-  {
-    name: "lag4_units",
-    get label() {
-      return t("Lag 4 Units Sold");
-    },
-    type: "number",
-    default: 120,
-  },
-  {
-    name: "rolling4_mean_units",
-    get label() {
-      return t("Rolling 4-Week Mean Units");
-    },
-    type: "number",
-    default: 135,
-  },
-  {
-    name: "weekend_share",
-    get label() {
-      return t("Weekend Sales Share (0 - 1)");
-    },
-    type: "number",
-    default: 0.35,
-  },
+  field("item", "Item", "text", "Carrot", "e.g. Carrot, Beans, Cabbage, Brinjals, Big Onion (Local)"),
+  field("category", "Category", "text", "Up Country", "Up Country, Low Country, Fruit or Grocery/Staple"),
+  field("iso_year", "ISO Year", "number", NOW.year),
+  field("iso_week", "ISO Week", "number", NOW.week),
+  field("current_price_rs", "Today's price (LKR)", "number", 300),
+  field(
+    "price_change_4wk_pct",
+    "Price change in the last 4 weeks (%)",
+    "number",
+    -15,
+    "Negative = the price fell. Try +18 to see the advice change",
+  ),
+  field(
+    "price_vs_3mo_avg_pct",
+    "Today's price vs the 3-month average (%)",
+    "number",
+    -12,
+    "Negative = below the usual price",
+  ),
+  field("days_to_festival", "Days to Avurudu", "number", DAYS),
+  field(
+    "festival_season",
+    "Festival Season (0/1)",
+    "number",
+    DAYS >= 1 && DAYS <= 43 ? 1 : 0,
+    "1 when Avurudu is 1–43 days away",
+  ),
 ];
+
+const ACTION = {
+  BULK_BUY_NOW: [
+    "Buy now — in bulk",
+    "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
+  ],
+  MODERATE_BUY: ["Buy now", "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"],
+  WAIT_DO_NOT_BUY: [
+    "Wait — prices may improve",
+    "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
+  ],
+};
+
+function ProcurementResult({ result }) {
+  const [label, cls] = ACTION[result.recommended_action] || [result.recommended_action || "—", ""];
+  const now = Number(result.current_price_lkr || 0);
+  const later = Number(result.predicted_4w_price_lkr || 0);
+  const alerts = (result.rule_alerts || []).filter((a) => a && a !== "None");
+  return (
+    <div className="card space-y-5 p-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className={`rounded-full px-3 py-1 text-sm font-semibold ${cls}`}>{t(label)}</span>
+        <span className="text-sm text-slate-500">
+          {t("Chance the price rises in 4 weeks")}:{" "}
+          <b>{Number(result.buy_confidence_score || 0).toFixed(0)}%</b>
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-4 text-sm">
+        <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/40">
+          <p className="text-xs text-slate-500">{t("Price today")}</p>
+          <p className="text-lg font-bold">{formatCurrency(now)}</p>
+        </div>
+        <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/40">
+          <p className="text-xs text-slate-500">{t("Expected price in 4 weeks")}</p>
+          <p className="text-lg font-bold">
+            {formatCurrency(later)}{" "}
+            <span className={`text-xs ${later > now ? "text-rose-600" : "text-emerald-600"}`}>
+              ({later >= now ? "+" : ""}
+              {now ? (((later - now) / now) * 100).toFixed(1) : "0"}%)
+            </span>
+          </p>
+        </div>
+      </div>
+      {alerts.map((a) => (
+        <p
+          key={a}
+          className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+        >
+          {t(a)}
+        </p>
+      ))}
+      {Array.isArray(result.explanation) && result.explanation.length > 0 && (
+        <div>
+          <p className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+            {t("What's affecting this")}
+          </p>
+          <InfluenceChart explanation={result.explanation} />
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function ProcurementOptimizerPage() {
   useAuthGuard();
@@ -139,10 +115,9 @@ export default function ProcurementOptimizerPage() {
 
   const handleSubmit = async (formData) => {
     try {
-      // calls the 'demand' model in the ML service
-      await run("demand", formData);
-    } catch (err) {
-      // Error handled inside usePrediction
+      await run("procurement", formData); // the Buy now / Wait model
+    } catch {
+      // shown through `error`
     }
   };
 
@@ -150,7 +125,7 @@ export default function ProcurementOptimizerPage() {
     <div className="page-container space-y-6">
       <PageHeader
         title={t("Procurement Optimizer")}
-        description={t("Smart stock replenishment decision engine (Buy Now vs. Wait).")}
+        description={t("Buy now or wait? Enter an item's market price trend and see the advice.")}
         action={
           <Link href="/dashboard/predictions">
             <Button variant="secondary">{t("← All Models")}</Button>
@@ -167,14 +142,7 @@ export default function ProcurementOptimizerPage() {
           </div>
         )}
 
-        {result && (
-          <PredictionResult
-            result={result}
-            positiveLabel="Buy Now (Recommended)"
-            negativeLabel="Wait (Prices may drop / low demand)"
-            scoreLabel="Buy Confidence"
-          />
-        )}
+        {result && <ProcurementResult result={result} />}
       </div>
     </div>
   );

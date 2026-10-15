@@ -18,6 +18,7 @@ import ActionPlan from "@/components/predictions/ActionPlan";
 import ForecastChart from "@/components/predictions/ForecastChart";
 import { TrustLine, ModelTrustPanel } from "@/components/predictions/ModelTrust";
 
+import Link from "next/link";
 import { t } from "@/lib/i18n";
 
 export default function PredictionsDashboard() {
@@ -48,9 +49,12 @@ export default function PredictionsDashboard() {
 
   const creditScore = Number(credit.credit_score ?? credit.score ?? 0);
   const creditApproved = String(credit.status || "").startsWith("APPROVED");
-  const weekUnits = demand.available
-    ? (demand.items || []).reduce((s, it) => s + Number(it.forecast_units || 0), 0)
-    : null;
+  // N/A (not 0) when no item has a forecast, e.g. no sales in the last 4 weeks
+  const forecastItems = (demand.items || []).filter((it) => it.forecast_units != null);
+  const weekUnits =
+    demand.available && forecastItems.length
+      ? forecastItems.reduce((s, it) => s + Number(it.forecast_units), 0)
+      : null;
   const weekRevenue = demand.available
     ? (demand.items || []).reduce((s, it) => s + Number(it.forecast_revenue || 0), 0)
     : 0;
@@ -137,7 +141,15 @@ export default function PredictionsDashboard() {
                 {t("Credit Score")}
               </h3>
             </div>
-            <span className="text-2xl">💳</span>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/dashboard/predictions/credit"
+                className="text-xs font-semibold text-slate-500 hover:text-brand-600 hover:underline dark:text-slate-400"
+              >
+                {t("Try it yourself")}
+              </Link>
+              <span className="text-2xl">💳</span>
+            </div>
           </div>
 
           {!credit.available ? (
@@ -213,12 +225,20 @@ export default function PredictionsDashboard() {
                 {t("Sales Forecast")}
               </h3>
             </div>
-            <button
-              onClick={() => setShowAllItems(true)}
-              className="text-xs font-semibold text-brand-600 hover:underline dark:text-brand-400"
-            >
-              {t("View all items →")}
-            </button>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/dashboard/predictions/demand"
+                className="text-xs font-semibold text-slate-500 hover:text-brand-600 hover:underline dark:text-slate-400"
+              >
+                {t("Try it yourself")}
+              </Link>
+              <button
+                onClick={() => setShowAllItems(true)}
+                className="text-xs font-semibold text-brand-600 hover:underline dark:text-brand-400"
+              >
+                {t("View all items →")}
+              </button>
+            </div>
           </div>
 
           {!demand.available ? (
@@ -254,7 +274,9 @@ export default function PredictionsDashboard() {
                       </div>
                       <div className="flex items-center gap-3 text-right">
                         {noHistory ? (
-                          <span className="text-xs italic text-slate-400">{t("No sales data yet")}</span>
+                          <span className="text-xs italic text-slate-400">
+                            {it.reason ? t(it.reason) : t("No sales data yet")}
+                          </span>
                         ) : (
                           <div>
                             <span className="font-display text-2xl font-bold text-brand-600 dark:text-brand-400">
@@ -296,12 +318,20 @@ export default function PredictionsDashboard() {
                 {t("Should I Buy?")}
               </h3>
             </div>
-            <button
-              onClick={() => setShowAllProcurement(true)}
-              className="text-xs font-semibold text-brand-600 hover:underline dark:text-brand-400"
-            >
-              {t("View all items →")}
-            </button>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/dashboard/predictions/procurement"
+                className="text-xs font-semibold text-slate-500 hover:text-brand-600 hover:underline dark:text-slate-400"
+              >
+                {t("Try it yourself")}
+              </Link>
+              <button
+                onClick={() => setShowAllProcurement(true)}
+                className="text-xs font-semibold text-brand-600 hover:underline dark:text-brand-400"
+              >
+                {t("View all items →")}
+              </button>
+            </div>
           </div>
 
           {!procurement.available ? (
@@ -356,7 +386,15 @@ export default function PredictionsDashboard() {
               {t("Account Activity")}
             </h3>
           </div>
-          <span className="text-2xl">🛡️</span>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/dashboard/predictions/anomaly"
+              className="text-xs font-semibold text-slate-500 hover:text-brand-600 hover:underline dark:text-slate-400"
+            >
+              {t("Try it yourself")}
+            </Link>
+            <span className="text-2xl">🛡️</span>
+          </div>
         </div>
         {!anomaly.available ? (
           <NoData reason={anomaly.reason} />
