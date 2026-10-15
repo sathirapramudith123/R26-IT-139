@@ -1,4 +1,5 @@
 import { supabase } from "../config/supabase.js";
+import { isDrawings } from "../utils/doubleEntry.js";
 
 const num = (v) => Number(v) || 0;
 
@@ -48,8 +49,8 @@ export const getIncomeStatement = async (req, res, next) => {
           const unitCost = line.cost_price != null ? num(line.cost_price) : costMap[line.item_name] || 0;
           costOfGoodsSold += unitCost * qty;
         });
-      } else if (type === "expense") {
-        operatingExpenses += amount;
+      } else if (type === "expense" && !isDrawings(t.category)) {
+        operatingExpenses += amount; // owner's drawings are not an expense
       }
       // PURCHASE -> cash→stock asset swap; does not affect P&L.
       // DEPOSIT / TRANSFER -> financing / pass-through; not income.

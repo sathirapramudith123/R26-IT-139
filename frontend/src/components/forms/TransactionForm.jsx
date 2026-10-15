@@ -626,7 +626,7 @@ export default function TransactionForm({ initialData = {}, txId = null }) {
                 <option value="">{t("Select Category...")}</option>
                 {(CATEGORIES_BY_TYPE[type] || []).map((cat) => (
                   <option key={cat} value={cat}>
-                    {cat}
+                    {t(cat)}
                   </option>
                 ))}
               </select>

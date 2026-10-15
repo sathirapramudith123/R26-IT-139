@@ -44,8 +44,25 @@ export default function useAuth() {
     }
   }
 
+  // Sign in (or sign up) with a Google ID token
+  async function googleLogin(credential) {
+    setLoading(true);
+    setError(null);
+    try {
+      const d = await authApi.google(credential);
+      tokenService.setToken(d.token);
+      tokenService.setUser(normalizeUser(d.user));
+      return d;
+    } catch (e) {
+      setError(e.message || "Google sign-in failed.");
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function logout() {
     tokenService.clearToken();
   }
-  return { loading, error, login, register, logout };
+  return { loading, error, login, register, googleLogin, logout };
 }
