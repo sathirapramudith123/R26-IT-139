@@ -1,6 +1,6 @@
 import { predict } from "../utils/mlClient.js";
 
-const VALID = ["credit", "pricing", "demand", "anomaly"];
+const VALID = ["credit", "pricing", "procurement", "demand", "anomaly"]; // pricing = procurement (alias)
 
 export const run = async (req, res) => {
   try {

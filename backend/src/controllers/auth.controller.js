@@ -1,3 +1,4 @@
+import axios from "axios";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
@@ -62,6 +63,70 @@ export const login = async (req, res, next) => {
 
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) return res.status(401).json({ error: "Invalid email or password" });
+
+    await supabase
+      .from("users")
+      .update({ last_login_at: new Date().toISOString() })
+      .eq("user_id", user.user_id);
+
+    res.json({ token: signToken(user), user: publicUser(user) });
+  } catch (e) {
+    next(e);
+  }
+};
+
+// ── Sign in with Google ────────────────────────────────────────────────────
+// The web app sends the ID token (credential) from Google Identity Services. Google's tokeninfo
+// endpoint checks its signature and expiry; we check it was issued for OUR client id and that the
+// email is verified. The account with that email is signed in, or created (with an unusable
+// random password — the user can set one later with "Forgot password").
+const GOOGLE_ISSUERS = ["accounts.google.com", "https://accounts.google.com"];
+
+export const googleLogin = async (req, res, next) => {
+  try {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) return res.status(503).json({ error: "Google sign-in is not set up (GOOGLE_CLIENT_ID)." });
+
+    let info;
+    try {
+      ({ data: info } = await axios.get("https://oauth2.googleapis.com/tokeninfo", {
+        params: { id_token: req.body.credential },
+        timeout: 8000,
+      }));
+    } catch {
+      return res.status(401).json({ error: "Google sign-in failed. Please try again." });
+    }
+    const valid =
+      info.aud === clientId &&
+      GOOGLE_ISSUERS.includes(info.iss) &&
+      String(info.email_verified) === "true" &&
+      Number(info.exp) * 1000 > Date.now() &&
+      typeof info.email === "string";
+    if (!valid) return res.status(401).json({ error: "Google sign-in failed. Please try again." });
+
+    const email = info.email.trim().toLowerCase();
+    // existing account with this email, in any letter case
+    const { data: matches, error } = await supabase
+      .from("users")
+      .select("*")
+      .ilike(
+        "email",
+        email.replace(/[\\%_]/g, (c) => "\\" + c),
+      );
+    if (error) throw error;
+    let user = (matches || []).find((u) => String(u.email).toLowerCase() === email);
+
+    if (!user) {
+      const password_hash = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10);
+      const full_name = String(info.name || email.split("@")[0]).slice(0, 150);
+      const created = await supabase
+        .from("users")
+        .insert([{ full_name, email, password_hash }])
+        .select()
+        .single();
+      if (created.error) throw created.error;
+      user = created.data;
+    }
 
     await supabase
       .from("users")

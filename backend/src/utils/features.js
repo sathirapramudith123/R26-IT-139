@@ -309,7 +309,19 @@ export async function buildDemandFeatures(userId, item, avgRetailPrice = null, n
   const units = series.map((w) => w.units);
   // Lags need recent weeks: no sales in the last 8 completed weeks -> no forecast
   if (!units.some((u) => u > 0)) {
-    return { hasSalesHistory: false, features: null };
+    return { hasSalesHistory: false, features: null, reason: "No sales in the last 8 weeks" };
+  }
+  // No sales in the last 4 completed weeks -> lag1, lag4 and the 4-week mean are all 0. Every
+  // item sold every week in the training data, so the model has never seen this and returns a
+  // made-up ~20-30 units for any item. Do not show a forecast; Buy / Wait then uses the
+  // reorder level. (The past weeks are still returned for the chart.)
+  if (!units.slice(0, 4).some((u) => u > 0)) {
+    return {
+      hasSalesHistory: false,
+      features: null,
+      history: series,
+      reason: "No sales in the last 4 weeks",
+    };
   }
 
   const lag1Units = units[0]; // last completed week

@@ -822,6 +822,22 @@ class _JournalScreenState extends State<JournalScreen> {
           ],
         ),
       ),
+      // owner's drawings: taken from capital, so not an expense in the P&L above
+      if (numOf(p["drawings"]) > 0) ...[
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.purple.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(KadeRadius.md),
+          ),
+          child: Text(
+            "${tr("Owner's drawings")}: ${money(numOf(p["drawings"]))} — "
+            "${tr("taken from capital, not an expense, so not in the profit above.")}",
+            style: const TextStyle(fontSize: 12),
+          ),
+        ),
+      ],
     ];
   }
 

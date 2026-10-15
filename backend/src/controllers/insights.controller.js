@@ -1,5 +1,6 @@
 import { supabase } from "../config/supabase.js";
 import { predict } from "../utils/mlClient.js";
+import { localDateStr } from "../utils/time.js";
 import {
   buildCreditFeatures,
   buildDemandFeatures,
@@ -127,6 +128,7 @@ export const getInsights = async (req, res) => {
         hasSalesHistory,
         features: demandFeatures,
         history,
+        reason,
       } = await buildDemandFeatures(userId, item, avgSalePrice[normName(item.item_name)]);
       if (hasSalesHistory) {
         const r = await safePredict("demand", demandFeatures);
@@ -148,7 +150,8 @@ export const getInsights = async (req, res) => {
           history: (history || [])
             .slice()
             .reverse()
-            .map((w) => ({ week: new Date(w.week).toISOString().slice(0, 10), units: w.units })),
+            // local Monday of the week (toISOString would show the Sunday before in UTC+5:30)
+            .map((w) => ({ week: localDateStr(new Date(w.week)), units: w.units })),
         });
       } else {
         list.push({
@@ -158,7 +161,7 @@ export const getInsights = async (req, res) => {
           forecast_units: null,
           forecast_revenue: null,
           available: false,
-          reason: "No sales in the last 8 weeks for this item",
+          reason: reason || "No sales in the last 8 weeks",
         });
       }
     }

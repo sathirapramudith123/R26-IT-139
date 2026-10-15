@@ -3,6 +3,10 @@ import '../../core/theme.dart';
 import '../../services/insights_service.dart';
 import 'prediction_widgets.dart';
 import 'prediction_extras.dart';
+import 'demand_try_screen.dart';
+import 'credit_try_screen.dart';
+import 'procurement_try_screen.dart';
+import 'anomaly_try_screen.dart';
 import '../../core/i18n.dart';
 import '../common/record_details.dart' show money;
 
@@ -222,6 +226,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
     required Color tint,
     required Widget child,
     required String model,
+    Widget? action, // e.g. a link shown next to the title
   }) {
     return Card(
       child: Padding(
@@ -242,6 +247,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
                   ],
                 ),
                 const Spacer(),
+                ?action,
                 Text(icon, style: const TextStyle(fontSize: 26)),
               ],
             ),
@@ -282,6 +288,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
         icon: "💳",
         tint: KadeColors.teal,
         model: "credit",
+        action: _tryItLink(const CreditTryScreen()),
         child: _unavailable(m),
       );
     }
@@ -296,6 +303,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
       icon: "💳",
       tint: KadeColors.teal,
       model: "credit",
+      action: _tryItLink(const CreditTryScreen()),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -344,6 +352,12 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
 
   /* ------------------------------ Sales forecast ------------------------------ */
 
+  // Opens a "try it yourself" form: enter a model's inputs and see its result
+  Widget _tryItLink(Widget screen) => TextButton(
+    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => screen)),
+    child: Text(tr("Try it yourself"), style: const TextStyle(fontSize: 12)),
+  );
+
   Widget _demandCard(Map m) {
     const tag = "Inventory", title = "Sales Forecast";
     if (m["available"] != true) {
@@ -353,6 +367,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
         icon: "📈",
         tint: KadeColors.amber,
         model: "demand",
+        action: _tryItLink(const DemandTryScreen()),
         child: _unavailable(m),
       );
     }
@@ -365,6 +380,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
       icon: "📈",
       tint: KadeColors.amber,
       model: "demand",
+      action: _tryItLink(const DemandTryScreen()),
       child: Column(
         children: [
           for (var i = 0; i < items.length; i++)
@@ -436,7 +452,9 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
                                       ],
                                     )
                                   : Text(
-                                      tr("No sales data yet"),
+                                      tr(
+                                        it["reason"] is String ? it["reason"] as String : "No sales data yet",
+                                      ),
                                       style: TextStyle(fontSize: 11, color: sub, fontStyle: FontStyle.italic),
                                     ),
                               if (hasForecast) Icon(open ? Icons.expand_less : Icons.expand_more, color: sub),
@@ -470,6 +488,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
         icon: "🛒",
         tint: KadeColors.terra,
         model: "procurement",
+        action: _tryItLink(const ProcurementTryScreen()),
         child: _unavailable(m),
       );
     }
@@ -482,6 +501,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
       icon: "🛒",
       tint: KadeColors.terra,
       model: "procurement",
+      action: _tryItLink(const ProcurementTryScreen()),
       child: Column(
         children: [
           for (final raw in items)
@@ -565,6 +585,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
         icon: "🛡️",
         tint: Colors.blue,
         model: "anomaly",
+        action: _tryItLink(const AnomalyTryScreen()),
         child: _unavailable(m),
       );
     }
@@ -577,6 +598,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
       icon: "🛡️",
       tint: Colors.blue,
       model: "anomaly",
+      action: _tryItLink(const AnomalyTryScreen()),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

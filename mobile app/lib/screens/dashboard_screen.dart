@@ -44,7 +44,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         for (final t in txns) {
           final amt = (t["amount"] is num) ? (t["amount"] as num).toDouble() : 0.0;
           final type = "${t["transaction_type"]}";
-          if (type == "sale" || type == "deposit") inc += amt;
+          // Income = sales only: a deposit moves cash into the bank, it is not income (same as web)
+          if (type == "sale") inc += amt;
           if (type == "purchase" || type == "expense") exp += amt;
         }
       }
@@ -224,7 +225,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             icon: Icons.south_west,
                             color: KadeColors.success,
                             label: tr("Total Income"),
-                            caption: tr("money in"),
+                            caption: tr("from sales"),
                             value: income,
                             loading: loading,
                           ),
@@ -288,34 +289,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         icon: m.icon,
                         title: m.title,
                         subtitle: _moduleCaptions[m.path],
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ListScreen(module: m))),
+                        onTap: () =>
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => ListScreen(module: m))),
                       ),
                     ),
                     ModuleTile(
                       icon: Icons.account_balance_wallet_outlined,
                       title: tr("My Banks"),
                       subtitle: "Float accounts",
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyBanksScreen())),
+                      onTap: () =>
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const MyBanksScreen())),
                     ),
                     ModuleTile(
                       icon: Icons.menu_book_outlined,
                       title: tr("Journal"),
                       subtitle: "Double-entry ledger",
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const JournalScreen())),
+                      onTap: () =>
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const JournalScreen())),
                     ),
                     ModuleTile(
                       icon: Icons.bar_chart_outlined,
                       title: tr("Reports"),
                       subtitle: "Reports & Export",
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen())),
+                      onTap: () =>
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen())),
                     ),
                     ModuleTile(
                       icon: Icons.insights_outlined,
                       title: tr("Predictions"),
                       subtitle: "AI insights",
                       highlight: true,
-                      onTap: () =>
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => const PredictionsHubScreen())),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const PredictionsHubScreen()),
+                      ),
                     ),
                   ]),
                 ),
@@ -363,7 +370,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const Divider(height: 1),
                 InkWell(
                   onTap: () async {
-                    await Navigator.push(context, MaterialPageRoute(builder: (_) => ListScreen(module: txModule)));
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => ListScreen(module: txModule)),
+                    );
                     _loadMetrics();
                   },
                   child: Padding(
@@ -394,9 +404,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final type = "${tx["transaction_type"] ?? ""}";
     final isIn = type == "sale" || type == "deposit";
     final color = isIn ? KadeColors.success : KadeColors.terra;
-    final amount = (tx["amount"] is num) ? (tx["amount"] as num).toDouble() : double.tryParse("${tx["amount"]}") ?? 0;
+    final amount = (tx["amount"] is num)
+        ? (tx["amount"] as num).toDouble()
+        : double.tryParse("${tx["amount"]}") ?? 0;
     final d = DateTime.tryParse("${tx["created_at"] ?? ""}")?.toLocal();
-    final when = d == null ? "" : "${d.year}-${d.month.toString().padLeft(2, "0")}-${d.day.toString().padLeft(2, "0")}";
+    final when = d == null
+        ? ""
+        : "${d.year}-${d.month.toString().padLeft(2, "0")}-${d.day.toString().padLeft(2, "0")}";
     String title(String s) =>
         s.split("_").map((w) => w.isEmpty ? w : "${w[0].toUpperCase()}${w.substring(1)}").join(" ");
     final cat = "${tx["category"] ?? ""}".trim();
@@ -436,7 +450,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
                 Text(
-                  cat.isNotEmpty ? cat : tr(title("${tx["payment_method"] ?? ""}")),
+                  // category (and who was paid, for a Supplier Payment), else the payment method
+                  cat.isNotEmpty
+                      ? "${tr(cat)}${"${tx["supplier_name"] ?? ""}".trim().isNotEmpty ? " → ${tx["supplier_name"]}" : ""}"
+                      : tr(title("${tx["payment_method"] ?? ""}")),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 11, color: soft),
