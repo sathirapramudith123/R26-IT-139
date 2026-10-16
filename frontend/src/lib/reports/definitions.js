@@ -60,7 +60,7 @@ export const REPORT_GROUPS = [
     get label() {
       return t("Money in & out");
     },
-    ids: ["transactions", "agency"],
+    ids: ["payments", "transactions", "agency"],
   },
 ];
 
@@ -475,6 +475,83 @@ export const REPORTS = {
               text("location", tr("Location")),
             ],
             rows,
+          },
+        ],
+      };
+    },
+  },
+
+  payments: {
+    icon: "💵",
+    usesRange: true,
+    name: "Cash, Bank & Digital",
+    get title() {
+      return t(this.name);
+    },
+    get description() {
+      return t("How much came in and went out through cash, bank and digital payments.");
+    },
+    async load(range, tr = t) {
+      const d = (await transactionApi.paymentMethods(range)) || {};
+      const m = d.methods || {};
+      const M = ["cash", "bank", "digital"];
+      const at = (path) => Object.fromEntries(M.map((k) => [k, num(path(m[k] || {}))]));
+      // one table row: the value per method + the total
+      const row = (line, path, extra = {}) => {
+        const v = at(path);
+        return { line, ...v, total: v.cash + v.bank + v.digital, ...extra };
+      };
+      const credit = d.credit || {};
+      const kpis = M.map((k) => ({
+        label: `${tr(words(k))} — ${tr("net")}`,
+        value: num(m[k]?.net),
+        type: "money",
+        tone: num(m[k]?.net) >= 0 ? "good" : "bad",
+      }));
+      kpis.push({ label: tr("Credit sales due"), value: num(credit.sales), type: "money" });
+
+      const sales = num(d.totals?.sales);
+      const share = (v) => (sales > 0 ? `${((v / sales) * 100).toFixed(1)}%` : "—");
+      return {
+        kpis,
+        sections: [
+          {
+            heading: tr("Money by payment method"),
+            columns: [
+              text("line", tr("Description")),
+              money("cash", tr("Cash")),
+              money("bank", tr("Bank")),
+              money("digital", tr("Digital")),
+              money("total", tr("Total")),
+            ],
+            rows: [
+              row(tr("Sales received"), (x) => x.in?.sales),
+              row(tr("Moved in (deposits / transfers)"), (x) => x.in?.moved_in),
+              row(tr("Total money in"), (x) => x.in?.total, { _bold: true }),
+              row(tr("Purchases"), (x) => -num(x.out?.purchases) || 0),
+              row(tr("Expenses"), (x) => -num(x.out?.expenses) || 0),
+              row(tr("Supplier payments"), (x) => -num(x.out?.supplier_payments) || 0),
+              row(tr("Moved out (deposits / transfers)"), (x) => -num(x.out?.moved_out) || 0),
+              row(tr("Total money out"), (x) => -num(x.out?.total) || 0, { _bold: true }),
+              row(tr("Net change"), (x) => x.net, { _bold: true }),
+            ],
+          },
+          {
+            heading: tr("Sales by payment method"),
+            columns: [
+              text("method", tr("Payment")),
+              money("amount", tr("Sales (LKR)")),
+              text("share", tr("Share of sales received")),
+            ],
+            rows: [
+              ...M.map((k) => ({
+                method: tr(words(k)),
+                amount: num(m[k]?.in?.sales),
+                share: share(num(m[k]?.in?.sales)),
+              })),
+              { method: tr("Credit (not received yet)"), amount: num(credit.sales), share: "—" },
+            ],
+            totals: { method: tr("Total"), amount: sales + num(credit.sales) },
           },
         ],
       };
