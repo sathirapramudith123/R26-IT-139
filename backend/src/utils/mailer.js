@@ -39,7 +39,26 @@ export async function sendBrandedEmail(to, subject, content) {
   });
 }
 
-export async function sendResetEmail(to, link) {
+// "15 Oct 2026, 10:42 AM" in Sri Lanka time
+const slTime = (d) =>
+  d.toLocaleString("en-GB", {
+    timeZone: "Asia/Colombo",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+/**
+ * @param {string} to
+ * @param {string} link      reset page link with the one-time token
+ * @param {object} [o]
+ * @param {string} [o.name]  the user's full name, for the greeting
+ * @param {Date} [o.expiresAt]
+ */
+export async function sendResetEmail(to, link, { name, expiresAt = new Date(Date.now() + 3600_000) } = {}) {
   if (!isConfigured()) {
     // Local development without SMTP: show the link in the server console only.
     // Never done in production — the link must reach the user by email.
@@ -50,12 +69,34 @@ export async function sendResetEmail(to, link) {
     throw new Error("SMTP is not configured");
   }
 
+  const first = String(name || "")
+    .trim()
+    .split(/\s+/)[0];
   await sendBrandedEmail(to, "Reset your Lanka-Link password", {
+    greeting: first ? `Hi ${first},` : "Hello,",
     title: "Reset your password",
-    message: "We received a request to reset your Lanka-Link password. The link below works for 1 hour.",
+    message:
+      "We received a request to reset the password of your Lanka-Link account. " +
+      "Click the button below to choose a new one.",
     severity: "INFO",
+    details: [
+      ["Account", to],
+      ["Requested on", slTime(new Date())],
+      ["Link expires", `${slTime(expiresAt)} (1 hour)`],
+    ],
     button: { label: "Choose a new password", url: link },
-    footer: "If you did not ask for this, you can ignore this email — your password stays the same.",
+    showLink: true,
+    note:
+      "The link works only once. Lanka-Link staff will never ask for your password — " +
+      "do not share this link with anyone.",
+    secondary: {
+      title: "මුරපදය යළි සකස් කිරීම",
+      message:
+        "ඔබගේ Lanka-Link ගිණුමේ මුරපදය වෙනස් කිරීමට ඉල්ලීමක් ලැබුණා. ඉහත බොත්තම ඔබා නව මුරපදයක් තෝරන්න. " +
+        "මෙම සබැඳිය පැය 1ක් පමණක්, එක් වරක් පමණක් ක්‍රියා කරයි. ඔබ මෙය ඉල්ලුවේ නැත්නම් මෙම email එක නොසලකා හරින්න — ඔබගේ මුරපදය වෙනස් නොවේ.",
+    },
+    footer:
+      "Didn't ask for this? Ignore this email — your password stays the same and nobody can change it without this link.",
   });
 }
 

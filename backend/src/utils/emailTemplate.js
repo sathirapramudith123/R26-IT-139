@@ -2,7 +2,9 @@
 // that is what Gmail / Outlook render reliably. The logo is attached inline as cid:logo by mailer.js.
 
 const BRAND = "#2A5BDB";
-const FONT = "'Segoe UI',Roboto,'Helvetica Neue',Helvetica,Arial,sans-serif";
+// Sinhala fonts last, so Sinhala text in an email does not fall back to boxes
+const FONT =
+  "'Segoe UI',Roboto,'Helvetica Neue',Helvetica,Arial,'Noto Sans Sinhala','Iskoola Pota',sans-serif";
 const SEVERITY = {
   CRITICAL: { label: "Critical", bg: "#FDECEC", fg: "#C62828" },
   ALERT: { label: "Critical", bg: "#FDECEC", fg: "#C62828" },
@@ -26,9 +28,24 @@ const esc = (s) =>
  * @param {Array<[string,string]>} [o.details]  key / value rows
  * @param {{label:string, url:string}} [o.button]
  * @param {string} [o.footer]    why the person gets this email
+ * @param {string} [o.greeting]  e.g. "Hi Kamal," (shown above the title)
+ * @param {boolean} [o.showLink] also print the button's URL as text (for mail apps that block buttons)
+ * @param {string} [o.note]      highlighted box under the button (a tip / security note)
+ * @param {{title?:string, message:string}} [o.secondary]  a second-language copy of the message
  * @returns {{html: string, text: string}}
  */
-export function renderEmail({ title, message, severity = "INFO", details = [], button, footer }) {
+export function renderEmail({
+  title,
+  message,
+  severity = "INFO",
+  details = [],
+  button,
+  footer,
+  greeting,
+  showLink = false,
+  note,
+  secondary,
+}) {
   const sev = SEVERITY[String(severity).toUpperCase()] || SEVERITY.INFO;
   const rows = details
     .map(
@@ -57,6 +74,7 @@ export function renderEmail({ title, message, severity = "INFO", details = [], b
         <tr>
           <td style="padding:28px">
             <span style="display:inline-block;background:${sev.bg};color:${sev.fg};font-size:12px;font-weight:700;padding:4px 12px;border-radius:999px">${esc(sev.label)}</span>
+            ${greeting ? `<p style="margin:16px 0 0;color:#2B3445;font-size:15px;font-weight:600">${esc(greeting)}</p>` : ""}
             <h1 style="margin:14px 0 8px;color:#2B3445;font-size:22px;line-height:1.3">${esc(title)}</h1>
             <p style="margin:0;color:#5B6478;font-size:15px;line-height:1.6">${esc(message)}</p>
             ${rows ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:18px;border-top:1px solid #E3E8F0">${rows}</table>` : ""}
@@ -65,6 +83,27 @@ export function renderEmail({ title, message, severity = "INFO", details = [], b
                 ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:24px"><tr><td style="border-radius:999px;background:${BRAND}">
                      <a href="${esc(button.url)}" style="display:inline-block;padding:12px 26px;color:#FFFFFF;font-size:14px;font-weight:700;text-decoration:none;border-radius:999px">${esc(button.label)}</a>
                    </td></tr></table>`
+                : ""
+            }
+            ${
+              button && showLink
+                ? `<p style="margin:16px 0 0;color:#8A94A6;font-size:12px;line-height:1.6">Button not working? Copy this link into your browser:<br>
+                     <a href="${esc(button.url)}" style="color:${BRAND};word-break:break-all">${esc(button.url)}</a></p>`
+                : ""
+            }
+            ${
+              note
+                ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px"><tr>
+                     <td style="background:#FFF8E6;border-left:4px solid #F2B705;border-radius:8px;padding:12px 14px;color:#6B5200;font-size:13px;line-height:1.6">${esc(note)}</td>
+                   </tr></table>`
+                : ""
+            }
+            ${
+              secondary
+                ? `<div style="margin-top:22px;padding-top:18px;border-top:1px dashed #E3E8F0">
+                     ${secondary.title ? `<p style="margin:0 0 6px;color:#2B3445;font-size:16px;font-weight:700">${esc(secondary.title)}</p>` : ""}
+                     <p style="margin:0;color:#5B6478;font-size:14px;line-height:1.7">${esc(secondary.message)}</p>
+                   </div>`
                 : ""
             }
           </td>
@@ -81,11 +120,14 @@ export function renderEmail({ title, message, severity = "INFO", details = [], b
 
   // plain-text version for mail apps that don't show HTML
   const text = [
+    ...(greeting ? [greeting, ""] : []),
     `[${sev.label}] ${title}`,
     "",
     message,
     ...(details.length ? ["", ...details.map(([k, v]) => `${k}: ${v}`)] : []),
     ...(button ? ["", `${button.label}: ${button.url}`] : []),
+    ...(note ? ["", note] : []),
+    ...(secondary ? ["", ...(secondary.title ? [secondary.title] : []), secondary.message] : []),
     "",
     footer || "",
     "Lanka-Link · Smart Merchant Support Platform",
