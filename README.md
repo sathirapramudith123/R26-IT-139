@@ -51,15 +51,17 @@ Each AI answer comes with the **factors that pushed it up or down**, so the shop
 
 | Module | What it does |
 |---|---|
-| **Dashboard** | Income, expenses, profit and stock at a glance |
-| **Transactions** | Record every sale, purchase and expense |
-| **Journal & Reports** | Double-entry ledger (debit / credit), goods movement and profit & loss, PDF reports |
-| **Inventory** | Stock in FIFO batches, low-stock alerts, delivery lead time per item |
-| **Suppliers** | Suppliers, the items they carry, and their location on a map |
+| **Dashboard** | Income (from sales), expenses, profit, low stock and recent activity at a glance |
+| **Transactions** | Record every sale, purchase, expense, deposit and transfer. Sales suggest the price (oldest batch's selling price / MRP, else the last sold price), warn when the cost went up, and split a sale over batches with different prices |
+| **Supplier payments** | Pick the supplier, see how much is still owed, and record who was paid and when |
+| **Journal & Reports** | Double-entry ledger (debit / credit), trial balance, goods movement, profit & loss, **Cash, Bank & Digital** (money in / out per payment method) — on screen, as PDF or Excel |
+| **Inventory** | Stock in FIFO batches with cost and selling price per batch, low-stock and out-of-stock alerts, delivery lead time per item |
+| **Suppliers** | Suppliers, the items they carry, their location on a map, and the balance owed to each |
 | **Procurement** | Purchase orders — the app ranks suppliers by items covered, price and distance |
 | **Agency Banking** | Deposits / withdrawals / transfers for customers, with CBSL daily limits |
 | **My Banks** | Float account per partner bank and the shared cash pool |
-| **Predictions** | All 4 AI insights in one place, each with its reasons |
+| **Predictions** | All 4 AI insights in one place, each with its reasons, plus a **"Try it yourself"** page per model to enter your own values and see how the answer changes |
+| **Account** | Email + password or **Sign in with Google**, forgot-password email, profile, sign out of all devices |
 
 ---
 
@@ -77,6 +79,13 @@ Sales, purchases, stock and banking (one digital ledger)
 
 What a shop records once feeds every insight: the demand forecast decides when to restock, and steady
 stock improves the credit score.
+
+Accounting rules worth knowing:
+
+- **Income = sales only.** A deposit moves cash into the bank (Dr Bank / Cr Cash); it is not income.
+- **Supplier payment** settles what the shop owes: Dr Trade Payables / Cr Bank (or Cash).
+- **Drawings** (money the owner takes for personal use) go to Drawings A/C and are not an expense in the P&L.
+- **No sales in the last 4 weeks → no demand forecast**, instead of a made-up number.
 
 ---
 
@@ -143,7 +152,8 @@ which checks the login and builds the model inputs from the shop's own data.
 | **Database** | Supabase (PostgreSQL) |
 | **ML service** | Python + FastAPI |
 | **Machine learning** | scikit-learn, XGBoost, pandas; SHAP for explanations |
-| **Login security** | JWT (8-hour sessions), bcrypt password hashing, login rate limiting |
+| **Login security** | JWT (8-hour sessions, revocable), bcrypt password hashing, rate limiting, Sign in with Google |
+| **Email** | Nodemailer over SMTP (Gmail App Password) — branded password-reset and alert emails |
 | **Maps** | Google Maps (web and mobile) |
 | **Code style** | Prettier (JS), Black (Python), dart format |
 
@@ -153,7 +163,8 @@ which checks the login and builds the model inputs from the shop's own data.
 
 You need: **Node.js 18+**, **Python 3.11+**, **Flutter SDK**, and a **Supabase project**.
 
-**1. Database** — in the Supabase SQL Editor run `backend/schema.sql`, then `backend/sql/atomic_banking.sql`.
+**1. Database** — in the Supabase SQL Editor run `backend/sql/schema.sql`, then `backend/sql/atomic_banking.sql`
+(or `backend/sql/lanka_link_full.sql`, which is both in one file).
 
 **2. ML service**
 ```bash
@@ -162,14 +173,17 @@ pip install -r requirements.txt
 python -m uvicorn app:app --port 8000
 ```
 
-**3. Backend** — create `backend/.env` (keys listed in [backend/README.md](backend/README.md)), then:
+**3. Backend** — create `backend/.env` (keys listed in [backend/README.md](backend/README.md)). Optional keys:
+`SMTP_*` + `FRONTEND_URL` for emails (without them the reset link is printed in the console) and
+`GOOGLE_CLIENT_ID` for Sign in with Google. Then:
 ```bash
 cd backend
 npm install
 npm run dev
 ```
 
-**4. Web app** — create `frontend/.env.local` with `NEXT_PUBLIC_API_BASE_URL=http://localhost:5000/api/v1`, then:
+**4. Web app** — create `frontend/.env.local` with `NEXT_PUBLIC_API_BASE_URL=http://localhost:5000/api/v1`
+(and `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, the same ID as the backend, to show the Google button), then:
 ```bash
 cd frontend
 npm install
@@ -190,9 +204,14 @@ Secret files (`.env`, `.env.local`, `local.properties`) are git-ignored and neve
 
 ## How it stays safe (Security)
 
-- **Login protection** — every API request needs a valid token; sessions expire after 8 hours
-- **Passwords** — hashed with bcrypt; secure, time-limited password-reset links
-- **Rate limiting** — repeated login attempts are slowed down
+- **Login protection** — every API request needs a valid token; sessions expire after 8 hours, and a
+  password change or "sign out of all devices" revokes every older token
+- **Passwords** — at least 12 characters with upper and lower case, a number and a symbol (live checklist
+  on web and mobile); hashed with bcrypt
+- **Password reset** — a one-time link that works for 1 hour, stored hashed; the reply is the same whether
+  or not the email exists
+- **Sign in with Google** — the Google ID token is verified on the server (audience, issuer, verified email)
+- **Rate limiting** — login, registration, Google sign-in and reset requests are limited per IP
 - **CORS allowlist** — only the app's own web origin may call the API from a browser
 - **Input validation** — every request body is checked before it is saved
 - **Banking integrity** — float and cash-pool updates run inside one database transaction with a lock, so
@@ -201,7 +220,7 @@ Secret files (`.env`, `.env.local`, `local.properties`) are git-ignored and neve
 - **Secrets on the server only** — the database key and ML service are never exposed to the apps
 
 Follows Central Bank of Sri Lanka rules: Direction No. 02 of 2018 (Agent Banking) and Direction No. 01 of
-2021 (Mobile Payments).
+2021 (Mobile Payments). Full details and how to report a problem: [SECURITY.md](SECURITY.md).
 
 ---
 
@@ -210,7 +229,8 @@ Follows Central Bank of Sri Lanka rules: Direction No. 02 of 2018 (Agent Banking
 Web and mobile share one warm "kade" design — teal with turmeric touches, rounded shapes and a friendly
 font, made to feel welcoming for rural shop owners. Light and dark modes are available, and every screen
 can be switched between **Sinhala and English** (සිංහල / English button in the top bar on web, Settings on
-mobile).
+mobile). On a phone-sized browser the web app switches to an app-style layout: a bottom tab bar
+(Dashboard, Transactions, Inventory, Suppliers) and a Menu drawer with every other page.
 
 ---
 
