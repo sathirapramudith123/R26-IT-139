@@ -9,4 +9,6 @@ export const transactionApi = {
   journal: (params) => apiClient.get("/transactions/journal", { params }),
   // { "tea": { item_name, last_sale, batches } } — see lib/priceHints.js
   priceHints: () => apiClient.get("/transactions/price-hints"),
+  // money in / out per Cash, Bank and Digital for { from, to } — see backend utils/paymentMethods.js
+  paymentMethods: (params) => apiClient.get("/reports/payment-methods", { params }),
 };

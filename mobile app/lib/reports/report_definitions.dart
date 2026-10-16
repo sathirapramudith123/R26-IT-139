@@ -125,7 +125,7 @@ class ReportGroup {
 const reportGroups = [
   ReportGroup("Accounting", ["income", "pnl", "journal", "trial"]),
   ReportGroup("Stock & purchasing", ["goods", "stock", "procurement", "suppliers"]),
-  ReportGroup("Money in & out", ["transactions", "agency"]),
+  ReportGroup("Money in & out", ["payments", "transactions", "agency"]),
 ];
 
 ReportColumn _money(String k, String l) => ReportColumn(k, l, ColType.money);
@@ -506,6 +506,103 @@ final Map<String, ReportDef> reports = {
             _count("lead_time", tr("Lead Time")),
             _text("location", tr("Location")),
           ], rows),
+        ],
+      );
+    },
+  ),
+
+  // money in / out per Cash, Bank and Digital — totals come from GET /reports/payment-methods
+  // (backend utils/paymentMethods.js), same as the web report
+  "payments": ReportDef(
+    "payments",
+    "💵",
+    "Cash, Bank & Digital",
+    "How much came in and went out through cash, bank and digital payments.",
+    true,
+    (r, tr) async {
+      final raw = await Api.get("/reports/payment-methods?from=${ymd(r.from)}&to=${ymd(r.to)}");
+      final d = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+      final m = d["methods"] is Map ? Map<String, dynamic>.from(d["methods"]) : <String, dynamic>{};
+      final credit = d["credit"] is Map ? Map<String, dynamic>.from(d["credit"]) : <String, dynamic>{};
+      const methods = ["cash", "bank", "digital"];
+
+      double at(String method, String side, String key) {
+        final b = m[method];
+        if (b is! Map || b[side] is! Map) return 0;
+        return _n((b[side] as Map)[key]);
+      }
+
+      // one table row: the value per method + the total; money out is shown negative
+      Map<String, dynamic> row(String line, String side, String key, {bool out = false, bool bold = false}) {
+        final v = {for (final k in methods) k: out ? -at(k, side, key) : at(k, side, key)};
+        return {
+          "line": line,
+          ...v,
+          "total": v.values.fold<double>(0, (a, b) => a + b),
+          if (bold) "_bold": true,
+        };
+      }
+
+      final net = {for (final k in methods) k: _n((m[k] is Map ? m[k] : const {})["net"])};
+      final sales = _n((d["totals"] is Map ? d["totals"] : const {})["sales"]);
+      String share(double v) => sales > 0 ? "${(v / sales * 100).toStringAsFixed(1)}%" : "—";
+
+      return ReportModel(
+        [
+          for (final k in methods)
+            Kpi(
+              "${tr(_words(k))} — ${tr("net")}",
+              net[k]!,
+              type: ColType.money,
+              tone: net[k]! >= 0 ? "good" : "bad",
+            ),
+          Kpi(tr("Credit sales due"), _n(credit["sales"]), type: ColType.money),
+        ],
+        [
+          ReportSection(
+            tr("Money by payment method"),
+            [
+              _text("line", tr("Description")),
+              _money("cash", tr("Cash")),
+              _money("bank", tr("Bank")),
+              _money("digital", tr("Digital")),
+              _money("total", tr("Total")),
+            ],
+            [
+              row(tr("Sales received"), "in", "sales"),
+              row(tr("Moved in (deposits / transfers)"), "in", "moved_in"),
+              row(tr("Total money in"), "in", "total", bold: true),
+              row(tr("Purchases"), "out", "purchases", out: true),
+              row(tr("Expenses"), "out", "expenses", out: true),
+              row(tr("Supplier payments"), "out", "supplier_payments", out: true),
+              row(tr("Moved out (deposits / transfers)"), "out", "moved_out", out: true),
+              row(tr("Total money out"), "out", "total", out: true, bold: true),
+              {
+                "line": tr("Net change"),
+                ...net,
+                "total": net.values.fold<double>(0, (a, b) => a + b),
+                "_bold": true,
+              },
+            ],
+          ),
+          ReportSection(
+            tr("Sales by payment method"),
+            [
+              _text("method", tr("Payment")),
+              _money("amount", tr("Sales (LKR)")),
+              _text("share", tr("Share of sales received")),
+            ],
+            [
+              for (final k in methods)
+                {
+                  "method": tr(_words(k)),
+                  "amount": at(k, "in", "sales"),
+                  "share": share(at(k, "in", "sales")),
+                },
+              {"method": tr("Credit (not received yet)"), "amount": _n(credit["sales"]), "share": "—"},
+            ],
+            {"method": tr("Total"), "amount": sales + _n(credit["sales"])},
+          ),
         ],
       );
     },
