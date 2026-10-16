@@ -42,7 +42,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       double inc = 0, exp = 0;
       if (txns is List) {
         for (final t in txns) {
-          final amt = (t["amount"] is num) ? (t["amount"] as num).toDouble() : 0.0;
+          // a numeric column can arrive as "1250.00" — read it like the web's Number()
+          final amt = double.tryParse("${t["amount"] ?? ""}") ?? 0.0;
           final type = "${t["transaction_type"]}";
           // Income = sales only: a deposit moves cash into the bank, it is not income (same as web)
           if (type == "sale") inc += amt;
@@ -59,8 +60,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       int low = 0;
       if (inv is List) {
         for (final i in inv) {
-          final q = (i["quantity"] is num) ? (i["quantity"] as num) : 0;
-          final r = (i["reorder_level"] is num) ? (i["reorder_level"] as num) : 0;
+          final q = double.tryParse("${i["quantity"] ?? ""}") ?? 0;
+          final r = double.tryParse("${i["reorder_level"] ?? ""}") ?? 0;
           if (q <= r) low++;
         }
       }

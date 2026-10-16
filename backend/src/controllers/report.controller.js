@@ -1,5 +1,7 @@
 import { supabase } from "../config/supabase.js";
 import { isDrawings } from "../utils/doubleEntry.js";
+import { summarizeByMethod } from "../utils/paymentMethods.js";
+import { localDateStr, localDayStart, addDays } from "../utils/time.js";
 
 const num = (v) => Number(v) || 0;
 
@@ -71,6 +73,49 @@ export const getIncomeStatement = async (req, res, next) => {
         profit_margin_pct: profitMargin,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /reports/payment-methods?from=2026-10-01&to=2026-10-31 (or ?year=2026&month=10) — money in /
+// out per Cash, Bank and Digital (Sri Lanka days). Default: the current month.
+export const getPaymentMethods = async (req, res, next) => {
+  try {
+    const isDate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v));
+    const pad = (n) => String(n).padStart(2, "0");
+    let { from, to } = req.query;
+
+    if (from || to) {
+      if ((from && !isDate(from)) || (to && !isDate(to)) || (from && to && from > to))
+        return res.status(400).json({ error: "Dates must be in YYYY-MM-DD format, from before to" });
+    } else {
+      const [cy, cm] = localDateStr().split("-").map(Number);
+      const year = req.query.year ? Number(req.query.year) : cy;
+      const month = req.query.month ? Number(req.query.month) : cm;
+      if (
+        !Number.isInteger(year) ||
+        year < 2000 ||
+        year > 2100 ||
+        !Number.isInteger(month) ||
+        month < 1 ||
+        month > 12
+      )
+        return res.status(400).json({ error: "Invalid year / month" });
+      from = `${year}-${pad(month)}-01`;
+      to = addDays(month === 12 ? `${year + 1}-01-01` : `${year}-${pad(month + 1)}-01`, -1);
+    }
+
+    let q = supabase
+      .from("transactions")
+      .select("transaction_type, payment_method, amount, category")
+      .eq("user_id", req.user.id);
+    if (from) q = q.gte("created_at", localDayStart(from).toISOString());
+    if (to) q = q.lt("created_at", localDayStart(addDays(to, 1)).toISOString());
+    const { data, error } = await q;
+    if (error) throw error;
+
+    res.json({ from: from || null, to: to || null, ...summarizeByMethod(data) });
   } catch (err) {
     next(err);
   }
