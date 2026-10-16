@@ -146,7 +146,7 @@ export const forgotPassword = async (req, res, next) => {
 
     const { data: user } = await supabase
       .from("users")
-      .select("user_id, email")
+      .select("user_id, email, full_name")
       .eq("email", email)
       .maybeSingle();
     // Same response whether or not the email exists, and the token is never
@@ -156,7 +156,8 @@ export const forgotPassword = async (req, res, next) => {
 
     const rawToken = crypto.randomBytes(32).toString("hex"); // sent by email only
     const reset_token = hashToken(rawToken); // stored in the DB
-    const reset_token_expiry = new Date(Date.now() + 3600_000).toISOString();
+    const expiresAt = new Date(Date.now() + 3600_000);
+    const reset_token_expiry = expiresAt.toISOString();
 
     const { error } = await supabase
       .from("users")
@@ -167,7 +168,7 @@ export const forgotPassword = async (req, res, next) => {
     const frontend = (process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/$/, "");
     const link = `${frontend}/auth/reset-password?token=${rawToken}`;
     try {
-      await sendResetEmail(user.email, link);
+      await sendResetEmail(user.email, link, { name: user.full_name, expiresAt });
     } catch (mailErr) {
       // Don't reveal mail failures to the caller (would leak whether the email exists)
       console.error("[mail] reset email failed:", mailErr.message);

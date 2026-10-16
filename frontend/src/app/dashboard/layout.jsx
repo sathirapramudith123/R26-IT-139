@@ -1,4 +1,5 @@
 import Sidebar from "@/components/common/Sidebar";
+import MobileNav from "@/components/common/MobileNav";
 
 export default function DashboardLayout({ children }) {
   return (
@@ -7,6 +8,7 @@ export default function DashboardLayout({ children }) {
     <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-[256px_minmax(0,1fr)]">
       <Sidebar />
       <section>{children}</section>
+      <MobileNav />
     </div>
   );
 }

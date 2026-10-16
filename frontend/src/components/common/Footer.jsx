@@ -1,11 +1,16 @@
 "use client";
 
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 
 import { t } from "@/lib/i18n";
 export default function Footer() {
+  // on phones the dashboard has a bottom tab bar (MobileNav): leave room so it never covers the footer
+  const dashboard = usePathname()?.startsWith("/dashboard");
   return (
-    <footer className="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+    <footer
+      className={`${dashboard ? "pb-16 md:pb-0 " : ""}border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950`}
+    >
       <div className="mx-auto flex max-w-9xl flex-col items-center gap-2 px-4 py-6 sm:flex-row sm:justify-between">
         <div className="flex items-center gap-2">
           <div className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-lg bg-white ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-700">
