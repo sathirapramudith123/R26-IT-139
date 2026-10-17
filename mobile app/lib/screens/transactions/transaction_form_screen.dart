@@ -4,7 +4,7 @@ import '../../core/theme.dart';
 import '../../core/api.dart';
 import '../../services/crud_service.dart';
 import '../../core/i18n.dart';
-import '../common/record_details.dart' show money;
+import '../common/record_details.dart' show money, qtyOf;
 import '../../core/price_hints.dart';
 
 const List<Map<String, String>> _txTypes = [
@@ -320,8 +320,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       if (stock != null && units + already > stock) {
         setState(
           () => error =
-              "Only ${stock.toStringAsFixed(0)} in stock"
-              "${already > 0 ? " (${already.toStringAsFixed(0)} already added)" : ""}.",
+              "Only ${qtyOf(stock)} in stock"
+              "${already > 0 ? " (${qtyOf(already)} already added)" : ""}.",
         );
         return;
       }
@@ -741,7 +741,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                   label: Text(
                     o.last
                         ? "${tr("Last sold")} ${money(o.price)}"
-                        : "${money(o.price)} · ${o.left!.toStringAsFixed(0)} ${tr("left")}",
+                        : "${money(o.price)} · ${qtyOf(o.left)} ${tr("left")}",
                     style: const TextStyle(fontSize: 12),
                   ),
                   selected: (double.tryParse(priceCtrl.text.trim()) ?? -1) == o.price,

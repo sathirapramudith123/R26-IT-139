@@ -1,7 +1,10 @@
-fastapi>=0.100.0
-uvicorn>=0.22.0
-joblib>=1.3.0
-pandas>=2.0.0
-scikit-learn>=1.3.0
-xgboost>=2.0.0
-shap>=0.46.0
+# Exact versions: the .pkl models in models/ are tested to load with these (Python 3.14).
+# A different scikit-learn / xgboost version may fail to load them.
+fastapi==0.138.1
+uvicorn==0.49.0
+joblib==1.5.3
+pandas==3.0.3
+numpy==2.4.6
+scikit-learn==1.9.0
+xgboost==3.3.0
+shap==0.52.0

@@ -1326,5 +1326,6 @@
   "Share of sales received": "ලැබුණු විකුණුම් වලින් කොටස",
   "Credit (not received yet)": "ණය (තවම නොලැබුණු)",
   "Payment methods": "ගෙවීම් ක්‍රම",
-  "Credit sales due": "ලැබිය යුතු ණය"
+  "Credit sales due": "ලැබිය යුතු ණය",
+  "Setting 'Received' adds all items to inventory as batches": "'ලැබුණා' ලෙස සැකසූ විට සියලු භාණ්ඩ කාණ්ඩ ලෙස තොගයට එකතු වේ"
 }
