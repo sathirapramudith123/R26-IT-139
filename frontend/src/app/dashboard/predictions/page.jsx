@@ -14,9 +14,8 @@ import {
 } from "@/components/predictions/InsightWidgets";
 import { SalesSummaryModal, ProcurementSummaryModal } from "@/components/predictions/SummaryModals";
 import WhatIfSimulator from "@/components/predictions/WhatIfSimulator";
-import ActionPlan from "@/components/predictions/ActionPlan";
 import ForecastChart from "@/components/predictions/ForecastChart";
-import { TrustLine, ModelTrustPanel } from "@/components/predictions/ModelTrust";
+import { TrustLine } from "@/components/predictions/ModelTrust";
 
 import Link from "next/link";
 import { t } from "@/lib/i18n";
@@ -212,8 +211,6 @@ export default function PredictionsDashboard() {
           </div>
         )}
       </div>
-
-      {credit.available && <ActionPlan explanation={credit.explanation} />}
 
       {/* ===== Forecast + Buy/Wait ===== */}
       <div className="grid gap-6 lg:grid-cols-2">
@@ -430,8 +427,6 @@ export default function PredictionsDashboard() {
         )}
         <TrustLine model="anomaly" />
       </div>
-
-      <ModelTrustPanel />
 
       <SalesSummaryModal open={showAllItems} onClose={() => setShowAllItems(false)} />
       <ProcurementSummaryModal open={showAllProcurement} onClose={() => setShowAllProcurement(false)} />

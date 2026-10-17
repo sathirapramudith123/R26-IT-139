@@ -16,6 +16,8 @@ import ItemSupplierList from "@/components/procurement/ItemSupplierList";
 import OrderSupplierList from "@/components/procurement/OrderSupplierList";
 
 import { t } from "@/lib/i18n";
+
+const PROCUREMENT_STATUSES = ["pending", "ordered", "received", "cancelled"];
 const LocationPickerMap = dynamic(() => import("./LocationPickerMap"), { ssr: false });
 
 export default function ProcurementForm({ initialData = {}, procurementId = null }) {
@@ -33,6 +35,8 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
   const [location, setLocation] = useState(initialData.delivery_location ?? initialData.location ?? "");
   const [coords, setCoords] = useState(initialData.coords ?? null);
   const [specialNote, setSpecialNote] = useState(initialData.special_note ?? "");
+  // Received = the backend adds every item to inventory as a batch at its cost (same as mobile)
+  const [status, setStatus] = useState(String(initialData.status || "pending").toLowerCase());
 
   const [item, setItem] = useState(emptyItem);
   const [itemErrors, setItemErrors] = useState({});
@@ -399,7 +403,7 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
         totalPrice: s.totalPrice,
         delivery_location: s.delivery_location,
       })),
-      status: initialData.status ?? "pending",
+      status,
     };
 
     try {
@@ -683,6 +687,24 @@ export default function ProcurementForm({ initialData = {}, procurementId = null
           <LocationPickerMap coords={coords} onPick={handleMapPick} extraMarkers={supplierMapMarkers} />
         </div>
       </div>
+
+      {/* Status — when editing: Received adds the items to inventory (and to what the supplier is owed) */}
+      {isEdit && (
+        <div className="card-elevated">
+          <FormField label={t("Status")}>
+            <select className="select-field" value={status} onChange={(e) => setStatus(e.target.value)}>
+              {PROCUREMENT_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {t(s[0].toUpperCase() + s.slice(1))}
+                </option>
+              ))}
+            </select>
+          </FormField>
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            {t("Setting 'Received' adds all items to inventory as batches")}
+          </p>
+        </div>
+      )}
 
       {/* Note */}
       <div className="card-elevated">

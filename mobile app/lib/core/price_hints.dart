@@ -1,7 +1,7 @@
 // Price suggestions for the transaction form, from GET /transactions/price-hints.
 // Same rules as the web app (frontend/src/lib/priceHints.js).
 import 'i18n.dart';
-import '../screens/common/record_details.dart' show money;
+import '../screens/common/record_details.dart' show money, qtyOf;
 
 String priceKey(String? s) => (s ?? "").trim().toLowerCase().replaceAll(RegExp(r'\s+'), " ");
 
@@ -24,7 +24,7 @@ List<Map> _batches(Map? hint) =>
     final p = _n(first["selling_price"]);
     final next = batches.where((b) => _n(b["selling_price"]) > 0 && _n(b["selling_price"]) != p);
     var note = _fill("Oldest stock: {qty} left at {price}", {
-      "qty": _n(first["quantity"]).toStringAsFixed(0),
+      "qty": qtyOf(first["quantity"]),
       "price": money(p),
     });
     if (next.isNotEmpty) {
