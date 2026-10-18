@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../core/api.dart';
@@ -20,7 +21,8 @@ class AuthService {
         await _storage.delete(key: _tokenKey);
       } else {
         Api.token = saved;
-        await loadProfile();
+        // in the background: the app opens at once even when the server is slow or offline
+        unawaited(loadProfile());
       }
     } catch (_) {
       Api.token = null; // storage unavailable → just start logged out

@@ -12,6 +12,9 @@ final navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // A screen that fails to build shows this card (and the error still goes to the console)
+  // instead of Flutter's red / grey error screen.
+  ErrorWidget.builder = (details) => _BuildErrorCard(message: details.exceptionAsString());
   await AuthService.restoreSession(); // stay logged in across app restarts
   await LanguageController.load(); // Sinhala / English choice saved on this phone
   Api.onUnauthorized = _goToLogin; // expired token → back to login
@@ -54,6 +57,45 @@ class MyApp extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _BuildErrorCard extends StatelessWidget {
+  final String message;
+  const _BuildErrorCard({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: Center(
+        child: Container(
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: const Color(0xFFFDECEC), borderRadius: BorderRadius.circular(14)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: Color(0xFFC62828)),
+              const SizedBox(height: 8),
+              Text(
+                tr("This part of the screen could not be shown."),
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFFC62828), fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                message,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFF5B6478), fontSize: 11),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
