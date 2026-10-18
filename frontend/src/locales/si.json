@@ -1327,5 +1327,10 @@
   "Credit (not received yet)": "ණය (තවම නොලැබුණු)",
   "Payment methods": "ගෙවීම් ක්‍රම",
   "Credit sales due": "ලැබිය යුතු ණය",
-  "Setting 'Received' adds all items to inventory as batches": "'ලැබුණා' ලෙස සැකසූ විට සියලු භාණ්ඩ කාණ්ඩ ලෙස තොගයට එකතු වේ"
+  "Setting 'Received' adds all items to inventory as batches": "'ලැබුණා' ලෙස සැකසූ විට සියලු භාණ්ඩ කාණ්ඩ ලෙස තොගයට එකතු වේ",
+  "lower error than “same as last week” for the weekly demand forecast": "සතිපතා ඉල්ලුම් පුරෝකථනයේ “පසුගිය සතිය වගේමයි” යන්නට වඩා අඩු වැරැද්ද",
+  "ROC-AUC for credit readiness — better than the usual bank rules": "ණය සූදානම සඳහා ROC-AUC — සාමාන්‍ය බැංකු නීතිවලට වඩා හොඳයි",
+  "saved on the purchase bill by following Buy / Wait": "මිලදී ගන්න / රැඳී සිටින්න උපදෙස් අනුගමනය කිරීමෙන් මිලදී ගැනීමේ බිලෙන් ඉතිරි වේ",
+  "false alarms per 1,000 honest banking customers": "අවංක බැංකු පාරිභෝගිකයින් 1,000කට වැරදි අනතුරු ඇඟවීම්",
+  "Tested on data the models never saw": "මාදිලි කවදාවත් නොදුටු දත්ත මත පරීක්ෂා කළා"
 }

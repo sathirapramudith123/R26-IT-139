@@ -60,6 +60,8 @@ module.exports = {
       animation: {
         "fade-in": "fadeIn 0.3s ease-out",
         "slide-up": "slideUp 0.3s ease-out",
+        float: "float 6s ease-in-out infinite",
+        draw: "draw 1.2s ease-out 0.4s both",
       },
       keyframes: {
         fadeIn: { from: { opacity: "0" }, to: { opacity: "1" } },
@@ -67,6 +69,8 @@ module.exports = {
           from: { opacity: "0", transform: "translateY(8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        float: { "0%, 100%": { transform: "translateY(0)" }, "50%": { transform: "translateY(-10px)" } },
+        draw: { from: { strokeDashoffset: "220" }, to: { strokeDashoffset: "0" } },
       },
     },
   },
