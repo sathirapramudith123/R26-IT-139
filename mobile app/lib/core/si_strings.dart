@@ -1527,4 +1527,7 @@ const Map<String, String> siStrings = {
   "Share of sales received": "ලැබුණු විකුණුම් වලින් කොටස",
   "Credit (not received yet)": "ණය (තවම නොලැබුණු)",
   "Credit sales due": "ලැබිය යුතු ණය",
+  "Cannot reach the server. Check your internet / Wi-Fi and that the backend is running.": "සේවාදායකයට සම්බන්ධ විය නොහැක. ඔබේ අන්තර්ජාලය / Wi-Fi සහ backend එක ක්‍රියාත්මකද බලන්න.",
+  "Unexpected reply from the server.": "සේවාදායකයෙන් අනපේක්ෂිත පිළිතුරක් ලැබුණා.",
+  "This part of the screen could not be shown.": "තිරයේ මෙම කොටස පෙන්විය නොහැක.",
 };
