@@ -11,4 +11,6 @@ export const transactionApi = {
   priceHints: () => apiClient.get("/transactions/price-hints"),
   // money in / out per Cash, Bank and Digital for { from, to } — see backend utils/paymentMethods.js
   paymentMethods: (params) => apiClient.get("/reports/payment-methods", { params }),
+  // shop Cash A/C + agency-banking cash for { from, to } — see backend getCashFlow
+  cashFlow: (params) => apiClient.get("/reports/cash-flow", { params }),
 };

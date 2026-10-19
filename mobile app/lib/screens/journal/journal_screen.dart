@@ -3,6 +3,7 @@ import '../../core/theme.dart';
 import '../../services/journal_service.dart';
 import '../../core/i18n.dart';
 import '../common/record_details.dart' show money, qtyOf, numOf;
+import 'cash_flow_view.dart';
 
 /// General Journal & Reports — same as the web page: a date range, then three tabs
 /// (double-entry Journal, Goods Movement, Profit & Loss).
@@ -16,7 +17,8 @@ class _JournalScreenState extends State<JournalScreen> {
   // default range = current month (device timezone, i.e. Sri Lanka days)
   late DateTime from = DateTime(DateTime.now().year, DateTime.now().month, 1);
   DateTime to = DateTime.now();
-  int tab = 0; // 0 journal, 1 ledger, 2 goods, 3 profit & loss
+  int tab = 0; // 0 journal, 1 ledger, 2 goods, 3 profit & loss, 4 cash
+  int reload = 0; // the Cash tab loads its own data
   String? ledgerAccount; // account open in the Ledger tab
   bool loading = true;
   Map<String, dynamic>? data;
@@ -31,7 +33,10 @@ class _JournalScreenState extends State<JournalScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => loading = true);
+    setState(() {
+      loading = true;
+      reload++;
+    });
     try {
       final d = await JournalService.get(from: _ymd(from), to: _ymd(to));
       if (mounted) setState(() => data = d.isEmpty ? null : d);
@@ -70,7 +75,8 @@ class _JournalScreenState extends State<JournalScreen> {
     _load();
   }
 
-  Color get _primary => Theme.of(context).brightness == Brightness.dark ? KadeColors.tealDark : KadeColors.teal;
+  Color get _primary =>
+      Theme.of(context).brightness == Brightness.dark ? KadeColors.tealDark : KadeColors.teal;
 
   @override
   Widget build(BuildContext context) {
@@ -88,7 +94,9 @@ class _JournalScreenState extends State<JournalScreen> {
             const SizedBox(height: 14),
             _tabs(),
             const SizedBox(height: 14),
-            if (loading)
+            if (tab == 4)
+              CashFlowView(key: ValueKey("${_ymd(from)}|${_ymd(to)}|$reload"), from: _ymd(from), to: _ymd(to))
+            else if (loading)
               const Padding(
                 padding: EdgeInsets.only(top: 60),
                 child: Center(child: CircularProgressIndicator()),
@@ -166,7 +174,10 @@ class _JournalScreenState extends State<JournalScreen> {
           Wrap(
             spacing: 8,
             children: [
-              ActionChip(label: Text(tr("This month")), onPressed: () => _quick(DateTime(now.year, now.month, 1))),
+              ActionChip(
+                label: Text(tr("This month")),
+                onPressed: () => _quick(DateTime(now.year, now.month, 1)),
+              ),
               ActionChip(
                 label: Text(tr("Last 7 days")),
                 onPressed: () => _quick(DateTime(now.year, now.month, now.day - 6)),
@@ -187,7 +198,10 @@ class _JournalScreenState extends State<JournalScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(KadeRadius.md),
         child: InputDecorator(
-          decoration: const InputDecoration(isDense: true, suffixIcon: Icon(Icons.calendar_today_outlined, size: 18)),
+          decoration: const InputDecoration(
+            isDense: true,
+            suffixIcon: Icon(Icons.calendar_today_outlined, size: 18),
+          ),
           child: Text(_ymd(d)),
         ),
       ),
@@ -200,6 +214,7 @@ class _JournalScreenState extends State<JournalScreen> {
       (tr("Ledger"), Icons.account_balance_wallet_outlined),
       (tr("Goods Movement"), Icons.inventory_2_outlined),
       (tr("Profit & Loss"), Icons.balance_outlined),
+      (tr("Cash"), Icons.payments_outlined),
     ];
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Container(
@@ -220,7 +235,9 @@ class _JournalScreenState extends State<JournalScreen> {
                   decoration: BoxDecoration(
                     color: tab == i ? Theme.of(context).cardColor : Colors.transparent,
                     borderRadius: BorderRadius.circular(KadeRadius.sm),
-                    boxShadow: tab == i ? const [BoxShadow(color: KadeColors.cardShadow, blurRadius: 6)] : null,
+                    boxShadow: tab == i
+                        ? const [BoxShadow(color: KadeColors.cardShadow, blurRadius: 6)]
+                        : null,
                   ),
                   child: Column(
                     children: [
@@ -416,7 +433,10 @@ class _JournalScreenState extends State<JournalScreen> {
             runSpacing: 4,
             children: [
               Text("${tr("Total Debit:")} ${money(t["total_debit"])}", style: const TextStyle(fontSize: 12)),
-              Text("${tr("Total Credit:")} ${money(t["total_credit"])}", style: const TextStyle(fontSize: 12)),
+              Text(
+                "${tr("Total Credit:")} ${money(t["total_credit"])}",
+                style: const TextStyle(fontSize: 12),
+              ),
             ],
           ),
         ],
@@ -500,7 +520,8 @@ class _JournalScreenState extends State<JournalScreen> {
     ];
   }
 
-  String _balanceText(Map a) => a["balance_side"] == "Nil" ? tr("Nil") : "${money(a["balance"])} ${a["balance_side"]}";
+  String _balanceText(Map a) =>
+      a["balance_side"] == "Nil" ? tr("Nil") : "${money(a["balance"])} ${a["balance_side"]}";
 
   Widget _heroFigure(String label, String value) => Expanded(
     child: Column(
@@ -527,7 +548,10 @@ class _JournalScreenState extends State<JournalScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(KadeRadius.md),
-        border: Border.all(color: active ? _primary : Colors.grey.withValues(alpha: 0.25), width: active ? 2 : 1),
+        border: Border.all(
+          color: active ? _primary : Colors.grey.withValues(alpha: 0.25),
+          width: active ? 2 : 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -584,7 +608,10 @@ class _JournalScreenState extends State<JournalScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: Text("${e["particulars"]}", style: const TextStyle(fontWeight: FontWeight.w600)),
+                        child: Text(
+                          "${e["particulars"]}",
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Text(money(e["amount"]), style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -628,7 +655,11 @@ class _JournalScreenState extends State<JournalScreen> {
       Row(
         children: [
           Expanded(
-            child: _statBox(tr("Total Sold"), "${qtyOf(goods["total_sold_qty"])} ${tr("units")}", KadeColors.terra),
+            child: _statBox(
+              tr("Total Sold"),
+              "${qtyOf(goods["total_sold_qty"])} ${tr("units")}",
+              KadeColors.terra,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
