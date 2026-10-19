@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import FormField from "./FormField";
@@ -22,6 +22,8 @@ import {
   Search,
   MessageSquare,
   KeyRound,
+  X,
+  Smartphone,
 } from "lucide-react";
 
 import { t } from "@/lib/i18n";
@@ -96,6 +98,10 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
   const [otp, setOtp] = useState(null); // { otp_id, expires_at, sent_to }
   const [otpCode, setOtpCode] = useState("");
   const [otpBusy, setOtpBusy] = useState(false);
+  // the OTP pop-up: send → the code arrives (real SMS, or the simulated customer phone) → type it → confirm
+  const [otpOpen, setOtpOpen] = useState(false);
+  const [otpError, setOtpError] = useState(null);
+  const formRef = useRef(null);
   const [notice, setNotice] = useState(null);
   const [now, setNow] = useState(() => Date.now());
 
@@ -206,8 +212,10 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
       const o = await bankAccountApi.sendOtp(account.id, Number(v.amount));
       setOtp(o);
       setOtpCode("");
+      setOtpError(null);
       setNow(Date.now());
       setNotice(`${t("OTP sent to the customer's phone")} ${o.sent_to}.`);
+      setOtpOpen(true);
     } catch (err) {
       setErrors((p) => ({ ...p, amount: err.message || t("Could not send the OTP.") }));
     } finally {
@@ -275,6 +283,15 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
     }
   }
 
+  function confirmOtp() {
+    if (otpLeft <= 0) return setOtpError(t("The OTP has expired — send a new one."));
+    if (!/^[0-9]{6}$/.test(otpCode.trim()))
+      return setOtpError(t("Enter the 6-digit OTP the customer received."));
+    setOtpError(null);
+    setOtpOpen(false);
+    formRef.current?.requestSubmit();
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     const er = {};
@@ -339,7 +356,11 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
       else await agencyBankingApi.create(payload);
       router.push("/dashboard/agency-banking");
     } catch (err) {
-      setServerError(err.message || t("Save failed."));
+      const msg = err.message || t("Save failed.");
+      if (/OTP/i.test(msg) && otp) {
+        setOtpError(msg);
+        setOtpOpen(true);
+      } else setServerError(msg);
     } finally {
       setSaving(false);
     }
@@ -357,6 +378,7 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
 
   return (
     <form
+      ref={formRef}
       onSubmit={handleSubmit}
       noValidate
       className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 backdrop-blur-xl p-6 md:p-8 shadow-2xl space-y-6"
@@ -806,6 +828,133 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
           )}
         </Button>
       </div>
+      {/* ===== OTP pop-up (withdrawals) ===== */}
+      {otpOpen && otp && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("Customer OTP")}
+        >
+          <div className="w-full max-w-md space-y-4 rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="flex items-center gap-2 font-display text-lg font-bold text-slate-900 dark:text-white">
+                  <KeyRound className="h-5 w-5 text-amber-600" /> {t("Customer OTP")}
+                </p>
+                <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+                  {t("Cash withdrawal of")} {formatCurrency(Number(v.amount) || 0)} · {t("OTP sent to")}{" "}
+                  <b>{otp.sent_to}</b>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOtpOpen(false)}
+                className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                aria-label={t("Close")}
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {otp.sms_delivery === "SENT" ? (
+              <p className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                {t("An SMS with the code was sent. Ask the customer for the 6-digit code.")}
+              </p>
+            ) : (
+              otp.simulated_sms && (
+                /* the customer's phone (simulated) — the OTP SMS arrives here */
+                <div className="mx-auto w-64 rounded-[2rem] border-[6px] border-slate-900 bg-slate-100 shadow-xl dark:border-slate-600 dark:bg-slate-800">
+                  <div className="relative px-3 pb-4 pt-2">
+                    <div className="mx-auto mb-2 h-4 w-20 rounded-b-xl bg-slate-900 dark:bg-slate-600" />
+                    <div className="mb-2 flex items-center justify-between text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                      <span>
+                        {new Date(now).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Smartphone className="h-3 w-3" /> {otp.sent_to}
+                      </span>
+                    </div>
+                    <p className="mb-1.5 text-center text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                      {t("Customer's phone (simulated)")}
+                    </p>
+                    <p className="mb-1 text-[11px] font-bold text-slate-700 dark:text-slate-200">
+                      {account?.bank_name || t("Bank")}
+                    </p>
+                    <p className="animate-fade-in rounded-2xl rounded-tl-sm bg-white px-3 py-2 text-[13px] leading-snug text-slate-800 shadow-sm dark:bg-slate-900 dark:text-slate-100">
+                      {otp.simulated_sms}
+                    </p>
+                    <p className="mt-1 text-right text-[10px] text-slate-400">{t("now")}</p>
+                  </div>
+                </div>
+              )
+            )}
+            {otp.emailed_to && (
+              <p className="text-center text-xs text-emerald-700 dark:text-emerald-400">
+                {t("The OTP was also e-mailed to")} <b>{otp.emailed_to}</b>
+              </p>
+            )}
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                {t("Enter the 6-digit OTP")}
+              </label>
+              <input
+                autoFocus
+                inputMode="numeric"
+                maxLength={6}
+                value={otpCode}
+                onChange={(e) => {
+                  setOtpCode(e.target.value.replace(/[^0-9]/g, ""));
+                  setOtpError(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    confirmOtp();
+                  }
+                }}
+                placeholder="••••••"
+                className="w-full rounded-xl border border-amber-300 bg-white px-3 py-2.5 text-center font-mono text-2xl tracking-[0.5em] text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400/40 dark:border-amber-800 dark:bg-slate-950 dark:text-slate-100"
+              />
+              <div className="flex items-center justify-between text-xs">
+                <span className={otpLeft > 0 ? "text-slate-500" : "font-medium text-red-600"}>
+                  {otpLeft > 0
+                    ? `${t("Expires in")} ${Math.floor(otpLeft / 60)}:${String(otpLeft % 60).padStart(2, "0")}`
+                    : t("Expired")}
+                </span>
+                <button
+                  type="button"
+                  onClick={sendOtp}
+                  disabled={otpBusy}
+                  className="font-semibold text-amber-700 hover:underline disabled:opacity-50 dark:text-amber-400"
+                >
+                  {otpBusy ? t("Sending…") : t("Resend OTP")}
+                </button>
+              </div>
+              {otpError && <p className="text-sm font-medium text-red-600">{otpError}</p>}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setOtpOpen(false)}
+                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
+                {t("Cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={confirmOtp}
+                disabled={saving || otpCode.length !== 6}
+                className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-500 disabled:opacity-50"
+              >
+                {saving ? t("Saving...") : t("Confirm withdrawal")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

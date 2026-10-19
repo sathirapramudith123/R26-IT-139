@@ -1,13 +1,15 @@
 import crypto from "crypto";
 import { supabase } from "../config/supabase.js";
 import { isConfigured, sendBrandedEmail } from "./mailer.js";
+import { sendSms, smsRecipient } from "./sms.js";
 import { APP_TZ } from "./time.js";
 
 /*
  * Messages from the (dummy) bank to its customer: credit / debit alerts, withdrawal OTPs and
  * balance replies. Every message goes to the customer's simulated SMS inbox
- * (customer_messages, shown in the app's "Customer phone" view); when the customer has an
- * e-mail address and SMTP is configured, it is e-mailed as well.
+ * (customer_messages, shown in the app's "Customer phone" view). With an SMS gateway set up
+ * (utils/sms.js) it is also sent as a real SMS; when the customer has an e-mail address (or
+ * CUSTOMER_ALERT_EMAIL is set for testing) and SMTP is configured, it is e-mailed as well.
  */
 
 export const OTP_TTL_MS = 5 * 60 * 1000;
@@ -17,6 +19,10 @@ export const hashOtp = (code) => crypto.createHash("sha256").update(String(code)
 export const newOtpCode = () => String(crypto.randomInt(100000, 1000000));
 
 export const maskAccount = (n) => `****${String(n || "").slice(-4)}`;
+export const maskEmail = (e) => {
+  const [user, domain] = String(e || "").split("@");
+  return domain ? `${user.slice(0, 1)}***@${domain}` : "";
+};
 export const maskPhone = (p) => {
   const s = String(p || "");
   return s.length < 7 ? s : `${s.slice(0, 3)}****${s.slice(-3)}`;
@@ -62,23 +68,36 @@ const SUBJECT = {
   REVERSAL: "Transaction reversed",
 };
 
-/** Store the SMS (and e-mail it when possible). Never throws — alerts must not break a posted transaction. */
+/**
+ * Store the SMS, send it through the SMS gateway when one is set up, and e-mail it when possible.
+ * Returns { sms, email, emailTo }: sms is "SENT" / "FAILED" / "SIMULATED", email is "SENT" /
+ * "FAILED" / null (no address or SMTP). Never throws — alerts must not break a posted transaction.
+ */
 export async function sendCustomerMessage(userId, account, kind, body) {
+  let sms = "SIMULATED";
+  let emailDelivery = null;
+  let emailTo = null;
   try {
+    const phone = smsRecipient(account.phone);
+    sms = await sendSms(phone, body);
     await supabase.from("customer_messages").insert([
       {
         user_id: userId,
         account_id: account.account_id,
         channel: "SMS",
         kind,
-        recipient: account.phone,
+        recipient: phone,
         body,
+        ...(sms !== "SIMULATED" && { delivery: sms }),
       },
     ]);
-    if (account.email && isConfigured()) {
+    // testing: every customer e-mail (OTP and confirmations) goes to CUSTOMER_ALERT_EMAIL —
+    // the demo customers are made up
+    const email = process.env.CUSTOMER_ALERT_EMAIL || account.email;
+    if (email && isConfigured()) {
       let delivery = "SENT";
       try {
-        await sendBrandedEmail(account.email, `${account.bank_name} — ${SUBJECT[kind] || "Account alert"}`, {
+        await sendBrandedEmail(email, `${account.bank_name} — ${SUBJECT[kind] || "Account alert"}`, {
           title: SUBJECT[kind] || "Account alert",
           message: body,
           severity: kind === "OTP" || kind === "DEBIT" ? "WARNING" : "INFO",
@@ -88,13 +107,15 @@ export async function sendCustomerMessage(userId, account, kind, body) {
         delivery = "FAILED";
         console.error("[bank] customer e-mail failed:", e.message);
       }
+      emailDelivery = delivery;
+      emailTo = email;
       await supabase.from("customer_messages").insert([
         {
           user_id: userId,
           account_id: account.account_id,
           channel: "EMAIL",
           kind,
-          recipient: account.email,
+          recipient: email,
           body,
           delivery,
         },
@@ -103,4 +124,5 @@ export async function sendCustomerMessage(userId, account, kind, body) {
   } catch (e) {
     console.error("[bank] customer message failed:", e.message);
   }
+  return { sms, email: emailDelivery, emailTo };
 }

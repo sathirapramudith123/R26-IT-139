@@ -26,6 +26,9 @@ Health check: `GET http://localhost:5000/health` · all routes are under `/api/v
 | `SMTP_*`, `FRONTEND_URL` | — | Branded emails: password reset, and alert emails for WARNING / ALERT notifications (low stock, out of stock, banking alerts — the same alert at most once per 6 hours). Optional; without SMTP the reset link is printed to the console |
 | `EMAIL_ALERTS` | `true` | Set to `false` to stop alert emails (in-app notifications continue) |
 | `TRUST_PROXY` | `1` | Only when running behind a hosting proxy |
+| `NOTIFY_LK_USER_ID`, `NOTIFY_LK_API_KEY`, `NOTIFY_LK_SENDER_ID` | — | Optional real SMS (Notify.lk) for the dummy bank's customer messages — withdrawal OTPs and credit / debit alerts. Without them the SMS stays simulated and the OTP pop-up shows it |
+| `SMS_TEST_PHONE` | `07XXXXXXXX` | Testing: every customer SMS goes to this number (the demo customers are made up) |
+| `CUSTOMER_ALERT_EMAIL` | — | Testing: every customer e-mail (OTP, credit / debit confirmation) goes to this address |
 | `GOOGLE_MAPS_API_KEY` | — | Google Maps web services (Geocoding, Places, Directions) for the mobile app, called through `GET /api/v1/maps/:service` so the key is not built into the app. Without it, map search and route distances in the mobile app show an error |
 
 ## Database
