@@ -152,7 +152,7 @@ class ModelTrustPanel extends StatelessWidget {
 
 class ForecastChart extends StatelessWidget {
   final List<double> history; // oldest first
-  final double forecast;
+  final double? forecast; // null = no forecast (past weeks only)
   const ForecastChart({super.key, required this.history, required this.forecast});
 
   @override
@@ -187,8 +187,8 @@ class ForecastChart extends StatelessWidget {
           spacing: 12,
           children: [
             legend(KadeColors.teal, tr("Sold")),
-            legend(KadeColors.accent, tr("Forecast"), dashed: true),
-            legend(KadeColors.teal, tr("Likely range"), box: true),
+            if (forecast != null) legend(KadeColors.accent, tr("Forecast"), dashed: true),
+            if (forecast != null) legend(KadeColors.teal, tr("Likely range"), box: true),
           ],
         ),
       ],
@@ -198,17 +198,18 @@ class ForecastChart extends StatelessWidget {
 
 class _ForecastPainter extends CustomPainter {
   final List<double> history;
-  final double forecast;
+  final double? forecast;
   final bool isDark;
   _ForecastPainter(this.history, this.forecast, this.isDark);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final hi = forecast + demandMae;
-    final lo = math.max(0.0, forecast - demandMae);
+    final fc = forecast;
+    final hi = fc == null ? 0.0 : fc + demandMae;
+    final lo = fc == null ? 0.0 : math.max(0.0, fc - demandMae);
     final maxV = math.max(hi, history.reduce(math.max)) * 1.1 + 1;
     const pad = 8.0;
-    final n = history.length + 1; // + next week
+    final n = math.max(2, history.length + (fc == null ? 0 : 1)); // + next week when forecast
     final w = size.width - pad * 2, h = size.height - pad * 2;
     Offset pt(int i, double v) => Offset(pad + w * i / (n - 1), pad + h * (1 - v / maxV));
 
@@ -219,14 +220,16 @@ class _ForecastPainter extends CustomPainter {
       canvas.drawLine(Offset(pad, pad + h * g / 3), Offset(size.width - pad, pad + h * g / 3), grid);
     }
 
-    // likely-range band from the last real week to next week
     final last = history.length - 1;
-    final band = Path()
-      ..moveTo(pt(last, history[last]).dx, pt(last, history[last]).dy)
-      ..lineTo(pt(n - 1, hi).dx, pt(n - 1, hi).dy)
-      ..lineTo(pt(n - 1, lo).dx, pt(n - 1, lo).dy)
-      ..close();
-    canvas.drawPath(band, Paint()..color = KadeColors.teal.withValues(alpha: 0.14));
+    // likely-range band from the last real week to next week
+    if (fc != null) {
+      final band = Path()
+        ..moveTo(pt(last, history[last]).dx, pt(last, history[last]).dy)
+        ..lineTo(pt(n - 1, hi).dx, pt(n - 1, hi).dy)
+        ..lineTo(pt(n - 1, lo).dx, pt(n - 1, lo).dy)
+        ..close();
+      canvas.drawPath(band, Paint()..color = KadeColors.teal.withValues(alpha: 0.14));
+    }
 
     // actual sales
     final line = Path()..moveTo(pt(0, history[0]).dx, pt(0, history[0]).dy);
@@ -245,8 +248,9 @@ class _ForecastPainter extends CustomPainter {
       canvas.drawCircle(pt(i, history[i]), 3, Paint()..color = KadeColors.teal);
     }
 
+    if (fc == null) return;
     // dashed forecast segment
-    final a = pt(last, history[last]), b = pt(n - 1, forecast);
+    final a = pt(last, history[last]), b = pt(n - 1, fc);
     final dash = Paint()
       ..color = KadeColors.accent
       ..strokeWidth = 2.5;

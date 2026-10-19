@@ -7,6 +7,7 @@ import 'demand_try_screen.dart';
 import 'credit_try_screen.dart';
 import 'procurement_try_screen.dart';
 import 'anomaly_try_screen.dart';
+import 'summary_screens.dart';
 import '../../core/i18n.dart';
 import '../common/record_details.dart' show money;
 
@@ -223,6 +224,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
     required Widget child,
     required String model,
     Widget? action, // e.g. a link shown next to the title
+    Widget? footer, // e.g. "View all items" under the list
   }) {
     return Card(
       child: Padding(
@@ -249,6 +251,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
             ),
             const SizedBox(height: 14),
             child,
+            ?footer,
             TrustLine(model: model),
           ],
         ),
@@ -349,6 +352,14 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
   /* ------------------------------ Sales forecast ------------------------------ */
 
   // Opens a "try it yourself" form: enter a model's inputs and see its result
+  Widget _viewAllLink(Widget screen) => Align(
+    alignment: Alignment.centerRight,
+    child: TextButton(
+      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => screen)),
+      child: Text(tr("View all items →"), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+    ),
+  );
+
   Widget _tryItLink(Widget screen) => TextButton(
     onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => screen)),
     child: Text(tr("Try it yourself"), style: const TextStyle(fontSize: 12)),
@@ -377,6 +388,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
       tint: KadeColors.amber,
       model: "demand",
       action: _tryItLink(const DemandTryScreen()),
+      footer: _viewAllLink(const SalesSummaryScreen()),
       child: Column(
         children: [
           for (var i = 0; i < items.length; i++)
@@ -385,10 +397,12 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
                 final it = items[i] as Map;
                 final f = it["forecast_units"];
                 final hasForecast = f is num;
-                final open = openItem == i && hasForecast;
                 final history = ((it["history"] as List?) ?? const [])
                     .map((w) => (((w as Map)["units"] as num?) ?? 0).toDouble())
                     .toList();
+                // past sales can be shown without a forecast
+                final canOpen = hasForecast || history.any((u) => u > 0);
+                final open = openItem == i && canOpen;
                 final needsReorder = ((it["quantity"] as num?) ?? 0) < ((it["reorder_level"] as num?) ?? 0);
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
@@ -400,7 +414,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
                     children: [
                       InkWell(
                         borderRadius: BorderRadius.circular(KadeRadius.md),
-                        onTap: hasForecast ? () => setState(() => openItem = open ? null : i) : null,
+                        onTap: canOpen ? () => setState(() => openItem = open ? null : i) : null,
                         child: Padding(
                           padding: const EdgeInsets.all(12),
                           child: Row(
@@ -445,6 +459,16 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
                                           tr("units / next wk"),
                                           style: TextStyle(fontSize: 10, color: sub),
                                         ),
+                                        // forecast × the item's real average selling price (same as web)
+                                        if (it["forecast_revenue"] is num)
+                                          Text(
+                                            "${tr("≈ Rs")} ${(it["forecast_revenue"] as num).round().toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ",")}",
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700,
+                                              color: KadeColors.success,
+                                            ),
+                                          ),
                                       ],
                                     )
                                   : Text(
@@ -453,7 +477,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
                                       ),
                                       style: TextStyle(fontSize: 11, color: sub, fontStyle: FontStyle.italic),
                                     ),
-                              if (hasForecast) Icon(open ? Icons.expand_less : Icons.expand_more, color: sub),
+                              if (canOpen) Icon(open ? Icons.expand_less : Icons.expand_more, color: sub),
                             ],
                           ),
                         ),
@@ -461,7 +485,22 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
                       if (open && history.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
-                          child: ForecastChart(history: history, forecast: f.toDouble()),
+                          child: Column(
+                            children: [
+                              ForecastChart(history: history, forecast: hasForecast ? f.toDouble() : null),
+                              if (!hasForecast)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    tr(
+                                      "Past sales only — not enough sales in the last 4 weeks to forecast next week.",
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(fontSize: 11, color: sub, fontStyle: FontStyle.italic),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                     ],
                   ),
@@ -498,6 +537,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
       tint: KadeColors.terra,
       model: "procurement",
       action: _tryItLink(const ProcurementTryScreen()),
+      footer: _viewAllLink(const StockStatusScreen()),
       child: Column(
         children: [
           for (final raw in items)

@@ -244,13 +244,15 @@ export default function PredictionsDashboard() {
             <div className="flex-1 space-y-2">
               {(demand.items || []).map((it, i) => {
                 const needsReorder = Number(it.quantity) < Number(it.reorder_level);
-                const noHistory = it.available === false;
-                const open = openItem === i && !noHistory;
+                const noHistory = it.available === false; // no forecast
+                const hasWeeks = (it.history || []).some((w) => Number(w.units) > 0);
+                const canOpen = !noHistory || hasWeeks; // past sales can be shown without a forecast
+                const open = openItem === i && canOpen;
                 return (
                   <div key={i} className="rounded-2xl bg-slate-50 dark:bg-slate-800/40">
                     <button
                       type="button"
-                      disabled={noHistory}
+                      disabled={!canOpen}
                       onClick={() => setOpenItem(open ? null : i)}
                       className="flex w-full items-center justify-between px-4 py-3 text-left"
                     >
@@ -287,7 +289,7 @@ export default function PredictionsDashboard() {
                             )}
                           </div>
                         )}
-                        {!noHistory && (
+                        {canOpen && (
                           <ChevronDown
                             className={`h-4 w-4 text-slate-400 transition ${open ? "rotate-180" : ""}`}
                           />
@@ -296,7 +298,14 @@ export default function PredictionsDashboard() {
                     </button>
                     {open && (
                       <div className="px-3 pb-3">
-                        <ForecastChart history={it.history} forecast={it.forecast_units} />
+                        <ForecastChart history={it.history} forecast={noHistory ? null : it.forecast_units} />
+                        {noHistory && (
+                          <p className="mt-1 text-center text-[11px] italic text-slate-500 dark:text-slate-400">
+                            {t(
+                              "Past sales only — not enough sales in the last 4 weeks to forecast next week.",
+                            )}
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>

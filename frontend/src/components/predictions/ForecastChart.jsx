@@ -12,24 +12,24 @@ import {
 import { DEMAND_MAE } from "@/lib/modelTrust";
 import { t } from "@/lib/i18n";
 
-// Past 8 weeks of real sales, then next week's forecast with a band for the model's usual error
+// Past 8 weeks of real sales, then next week's forecast with a band for the model's usual error.
+// Without a forecast (no sales in the last 4 weeks) only the past weeks are drawn.
 export default function ForecastChart({ history = [], forecast }) {
-  if (!history.length || forecast == null) return null;
+  if (!history.length) return null;
+  const hasForecast = forecast != null;
   const f = Number(forecast);
   const data = [
     ...history.map((h, i) => ({
       label: h.week.slice(5), // MM-DD
       actual: Number(h.units),
       // join the forecast line to the last real week
-      ...(i === history.length - 1
+      ...(hasForecast && i === history.length - 1
         ? { forecast: Number(h.units), band: [Number(h.units), Number(h.units)] }
         : {}),
     })),
-    {
-      label: t("Next week"),
-      forecast: f,
-      band: [Math.max(0, f - DEMAND_MAE), f + DEMAND_MAE],
-    },
+    ...(hasForecast
+      ? [{ label: t("Next week"), forecast: f, band: [Math.max(0, f - DEMAND_MAE), f + DEMAND_MAE] }]
+      : []),
   ];
 
   return (
@@ -58,7 +58,9 @@ export default function ForecastChart({ history = [], forecast }) {
                 : [`${Math.round(v)} ${t("units")}`, key === "actual" ? t("Sold") : t("Forecast")]
             }
           />
-          <Area dataKey="band" stroke="none" fill="#2a5bdb" fillOpacity={0.12} isAnimationActive={false} />
+          {hasForecast && (
+            <Area dataKey="band" stroke="none" fill="#2a5bdb" fillOpacity={0.12} isAnimationActive={false} />
+          )}
           <Line
             type="monotone"
             dataKey="actual"
@@ -67,27 +69,33 @@ export default function ForecastChart({ history = [], forecast }) {
             dot={{ r: 3 }}
             connectNulls={false}
           />
-          <Line
-            type="monotone"
-            dataKey="forecast"
-            stroke="#3ddc97"
-            strokeWidth={2.5}
-            strokeDasharray="6 4"
-            dot={{ r: 4, fill: "#3ddc97" }}
-            connectNulls
-          />
+          {hasForecast && (
+            <Line
+              type="monotone"
+              dataKey="forecast"
+              stroke="#3ddc97"
+              strokeWidth={2.5}
+              strokeDasharray="6 4"
+              dot={{ r: 4, fill: "#3ddc97" }}
+              connectNulls
+            />
+          )}
         </ComposedChart>
       </ResponsiveContainer>
       <div className="mt-1 flex justify-center gap-4 text-[10px] text-slate-400">
         <span className="flex items-center gap-1">
           <span className="h-0.5 w-4 bg-brand-600" /> {t("Sold")}
         </span>
-        <span className="flex items-center gap-1">
-          <span className="h-0.5 w-4 border-t-2 border-dashed border-accent" /> {t("Forecast")}
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="h-2.5 w-4 rounded-sm bg-brand-600/15" /> {t("Likely range")}
-        </span>
+        {hasForecast && (
+          <>
+            <span className="flex items-center gap-1">
+              <span className="h-0.5 w-4 border-t-2 border-dashed border-accent" /> {t("Forecast")}
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="h-2.5 w-4 rounded-sm bg-brand-600/15" /> {t("Likely range")}
+            </span>
+          </>
+        )}
       </div>
     </div>
   );

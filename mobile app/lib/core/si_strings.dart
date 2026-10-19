@@ -1576,4 +1576,6 @@ const Map<String, String> siStrings = {
   "as at": "දිනට",
   "available for deposits": "තැන්පතු සඳහා ඇත",
   "before": "පෙර",
+  "Past sales only — not enough sales in the last 4 weeks to forecast next week.": "පරණ විකුණුම් පමණි — ලබන සතිය පුරෝකථනය කිරීමට අන්තිම සති 4 තුළ ප්‍රමාණවත් විකුණුම් නැත.",
+  "sold": "විකුණුණා",
 };
