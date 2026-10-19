@@ -13,7 +13,9 @@ import {
   FileText,
   Scale,
   Library,
+  Wallet,
 } from "lucide-react";
+import CashTab from "@/components/journal/CashTab";
 
 import { t } from "@/lib/i18n";
 const TABS = [
@@ -45,6 +47,13 @@ const TABS = [
     },
     icon: Scale,
   },
+  {
+    key: "cash",
+    get label() {
+      return t("Cash");
+    },
+    icon: Wallet,
+  },
 ];
 
 // default range = current month
@@ -64,9 +73,11 @@ export default function JournalPage() {
   const [to, setTo] = useState(todayStr());
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0); // the Cash tab loads its own data
 
   const load = useCallback(async () => {
     setLoading(true);
+    setReloadKey((k) => k + 1);
     try {
       const d = await transactionApi.journal({ from, to });
       setData(d);
@@ -171,7 +182,9 @@ export default function JournalPage() {
         })}
       </div>
 
-      {loading ? (
+      {tab === "cash" ? (
+        <CashTab from={from} to={to} reloadKey={reloadKey} />
+      ) : loading ? (
         <div className="py-16 text-center text-slate-400">{t("Loading…")}</div>
       ) : !data ? (
         <Empty text={t("No data for this range.")} />
