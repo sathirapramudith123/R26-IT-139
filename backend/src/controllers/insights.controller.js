@@ -130,6 +130,12 @@ export const getInsights = async (req, res) => {
         history,
         reason,
       } = await buildDemandFeatures(userId, item, avgSalePrice[normName(item.item_name)]);
+      // past 8 completed weeks, oldest first — the chart's "actual" line
+      const weeks = (history || [])
+        .slice()
+        .reverse()
+        // local Monday of the week (toISOString would show the Sunday before in UTC+5:30)
+        .map((w) => ({ week: localDateStr(new Date(w.week)), units: w.units }));
       if (hasSalesHistory) {
         const r = await safePredict("demand", demandFeatures);
         if (r.available) forecastByItem[normName(item.item_name)] = r.prediction;
@@ -146,12 +152,7 @@ export const getInsights = async (req, res) => {
           forecast_units: r.available ? r.prediction : null,
           forecast_revenue: forecastRevenue,
           available: r.available,
-          // past 8 completed weeks, oldest first — the chart's "actual" line
-          history: (history || [])
-            .slice()
-            .reverse()
-            // local Monday of the week (toISOString would show the Sunday before in UTC+5:30)
-            .map((w) => ({ week: localDateStr(new Date(w.week)), units: w.units })),
+          history: weeks,
         });
       } else {
         list.push({
@@ -162,6 +163,8 @@ export const getInsights = async (req, res) => {
           forecast_revenue: null,
           available: false,
           reason: reason || "No sales in the last 8 weeks",
+          // no forecast, but the past weeks can still be shown (sold earlier, not in the last 4 weeks)
+          history: weeks,
         });
       }
     }
