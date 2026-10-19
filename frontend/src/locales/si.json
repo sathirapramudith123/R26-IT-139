@@ -1332,5 +1332,17 @@
   "ROC-AUC for credit readiness — better than the usual bank rules": "ණය සූදානම සඳහා ROC-AUC — සාමාන්‍ය බැංකු නීතිවලට වඩා හොඳයි",
   "saved on the purchase bill by following Buy / Wait": "මිලදී ගන්න / රැඳී සිටින්න උපදෙස් අනුගමනය කිරීමෙන් මිලදී ගැනීමේ බිලෙන් ඉතිරි වේ",
   "false alarms per 1,000 honest banking customers": "අවංක බැංකු පාරිභෝගිකයින් 1,000කට වැරදි අනතුරු ඇඟවීම්",
-  "Tested on data the models never saw": "මාදිලි කවදාවත් නොදුටු දත්ත මත පරීක්ෂා කළා"
+  "Tested on data the models never saw": "මාදිලි කවදාවත් නොදුටු දත්ත මත පරීක්ෂා කළා",
+  "Customer OTP": "පාරිභෝගික OTP",
+  "Cash withdrawal of": "මුදල් ආපසු ගැනීම",
+  "OTP sent to": "OTP යැවූ අංකය",
+  "An SMS with the code was sent. Ask the customer for the 6-digit code.": "කේතය සහිත SMS එකක් යැව්වා. ඉලක්කම් 6ක කේතය පාරිභෝගිකයාගෙන් අසන්න.",
+  "SMS could not be sent — customer's phone (simulated)": "SMS යැවිය නොහැකි විය — පාරිභෝගිකයාගේ දුරකථනය (අනුකරණය)",
+  "Customer's phone (simulated)": "පාරිභෝගිකයාගේ දුරකථනය (අනුකරණය)",
+  "Enter the 6-digit OTP": "ඉලක්කම් 6ක OTP එක ඇතුළත් කරන්න",
+  "Confirm withdrawal": "ආපසු ගැනීම තහවුරු කරන්න",
+  "The OTP was e-mailed to": "OTP එක email කළ ලිපිනය",
+  "Ask the customer for the 6-digit code.": "ඉලක්කම් 6ක කේතය පාරිභෝගිකයාගෙන් අසන්න.",
+  "The OTP was also e-mailed to": "OTP එක email කළ ලිපිනය",
+  "now": "දැන්"
 }

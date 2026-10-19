@@ -4,11 +4,13 @@ import {
   OTP_TTL_MS,
   agentName,
   hashOtp,
+  maskEmail,
   maskPhone,
   newOtpCode,
   sendCustomerMessage,
   text,
 } from "../utils/customerAlerts.js";
+import { smsRecipient } from "../utils/sms.js";
 
 /*
  * Dummy bank (simulated core banking) for agency banking: the registered customer
@@ -165,14 +167,19 @@ export const sendOtp = async (req, res, next) => {
       .single();
     if (error) throw error;
 
-    await sendCustomerMessage(
-      req.user.id,
-      acc,
-      "OTP",
-      text.otp({ account: acc, amount, agent: await agentName(req.user.id), code }),
-    );
-    // the code itself is never returned to the agent — only the customer receives it
-    res.status(201).json({ otp_id: otp.otp_id, expires_at: otp.expires_at, sent_to: maskPhone(acc.phone) });
+    const body = text.otp({ account: acc, amount, agent: await agentName(req.user.id), code });
+    const sent = await sendCustomerMessage(req.user.id, acc, "OTP", body);
+    // The customer's phone is simulated: unless a real SMS went out, the withdrawal screen shows
+    // that phone (with this SMS) in its OTP pop-up. The code is also e-mailed when possible.
+    const delivered = sent.sms === "SENT";
+    res.status(201).json({
+      otp_id: otp.otp_id,
+      expires_at: otp.expires_at,
+      sent_to: maskPhone(smsRecipient(acc.phone)),
+      sms_delivery: sent.sms, // SENT | FAILED | SIMULATED
+      ...(sent.email === "SENT" && { emailed_to: maskEmail(sent.emailTo) }),
+      ...(!delivered && { simulated_sms: body }),
+    });
   } catch (e) {
     next(e);
   }

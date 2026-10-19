@@ -200,9 +200,13 @@ export const getInsights = async (req, res) => {
 
       const action = qty <= reorderPoint ? "BUY" : "WAIT";
 
-      // ML price context (advisory only)
-      const trend = priceTrendForItem(histories, item.item_name, price);
-      const r = await safePredict("procurement", buildProcurementFeatures(item, price, trend));
+      // ML price context (advisory only). "Today's price" = the latest price the shop paid
+      // (purchases / received orders); the inventory cost is only the fallback — with several
+      // batches it is just one batch's cost.
+      const paid = (histories[key] || []).at(-1)?.price;
+      const nowPrice = paid || price;
+      const trend = priceTrendForItem(histories, item.item_name, nowPrice);
+      const r = await safePredict("procurement", buildProcurementFeatures(item, nowPrice, trend));
       const mlAction = r.available ? r.recommended_action : null; // BULK_BUY_NOW / MODERATE_BUY / WAIT_DO_NOT_BUY
       let priceContext = "";
       if (r.available) {

@@ -11,7 +11,11 @@ import '../../core/i18n.dart';
 /// Tiered CBSL daily limits (LKR) — keep identical to the backend
 /// agencyBanking.controller.js TIER_LIMITS. `null` = no limit.
 // Rural agent build: fixed LOW-tier daily limits (no KYC dropdown).
-const Map<String, num?> kDailyLimits = {"cash_deposit": 50000, "cash_withdrawal": 25000, "fund_transfer": 50000};
+const Map<String, num?> kDailyLimits = {
+  "cash_deposit": 50000,
+  "cash_withdrawal": 25000,
+  "fund_transfer": 50000,
+};
 
 const List<Map<String, String>> kSourceOfFunds = [
   {"value": "SALARY", "label": "Salary"},
@@ -171,11 +175,187 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
         otpCtrl.clear();
         notice = "${tr("OTP sent to the customer's phone")} ${o["sent_to"]}.";
       });
+      _showOtpDialog();
     } catch (e) {
       if (mounted) setState(() => error = e.toString().replaceFirst("Exception: ", ""));
     } finally {
       if (mounted) setState(() => otpBusy = false);
     }
+  }
+
+  /// OTP pop-up: shows where the code went (or the simulated customer SMS), takes the 6 digits and
+  /// confirms the withdrawal — all on this screen.
+  Future<void> _showOtpDialog() async {
+    final o = otp;
+    if (o == null || !mounted) return;
+    String? dialogError;
+    Timer? tick;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) {
+          tick ??= Timer.periodic(const Duration(seconds: 1), (_) {
+            if (ctx.mounted) setD(() {});
+          });
+          final left = _otpLeft;
+          final sms = "${o["simulated_sms"] ?? ""}";
+          final sent = o["sms_delivery"] == "SENT";
+          void confirm() {
+            if (_otpLeft <= 0) return setD(() => dialogError = tr("The OTP has expired — send a new one."));
+            if (!RegExp(r'^[0-9]{6}$').hasMatch(otpCtrl.text.trim())) {
+              return setD(() => dialogError = tr("Enter the 6-digit OTP the customer received."));
+            }
+            Navigator.pop(ctx, true);
+          }
+
+          return AlertDialog(
+            title: Row(
+              children: [
+                const Icon(Icons.key_outlined, color: KadeColors.amber),
+                const SizedBox(width: 8),
+                Expanded(child: Text(tr("Customer OTP"))),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("${tr("OTP sent to")} ${o["sent_to"] ?? ""}", style: const TextStyle(fontSize: 13)),
+                  const SizedBox(height: 10),
+                  if (sent)
+                    Text(
+                      tr("An SMS with the code was sent. Ask the customer for the 6-digit code."),
+                      style: const TextStyle(fontSize: 13, color: KadeColors.success),
+                    )
+                  else if (sms.isNotEmpty)
+                    // the customer's phone (simulated) — the OTP SMS arrives here
+                    Center(
+                      child: Container(
+                        width: 230,
+                        padding: const EdgeInsets.fromLTRB(10, 0, 10, 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(26),
+                          border: Border.all(color: const Color(0xFF0F172A), width: 5),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Center(
+                              child: Container(
+                                width: 70,
+                                height: 12,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF0F172A),
+                                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(10)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              "${TimeOfDay.now().format(ctx)}   ·   ${o["sent_to"] ?? ""}",
+                              style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                            ),
+                            const SizedBox(height: 6),
+                            Center(
+                              child: Text(
+                                tr("Customer's phone (simulated)"),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF475569),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              "${account?["bank_name"] ?? tr("Bank")}",
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF334155),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.all(9),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Text(
+                                sms,
+                                style: const TextStyle(fontSize: 12.5, color: Color(0xFF1E293B)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  if (o["emailed_to"] != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Center(
+                        child: Text(
+                          "${tr("The OTP was also e-mailed to")} ${o["emailed_to"]}",
+                          style: const TextStyle(fontSize: 12, color: KadeColors.success),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: otpCtrl,
+                    autofocus: true,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    textAlign: TextAlign.center,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    style: const TextStyle(fontSize: 24, letterSpacing: 8, fontWeight: FontWeight.w700),
+                    decoration: InputDecoration(
+                      hintText: "••••••",
+                      counterText: "",
+                      labelText: tr("Enter the 6-digit OTP"),
+                    ),
+                    onChanged: (_) => setD(() => dialogError = null),
+                    onSubmitted: (_) => confirm(),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    left > 0
+                        ? "${tr("Expires in")} ${left ~/ 60}:${(left % 60).toString().padLeft(2, "0")}"
+                        : tr("Expired"),
+                    style: TextStyle(fontSize: 12, color: left > 0 ? null : KadeColors.terra),
+                  ),
+                  if (dialogError != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        dialogError!,
+                        style: const TextStyle(color: KadeColors.terra, fontSize: 13),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx, false);
+                  _sendOtp(); // a new code, and the pop-up opens again
+                },
+                child: Text(tr("Resend OTP")),
+              ),
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr("Cancel"))),
+              FilledButton(onPressed: confirm, child: Text(tr("Confirm withdrawal"))),
+            ],
+          );
+        },
+      ),
+    );
+    tick?.cancel();
+    if (confirmed == true && mounted) await _save();
   }
 
   Future<void> _loadBanks() async {
@@ -295,7 +475,11 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
               Expanded(
                 child: Text(
                   "${tr("Account verified")} · ${a["bank_name"]}",
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: KadeColors.success),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: KadeColors.success,
+                  ),
                 ),
               ),
             ],
@@ -371,7 +555,10 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
 
   Widget _hint(String text) => Padding(
     padding: const EdgeInsets.only(top: 6, left: 2),
-    child: Text(tr(text), style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
+    child: Text(
+      tr(text),
+      style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
+    ),
   );
 
   Widget _floatPanel() {
@@ -432,7 +619,9 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
       margin: const EdgeInsets.only(top: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark ? Colors.white10 : Colors.black.withValues(alpha: 0.03),
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.white10
+            : Colors.black.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -525,8 +714,8 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
         final amt = num.tryParse(amountCtrl.text.trim()) ?? 0;
         if (amt > ((account!["balance"] as num?) ?? 0)) {
           setState(
-            () =>
-                error = "${tr("Insufficient balance. Available:")} LKR ${_money((account!["balance"] as num?) ?? 0)}.",
+            () => error =
+                "${tr("Insufficient balance. Available:")} LKR ${_money((account!["balance"] as num?) ?? 0)}.",
           );
           return;
         }
@@ -699,7 +888,11 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
                     FilledButton.tonalIcon(
                       onPressed: lookingUp ? null : _verifyAccount,
                       icon: lookingUp
-                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
                           : const Icon(Icons.search, size: 18),
                       label: Text(tr("Verify")),
                     ),
@@ -768,7 +961,9 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
                 inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
                 decoration: InputDecoration(hintText: "0.00", prefixText: tr("LKR ")),
               ),
-              _hint(isEdit ? tr("Charged to the customer") : tr("Auto-filled from amount — you can change it")),
+              _hint(
+                isEdit ? tr("Charged to the customer") : tr("Auto-filled from amount — you can change it"),
+              ),
 
               const SizedBox(height: 16),
               fieldLabel(tr("Commission (LKR)")),
@@ -788,7 +983,9 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
                   initialValue: statuses.contains(status) ? status : statuses.first,
                   decoration: const InputDecoration(),
                   items: statuses
-                      .map((s) => DropdownMenuItem(value: s, child: Text(s[0].toUpperCase() + s.substring(1))))
+                      .map(
+                        (s) => DropdownMenuItem(value: s, child: Text(s[0].toUpperCase() + s.substring(1))),
+                      )
                       .toList(),
                   onChanged: saving ? null : (val) => setState(() => status = val ?? status),
                 ),
