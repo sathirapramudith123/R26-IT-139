@@ -15,6 +15,17 @@ import { formatCurrency } from "@/lib/formatters";
 import DetailDialog from "@/components/common/DetailDialog";
 
 import { t } from "@/lib/i18n";
+
+// Overdue: the expected arrival date has passed but the order is not received (or cancelled) yet
+const isOverdue = (o) => {
+  const arrival = String(o?.arrival_date || "").slice(0, 10);
+  const status = String(o?.status || "").toLowerCase();
+  return (
+    !!arrival &&
+    !["received", "cancelled"].includes(status) &&
+    arrival < new Date().toLocaleDateString("en-CA")
+  );
+};
 const COLS = [
   {
     key: "item_name",
@@ -88,7 +99,16 @@ export default function ProcurementPage() {
           {formatCurrency(item.total_cost)}
         </span>
       ),
-      status: <StatusBadge status={item.status} />,
+      status: (
+        <div className="flex flex-wrap items-center gap-1">
+          <StatusBadge status={item.status} />
+          {isOverdue(item) && (
+            <span className="whitespace-nowrap rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-bold text-rose-700 dark:bg-rose-950 dark:text-rose-300">
+              ⏰ {t("Overdue")}
+            </span>
+          )}
+        </div>
+      ),
       actions: (
         <div className="flex gap-2">
           <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => setViewItem(item)}>

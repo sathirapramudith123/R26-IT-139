@@ -1,5 +1,5 @@
 import { supabase } from "../config/supabase.js";
-import { isDrawings, toJournalLines } from "../utils/doubleEntry.js";
+import { isCapital, isDrawings, isOtherIncome, toJournalLines } from "../utils/doubleEntry.js";
 import { summarizeByMethod } from "../utils/paymentMethods.js";
 import { localDateStr, localDayStart, addDays } from "../utils/time.js";
 import { getCashPool, floatHealth } from "../utils/float.js";
@@ -36,6 +36,7 @@ export const getIncomeStatement = async (req, res, next) => {
     let totalRevenue = 0;
     let costOfGoodsSold = 0;
     let operatingExpenses = 0;
+    let otherIncome = 0;
 
     (transactions || []).forEach((t) => {
       const amount = num(t.amount);
@@ -54,13 +55,15 @@ export const getIncomeStatement = async (req, res, next) => {
         });
       } else if (type === "expense" && !isDrawings(t.category)) {
         operatingExpenses += amount; // owner's drawings are not an expense
+      } else if (type === "deposit" && isOtherIncome(t.category)) {
+        otherIncome += amount; // income, but not from sales
       }
       // PURCHASE -> cash→stock asset swap; does not affect P&L.
       // DEPOSIT / TRANSFER -> financing / pass-through; not income.
     });
 
     const grossProfit = totalRevenue - costOfGoodsSold;
-    const netProfit = grossProfit - operatingExpenses;
+    const netProfit = grossProfit + otherIncome - operatingExpenses;
     const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
     return res.status(200).json({
@@ -69,6 +72,7 @@ export const getIncomeStatement = async (req, res, next) => {
         total_revenue: totalRevenue,
         cost_of_goods_sold: costOfGoodsSold,
         gross_profit: grossProfit,
+        other_income: otherIncome,
         operating_expenses: operatingExpenses,
         net_profit: netProfit,
         profit_margin_pct: profitMargin,
@@ -131,15 +135,27 @@ export const getPaymentMethods = async (req, res, next) => {
 const CASH = "Cash A/C";
 const AGENT_CASH = "Agent Cash-on-Hand";
 // how each float-ledger event moves the agent's cash on hand (atomic_banking.sql, _float_move)
-const AGENT_CASH_SIGN = { DEPOSIT: 1, WITHDRAWAL: -1, TOPUP: -1, WITHDRAWAL_REVERSAL: 1, DEPOSIT_REVERSAL: -1 };
+const AGENT_CASH_SIGN = {
+  DEPOSIT: 1,
+  WITHDRAWAL: -1,
+  TOPUP: -1,
+  WITHDRAWAL_REVERSAL: 1,
+  DEPOSIT_REVERSAL: -1,
+};
 
 const cashKind = (t) => {
   const type = String(t.transaction_type || "").toLowerCase();
   if (type === "sale") return "Cash sales";
   if (type === "purchase") return "Cash purchases";
   if (type === "expense") return isDrawings(t.category) ? "Drawings" : "Expenses";
-  if (type === "deposit") return "Deposited to bank";
-  if (type === "transfer") return /supplier payment/i.test(t.category || "") ? "Supplier payments" : "Transfers";
+  if (type === "deposit")
+    return isCapital(t.category)
+      ? "Owner capital"
+      : isOtherIncome(t.category)
+        ? "Other income"
+        : "Deposited to bank";
+  if (type === "transfer")
+    return /supplier payment/i.test(t.category || "") ? "Supplier payments" : "Transfers";
   return "Other";
 };
 
@@ -163,7 +179,10 @@ export const getCashFlow = async (req, res, next) => {
         .eq("gl_account", AGENT_CASH)
         .order("created_at"),
       supabase.from("agent_banks").select("*").eq("user_id", userId),
-      supabase.from("agency_banking").select("agency_banking_id, customer_name, account_number").eq("user_id", userId),
+      supabase
+        .from("agency_banking")
+        .select("agency_banking_id, customer_name, account_number")
+        .eq("user_id", userId),
       getCashPool(userId),
     ]);
     for (const r of [txRes, ledRes, bankRes, abRes]) if (r.error) throw r.error;
@@ -245,7 +264,11 @@ export const getCashFlow = async (req, res, next) => {
           reversals_in: totals.WITHDRAWAL_REVERSAL,
           reversals_out: totals.DEPOSIT_REVERSAL,
           net:
-            totals.DEPOSIT - totals.WITHDRAWAL - totals.TOPUP + totals.WITHDRAWAL_REVERSAL - totals.DEPOSIT_REVERSAL,
+            totals.DEPOSIT -
+            totals.WITHDRAWAL -
+            totals.TOPUP +
+            totals.WITHDRAWAL_REVERSAL -
+            totals.DEPOSIT_REVERSAL,
           entries: agencyEntries,
         },
         today: {

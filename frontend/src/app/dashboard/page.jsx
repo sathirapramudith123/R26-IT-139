@@ -174,8 +174,11 @@ export default function DashboardPage() {
     const income = txns
       .filter((t) => t.transaction_type === "sale")
       .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    // Drawings (owner's personal use) are not a business expense — same as the P&L
     const expense = txns
-      .filter((t) => ["purchase", "expense"].includes(t.transaction_type))
+      .filter(
+        (t) => ["purchase", "expense"].includes(t.transaction_type) && !/drawing/i.test(t.category || ""),
+      )
       .reduce((s, t) => s + (Number(t.amount) || 0), 0);
     const lowStock = inv.filter((i) => Number(i.quantity) <= Number(i.reorder_level)).length;
     return { income, expense, profit: income - expense, lowStock };

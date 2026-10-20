@@ -47,7 +47,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           final type = "${t["transaction_type"]}";
           // Income = sales only: a deposit moves cash into the bank, it is not income (same as web)
           if (type == "sale") inc += amt;
-          if (type == "purchase" || type == "expense") exp += amt;
+          // Drawings (owner's personal use) are not a business expense — same as the P&L
+          final drawings = RegExp("drawing", caseSensitive: false).hasMatch("${t["category"] ?? ""}");
+          if ((type == "purchase" || type == "expense") && !drawings) exp += amt;
         }
       }
 

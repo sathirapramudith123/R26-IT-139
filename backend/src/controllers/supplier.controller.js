@@ -28,17 +28,21 @@ const toSuppliedItems = (v) => {
 // point in the Gulf of Guinea — we don't want to silently save that).
 const toCoord = (v) => (v === "" || v == null ? null : Number(v));
 
+// Trim the text fields and collapse repeated spaces, so "Dulmi " and "Dulmi" are the same supplier
+// (inventory, procurement and supplier payments match suppliers by name).
+const clean = (v) => (v == null ? v : String(v).replace(/\s+/g, " ").trim());
+
 const toDb = (b) => ({
-  supplier_name: b.name || b.supplier_name,
-  company_name: b.company_name || null,
-  contact_number: b.contact_number,
-  email: b.email || null,
+  supplier_name: clean(b.name || b.supplier_name),
+  company_name: clean(b.company_name) || null,
+  contact_number: clean(b.contact_number),
+  email: clean(b.email) || null,
   // NOTE: `address` is intentionally not mapped here anymore — the form's
   // "Location" field (delivery_location) now captures the full address via
   // the map pin, so a separate free-text address is no longer collected.
   // Leaving this key out of toDb() means Supabase's .update() won't touch
   // whatever is already in that column (vs sending null and wiping it).
-  delivery_location: b.delivery_location || null,
+  delivery_location: clean(b.delivery_location) || null,
   delivery_cost: num(b.delivery_cost),
   available_quantity: num(b.available_quantity), // derived client-side: sum of items_supplied quantities
   lead_time_days: num(b.lead_time_days ?? 1), // used for procurement lead time

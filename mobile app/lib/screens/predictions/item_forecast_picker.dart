@@ -67,7 +67,7 @@ class _ItemForecastPickerState extends State<ItemForecastPicker> {
         .toList();
     final f = r?["forecast_units"];
     final hasForecast = r?["available"] == true && f is num;
-    final needsReorder = r != null && ((r["quantity"] as num?) ?? 0) < ((r["reorder_level"] as num?) ?? 0);
+    final needsReorder = r != null && ((r["quantity"] as num?) ?? 0) <= ((r["reorder_level"] as num?) ?? 0);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),

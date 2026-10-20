@@ -12,6 +12,10 @@ const up = (v) => String(v || "").toUpperCase();
 
 // Money the owner takes for personal use: reduces capital, not an expense (not in the P&L)
 export const isDrawings = (category) => /drawing/i.test(String(category || ""));
+// Money the owner puts into the business (opening cash / capital): Dr Cash, Cr Capital — not income
+export const isCapital = (category) => /capital/i.test(String(category || ""));
+// Money the shop earns outside sales (commission, rent received...): Dr Cash/Bank, Cr Other Income
+export const isOtherIncome = (category) => /other income/i.test(String(category || ""));
 // Paying a supplier settles what the shop owes them (Trade Payables), it is not a cash→bank move
 const isSupplierPayment = (category) => /^supplier payment$/i.test(String(category || "").trim());
 
@@ -62,9 +66,20 @@ export function toJournalLines(txn) {
       break;
 
     case "DEPOSIT":
-      // Cash paid into the bank: Bank asset up (Debit), Cash asset down (Credit)
-      debit_account = "Bank A/C";
-      credit_account = "Cash A/C";
+      if (isCapital(txn.category)) {
+        // Owner Capital Injection: the owner brings money in. Cash asset up (Debit),
+        // Capital up (Credit). Not income, so it is not in the P&L.
+        debit_account = cashAccount(method);
+        credit_account = "Capital A/C";
+      } else if (isOtherIncome(txn.category)) {
+        // Other Income: money earned, not from sales. Cash/Bank up (Debit), Income up (Credit).
+        debit_account = cashAccount(method);
+        credit_account = "Other Income A/C";
+      } else {
+        // Cash paid into the bank: Bank asset up (Debit), Cash asset down (Credit)
+        debit_account = "Bank A/C";
+        credit_account = "Cash A/C";
+      }
       break;
 
     case "TRANSFER":
@@ -201,6 +216,7 @@ export function buildProfitAndLoss(transactions) {
   let sales = 0,
     purchases = 0,
     cogs = 0,
+    otherIncome = 0,
     drawings = 0;
   const expenses = {}; // by category
 
@@ -217,6 +233,8 @@ export function buildProfitAndLoss(transactions) {
       }
     } else if (type === "PURCHASE") {
       purchases += amt;
+    } else if (type === "DEPOSIT" && isOtherIncome(t.category)) {
+      otherIncome += amt; // added below the gross profit, in the P&L account
     } else if (type === "EXPENSE") {
       if (isDrawings(t.category)) {
         drawings += amt; // owner's withdrawals: shown separately, not an expense
@@ -229,7 +247,7 @@ export function buildProfitAndLoss(transactions) {
 
   const grossProfit = sales - cogs; // Trading result
   const totalExpenses = Object.values(expenses).reduce((s, v) => s + v, 0);
-  const netProfit = grossProfit - totalExpenses; // P&L result
+  const netProfit = grossProfit + otherIncome - totalExpenses; // P&L result
 
   return {
     // Trading account
@@ -237,6 +255,7 @@ export function buildProfitAndLoss(transactions) {
     cost_of_goods: +cogs.toFixed(2),
     gross_profit: +grossProfit.toFixed(2),
     // P&L account
+    other_income: +otherIncome.toFixed(2),
     expenses: Object.entries(expenses)
       .map(([name, amount]) => ({ account: `${name} Expense A/C`, amount: +amount.toFixed(2) }))
       .sort((a, b) => b.amount - a.amount),
@@ -256,12 +275,13 @@ export function buildProfitAndLoss(transactions) {
 function accountClass(account) {
   if (/^(Cash|Bank|Trade Receivables) A\/C$/.test(account)) return "Asset";
   if (account === "Trade Payables A/C") return "Liability";
+  if (account === "Capital A/C") return "Capital";
   if (account === "Drawings A/C") return "Drawings";
-  if (account === "Sales A/C") return "Income";
+  if (account === "Sales A/C" || account === "Other Income A/C") return "Income";
   if (account === "Purchases A/C" || / Expense A\/C$/.test(account)) return "Expense";
   return "Other";
 }
-const CLASS_ORDER = { Asset: 0, Liability: 1, Drawings: 2, Income: 3, Expense: 4, Other: 5 };
+const CLASS_ORDER = { Asset: 0, Liability: 1, Capital: 2, Drawings: 3, Income: 4, Expense: 5, Other: 6 };
 
 /**
  * Group journal rows (from buildJournal) by account. Each debit line names the account it

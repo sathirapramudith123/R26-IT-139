@@ -163,6 +163,7 @@ final Map<String, ReportDef> reports = {
             {"line": tr("Total Revenue / Sales"), "amount": sales},
             {"line": tr("Cost of Goods Sold"), "amount": -_n(pl["cost_of_goods"])},
             {"line": tr("Gross Profit"), "amount": _n(pl["gross_profit"]), "_bold": true},
+            if (_n(pl["other_income"]) != 0) {"line": tr("Other income"), "amount": _n(pl["other_income"])},
             {"line": tr("Operating Expenses"), "amount": -_n(pl["total_expenses"])},
             {
               "line": pl["is_profit"] == false ? tr("Net Loss") : tr("Net Income / Profit"),
@@ -205,6 +206,8 @@ final Map<String, ReportDef> reports = {
             [_text("line", tr("Particulars")), _money("amount", tr("Amount (LKR)"))],
             [
               {"line": tr("Gross Profit"), "amount": _n(pl["gross_profit"])},
+              if (_n(pl["other_income"]) != 0)
+                {"line": tr("Add: Other Income A/C"), "amount": _n(pl["other_income"])},
               for (final e in _list(pl["expenses"]))
                 {"line": "${tr("Less:")} ${e["account"]}", "amount": -_n(e["amount"])},
               {
@@ -570,6 +573,8 @@ final Map<String, ReportDef> reports = {
             ],
             [
               row(tr("Sales received"), "in", "sales"),
+              row(tr("Other income"), "in", "other_income"),
+              row(tr("Owner capital"), "in", "capital"),
               row(tr("Moved in (deposits / transfers)"), "in", "moved_in"),
               row(tr("Total money in"), "in", "total", bold: true),
               row(tr("Purchases"), "out", "purchases", out: true),

@@ -804,6 +804,7 @@ class _JournalScreenState extends State<JournalScreen> {
       const SizedBox(height: 12),
       _account(tr("Profit & Loss Account"), [
         _pnlRow(tr("Gross Profit b/d"), gp),
+        if (numOf(p["other_income"]) > 0) _pnlRow(tr("Add: Other Income A/C"), p["other_income"], indent: true),
         if (expenses.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),

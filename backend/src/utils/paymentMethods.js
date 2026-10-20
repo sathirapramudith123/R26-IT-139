@@ -4,8 +4,12 @@
 //   PURCHASE          -> out from the method                   (credit: not paid yet)
 //   EXPENSE           -> out from the method (drawings too — the money still left the till)
 //   TRANSFER Supplier Payment -> out from the method (bank / digital)
+//   DEPOSIT Owner Capital     -> in to the method (new money from the owner, not a sale)
+//   DEPOSIT Other Income      -> in to the method (earned, but not from sales)
 //   DEPOSIT / other TRANSFER  -> moved: out of Cash, in to Bank (deposit) or the method used
 // Moves between the shop's own accounts are kept apart from real income / spending.
+
+import { isCapital, isOtherIncome } from "./doubleEntry.js";
 
 export const METHODS = ["cash", "bank", "digital"];
 
@@ -17,7 +21,7 @@ const low = (v) =>
 const isSupplierPayment = (category) => /^supplier payment$/i.test(String(category || "").trim());
 
 const emptyMethod = () => ({
-  in: { sales: 0, moved_in: 0, total: 0 },
+  in: { sales: 0, other_income: 0, capital: 0, moved_in: 0, total: 0 },
   out: { purchases: 0, expenses: 0, supplier_payments: 0, moved_out: 0, total: 0 },
   net: 0,
   count: 0,
@@ -61,6 +65,8 @@ export function summarizeByMethod(transactions) {
     else if (type === "expense") addOut(method, "expenses", amount);
     else if (type === "transfer" && isSupplierPayment(t.category))
       addOut(method, "supplier_payments", amount);
+    else if (type === "deposit" && isCapital(t.category)) addIn(method, "capital", amount);
+    else if (type === "deposit" && isOtherIncome(t.category)) addIn(method, "other_income", amount);
     else if (type === "deposit" || type === "transfer") {
       // cash paid into the bank / moved to another account
       const to = type === "deposit" || method === "cash" || !METHODS.includes(method) ? "bank" : method;
@@ -72,12 +78,12 @@ export function summarizeByMethod(transactions) {
   const totals = { in: 0, out: 0, net: 0, sales: 0 };
   for (const m of METHODS) {
     const b = methods[m];
-    b.in.total = b.in.sales + b.in.moved_in;
+    b.in.total = b.in.sales + b.in.other_income + b.in.capital + b.in.moved_in;
     b.out.total = b.out.purchases + b.out.expenses + b.out.supplier_payments + b.out.moved_out;
     b.net = b.in.total - b.out.total;
     totals.sales += b.in.sales;
     // moves between the shop's own accounts cancel out in the totals
-    totals.in += b.in.sales;
+    totals.in += b.in.sales + b.in.other_income;
     totals.out += b.out.purchases + b.out.expenses + b.out.supplier_payments;
   }
   totals.net = totals.in - totals.out;

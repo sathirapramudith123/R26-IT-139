@@ -43,7 +43,7 @@ export default function ItemForecastPicker() {
     };
   }, [item]);
 
-  const needsReorder = result && Number(result.quantity) < Number(result.reorder_level);
+  const needsReorder = result && Number(result.quantity) <= Number(result.reorder_level);
 
   return (
     <div className="mb-3 rounded-2xl border border-dashed border-amber-300 p-3 dark:border-amber-800">
