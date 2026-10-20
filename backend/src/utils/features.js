@@ -304,6 +304,31 @@ export async function buildCreditFeatures(userId) {
 // Demand-model inputs from the item's real weekly SALE history. hasSalesHistory is false when the
 // item has not sold in the last 8 completed weeks, so the caller can skip it instead of guessing.
 // avgRetailPrice: the item's real average selling price (getAvgSalePriceByItem), if known.
+// Units sold so far in the current (unfinished) week, per item — shown next to the forecast for
+// information only; the model uses completed weeks, so these count once the week ends.
+export async function getThisWeekUnitsByItem(userId, now = new Date()) {
+  const { data: txns } = await supabase
+    .from("transactions")
+    .select("item_name, quantity, items")
+    .eq("user_id", userId)
+    .eq("transaction_type", "SALE")
+    .gte("created_at", new Date(weekStart(now)).toISOString());
+  const out = {};
+  for (const t of txns || []) {
+    const rows =
+      Array.isArray(t.items) && t.items.length
+        ? t.items
+        : t.item_name
+          ? [{ item_name: t.item_name, quantity: t.quantity }]
+          : [];
+    for (const line of rows) {
+      const key = normName(line.item_name);
+      if (key) out[key] = +((out[key] || 0) + Math.max(0, num(line.quantity))).toFixed(2);
+    }
+  }
+  return out;
+}
+
 export async function buildDemandFeatures(userId, item, avgRetailPrice = null, now = new Date()) {
   const series = await getWeeklySalesSeries(userId, item.item_name, 8, now);
   const units = series.map((w) => w.units);

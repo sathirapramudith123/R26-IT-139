@@ -6,7 +6,7 @@ import 'prediction_extras.dart';
 import 'summary_screens.dart';
 import 'item_forecast_picker.dart';
 import '../../core/i18n.dart';
-import '../common/record_details.dart' show money;
+import '../common/record_details.dart' show money, qtyOf;
 
 // two decimals, like every other amount in the app
 String _lkr(num v) => money(v);
@@ -432,6 +432,12 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
                                         color: needsReorder ? KadeColors.terra : KadeColors.success,
                                       ),
                                     ),
+                                    // info only: the forecast uses completed weeks
+                                    if (((it["this_week_units"] as num?) ?? 0) > 0)
+                                      Text(
+                                        "${tr("This week so far:")} ${qtyOf(it["this_week_units"])} ${tr("sold")} · ${tr("counted when the week ends")}",
+                                        style: TextStyle(fontSize: 10, color: sub),
+                                      ),
                                   ],
                                 ),
                               ),
@@ -451,6 +457,13 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
                                           "${tr("units · week of")} ${forecastWeekRange()}",
                                           style: TextStyle(fontSize: 10, color: sub),
                                         ),
+                                        // capped at 2× the best recent week (the model said more)
+                                        if (it["forecast_capped"] == true)
+                                          Text(
+                                            "${tr("model said")} ≈${((it["model_forecast_units"] as num?) ?? 0).toStringAsFixed(0)} · ${tr("capped at 2× recent sales")}",
+                                            textAlign: TextAlign.right,
+                                            style: TextStyle(fontSize: 9, color: sub, fontStyle: FontStyle.italic),
+                                          ),
                                         // forecast × the item's real average selling price (same as web)
                                         if (it["forecast_revenue"] is num)
                                           Text(

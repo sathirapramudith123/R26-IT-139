@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/api.dart';
 import '../../core/theme.dart';
 import '../../core/i18n.dart';
+import '../common/record_details.dart' show qtyOf;
 import 'prediction_extras.dart' show ForecastChart, forecastWeekRange;
 
 /// "Forecast any item" on the Sales Forecast card (same as web): pick any inventory item — not only
@@ -138,6 +139,12 @@ class _ItemForecastPickerState extends State<ItemForecastPicker> {
                           color: needsReorder ? KadeColors.terra : KadeColors.success,
                         ),
                       ),
+                      // info only: the forecast uses completed weeks
+                      if (((r["this_week_units"] as num?) ?? 0) > 0)
+                        Text(
+                          "${tr("This week so far:")} ${qtyOf(r["this_week_units"])} ${tr("sold")} · ${tr("counted when the week ends")}",
+                          style: TextStyle(fontSize: 10, color: sub),
+                        ),
                     ],
                   ),
                 ),
@@ -154,6 +161,13 @@ class _ItemForecastPickerState extends State<ItemForecastPicker> {
                         ),
                       ),
                       Text("${tr("units · week of")} ${forecastWeekRange()}", style: TextStyle(fontSize: 10, color: sub)),
+                      // capped at 2× the best recent week (the model said more)
+                      if (r["forecast_capped"] == true)
+                        Text(
+                          "${tr("model said")} ≈${((r["model_forecast_units"] as num?) ?? 0).toStringAsFixed(0)} · ${tr("capped at 2× recent sales")}",
+                          textAlign: TextAlign.right,
+                          style: TextStyle(fontSize: 9, color: sub, fontStyle: FontStyle.italic),
+                        ),
                     ],
                   )
                 else

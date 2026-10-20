@@ -1613,4 +1613,8 @@ const Map<String, String> siStrings = {
   "Newest batch": "අලුත්ම batch එක",
   "total stock": "මුළු තොගය",
   "e.g. 1350.00": "උදා: 1350.00",
+  "model said": "model එක කිව්වේ",
+  "capped at 2× recent sales": "මෑත sales වලින් 2× ට සීමා කළා",
+  "This week so far:": "මේ සතියේ මෙතෙක්:",
+  "counted when the week ends": "සතිය ඉවර වුණාම forecast එකට ගන්නවා",
 };

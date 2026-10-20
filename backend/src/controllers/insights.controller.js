@@ -11,9 +11,23 @@ import {
   getPriceHistories,
   priceTrendForItem,
   forecastReorderLevel,
+  getThisWeekUnitsByItem,
 } from "../utils/features.js";
 
 // CBSL LOW/rural daily limits (must match agencyBanking.controller.js)
+// The demand model was trained on items that sell every week, so for a slow seller it keeps a
+// high base (≈25 a week for an item that sold 2 in 8 weeks). The forecast is capped at twice the
+// best of the last 4 completed weeks; the model's own figure is kept in model_units.
+const FORECAST_CAP_X = 2;
+async function predictDemand(features, history) {
+  const r = await safePredict("demand", features);
+  if (!r.available) return r;
+  const best = Math.max(0, ...(history || []).slice(0, 4).map((w) => Number(w.units) || 0));
+  const cap = best * FORECAST_CAP_X;
+  if (!(best > 0) || r.prediction <= cap) return { ...r, capped: false };
+  return { ...r, prediction: +cap.toFixed(2), model_units: r.prediction, capped: true };
+}
+
 const CBSL_LIMITS = { CASH_DEPOSIT: 50000, CASH_WITHDRAWAL: 25000, FUND_TRANSFER: 50000 };
 
 // Amount-based CBSL risk (timestamp-free)
@@ -110,6 +124,7 @@ export const getInsights = async (req, res) => {
   // forecastByItem is reused by Buy or Wait below (demand forecast -> reorder point).
   const forecastByItem = {};
   const avgSalePrice = await getAvgSalePriceByItem(userId);
+  const thisWeek = await getThisWeekUnitsByItem(userId); // sold so far this week (info only)
   {
     const totalSold = await getTotalSoldByItem(userId);
     const normName = (s) =>
@@ -138,7 +153,7 @@ export const getInsights = async (req, res) => {
           // local Monday of the week (toISOString would show the Sunday before in UTC+5:30)
           .map((w) => ({ week: localDateStr(new Date(w.week)), units: w.units }));
         if (hasSalesHistory) {
-          const r = await safePredict("demand", demandFeatures);
+          const r = await predictDemand(demandFeatures, history);
           if (r.available) forecastByItem[normName(item.item_name)] = r.prediction;
           // Revenue estimate = forecast units × the item's real average selling price, rounded to
           // the nearest 100: the forecast is off by ~11 units on average (test MAE), so an exact
@@ -156,6 +171,9 @@ export const getInsights = async (req, res) => {
               ? forecastReorderLevel(r.prediction, item.lead_time_days).reorder_level
               : null,
             forecast_units: r.available ? r.prediction : null,
+            forecast_capped: !!r.capped, // true = the model said more (model_forecast_units)
+            this_week_units: thisWeek[normName(item.item_name)] || 0,
+            model_forecast_units: r.capped ? r.model_units : null,
             forecast_revenue: forecastRevenue,
             available: r.available,
             history: weeks,
@@ -167,6 +185,7 @@ export const getInsights = async (req, res) => {
             reorder_level: Number(item.reorder_level),
             forecast_reorder_level: null,
             forecast_units: null,
+            this_week_units: thisWeek[normName(item.item_name)] || 0,
             forecast_revenue: null,
             available: false,
             reason: reason || "No sales in the last 8 weeks",
@@ -199,12 +218,12 @@ export const getInsights = async (req, res) => {
       const key = normName(item.item_name);
       let forecast = forecastByItem[key];
       if (forecast === undefined) {
-        const { hasSalesHistory, features: demandFeatures } = await buildDemandFeatures(
-          userId,
-          item,
-          avgSalePrice[key],
-        );
-        const d = hasSalesHistory ? await safePredict("demand", demandFeatures) : { available: false };
+        const {
+          hasSalesHistory,
+          features: demandFeatures,
+          history,
+        } = await buildDemandFeatures(userId, item, avgSalePrice[key]);
+        const d = hasSalesHistory ? await predictDemand(demandFeatures, history) : { available: false };
         forecast = d.available ? d.prediction : null;
         forecastByItem[key] = forecast;
       }
@@ -533,6 +552,7 @@ export const forecastItem = async (req, res, next) => {
       cost_price: batches.map((b) => Number(b.cost_price)).find((c) => c > 0) || 0,
     };
     const avgSalePrice = await getAvgSalePriceByItem(req.user.id);
+    const thisWeek = await getThisWeekUnitsByItem(req.user.id);
     const { hasSalesHistory, features, history, reason } = await buildDemandFeatures(
       req.user.id,
       item,
@@ -551,16 +571,19 @@ export const forecastItem = async (req, res, next) => {
       forecast_revenue: null,
       available: false,
       history: weeks,
+      this_week_units: thisWeek[key] || 0, // info only (this week is not finished)
     };
     if (!hasSalesHistory) return res.json({ ...out, reason: reason || "No sales in the last 8 weeks" });
 
-    const r = await safePredict("demand", features);
+    const r = await predictDemand(features, history);
     if (!r.available) return res.json({ ...out, reason: r.reason });
     const price = avgSalePrice[key] || Number(item.cost_price) || Number(item.unit_price) || 0;
     res.json({
       ...out,
       available: true,
       forecast_units: r.prediction,
+      forecast_capped: !!r.capped,
+      model_forecast_units: r.capped ? r.model_units : null,
       forecast_reorder_level: forecastReorderLevel(r.prediction, item.lead_time_days).reorder_level,
       // nearest 100: the forecast is off by ~11 units on average (test MAE)
       forecast_revenue: price ? Math.round((r.prediction * price) / 100) * 100 : null,

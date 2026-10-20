@@ -263,6 +263,12 @@ export default function PredictionsDashboard() {
                         >
                           {needsReorder ? t("🚩 Reorder now") : t("✓ Adequate")}
                         </span>
+                        {Number(it.this_week_units) > 0 && (
+                          <p className="mt-1 text-[10px] text-slate-400">
+                            {t("This week so far:")} {Number(it.this_week_units)} {t("sold")} ·{" "}
+                            {t("counted when the week ends")}
+                          </p>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 text-right">
                         {noHistory ? (
@@ -277,6 +283,12 @@ export default function PredictionsDashboard() {
                             <p className="text-[10px] text-slate-500">
                               {t("units · week of")} {forecastWeekRange()}
                             </p>
+                            {it.forecast_capped && (
+                              <p className="text-[10px] italic text-slate-400">
+                                {t("model said")} ≈{Number(it.model_forecast_units).toFixed(0)} ·{" "}
+                                {t("capped at 2× recent sales")}
+                              </p>
+                            )}
                             {it.forecast_revenue != null && (
                               <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                                 {t("≈ Rs")} {Number(it.forecast_revenue).toLocaleString("en-LK")}

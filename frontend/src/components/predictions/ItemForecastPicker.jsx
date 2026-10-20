@@ -86,6 +86,12 @@ export default function ItemForecastPicker() {
               >
                 {needsReorder ? t("🚩 Reorder now") : t("✓ Adequate")}
               </span>
+              {Number(result.this_week_units) > 0 && (
+                <p className="mt-1 text-[10px] text-slate-400">
+                  {t("This week so far:")} {Number(result.this_week_units)} {t("sold")} ·{" "}
+                  {t("counted when the week ends")}
+                </p>
+              )}
             </div>
             {result.available ? (
               <div className="text-right">
@@ -95,6 +101,12 @@ export default function ItemForecastPicker() {
                 <p className="text-[10px] text-slate-500">
                   {t("units · week of")} {forecastWeekRange()}
                 </p>
+                {result.forecast_capped && (
+                  <p className="text-[10px] italic text-slate-400">
+                    {t("model said")} ≈{Number(result.model_forecast_units).toFixed(0)} ·{" "}
+                    {t("capped at 2× recent sales")}
+                  </p>
+                )}
                 {result.forecast_revenue != null && (
                   <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                     {t("≈ Rs")} {Number(result.forecast_revenue).toLocaleString("en-LK")}
