@@ -20,6 +20,15 @@ const _moneyIn = {"sale", "deposit"};
 
 bool isLowStock(Map item) => numOf(item["quantity"]) <= numOf(item["reorder_level"]);
 
+/// Overdue order: the expected arrival date has passed but it is not received (or cancelled) yet
+bool isOverdue(Map order) {
+  final arrival = DateTime.tryParse("${order["arrival_date"] ?? ""}");
+  final status = "${order["status"] ?? ""}".toLowerCase();
+  if (arrival == null || status == "received" || status == "cancelled") return false;
+  final now = DateTime.now();
+  return DateTime(arrival.year, arrival.month, arrival.day).isBefore(DateTime(now.year, now.month, now.day));
+}
+
 String moduleDescription(String path) => switch (path) {
   "/transactions" => tr("All financial transactions."),
   "/inventory" => tr("Track stock levels and items."),
@@ -141,7 +150,9 @@ ListRow? rowFor(String path, Map it) {
           hasText(it["selected_supplier_name"]) ? "${it["selected_supplier_name"]}" : "",
         ]),
         figure: money(it["total_cost"]),
-        badge: statusBadge(it["status"]),
+        badge: isOverdue(it)
+            ? ("${tr("⏰ Overdue")} · ${statusBadge(it["status"]).$1}", KadeColors.terra)
+            : statusBadge(it["status"]),
       );
     case "/agency-banking":
       final flagged = it["is_anomaly"] == true;

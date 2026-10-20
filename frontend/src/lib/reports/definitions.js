@@ -98,6 +98,7 @@ export const REPORTS = {
               { line: tr("Total Revenue / Sales"), amount: num(pl.sales) },
               { line: tr("Cost of Goods Sold"), amount: -num(pl.cost_of_goods) },
               { line: tr("Gross Profit"), amount: num(pl.gross_profit), _bold: true },
+              ...(num(pl.other_income) ? [{ line: tr("Other income"), amount: num(pl.other_income) }] : []),
               { line: tr("Operating Expenses"), amount: -num(pl.total_expenses) },
               {
                 line: pl.is_profit === false ? tr("Net Loss") : tr("Net Income / Profit"),
@@ -150,6 +151,9 @@ export const REPORTS = {
             columns: [text("line", tr("Particulars")), money("amount", tr("Amount (LKR)"))],
             rows: [
               { line: tr("Gross Profit"), amount: num(pl.gross_profit) },
+              ...(num(pl.other_income)
+                ? [{ line: tr("Add: Other Income A/C"), amount: num(pl.other_income) }]
+                : []),
               ...list(pl.expenses).map((e) => ({
                 line: `${tr("Less:")} ${e.account}`,
                 amount: -num(e.amount),
@@ -526,6 +530,8 @@ export const REPORTS = {
             ],
             rows: [
               row(tr("Sales received"), (x) => x.in?.sales),
+              row(tr("Other income"), (x) => x.in?.other_income),
+              row(tr("Owner capital"), (x) => x.in?.capital),
               row(tr("Moved in (deposits / transfers)"), (x) => x.in?.moved_in),
               row(tr("Total money in"), (x) => x.in?.total, { _bold: true }),
               row(tr("Purchases"), (x) => -num(x.out?.purchases) || 0),

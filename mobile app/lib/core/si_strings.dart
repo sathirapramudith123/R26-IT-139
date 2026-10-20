@@ -1590,4 +1590,12 @@ const Map<String, String> siStrings = {
   "Forecast any item": "ඕනෑම භාණ්ඩයක පුරෝකථනය",
   "Choose an item…": "භාණ්ඩයක් තෝරන්න…",
   "This item has no sales in the last 8 weeks.": "මෙම භාණ්ඩයට අන්තිම සති 8 තුළ විකුණුම් නැත.",
+  "Owner capital": "හිමිකරුගේ ප්‍රාග්ධනය",
+  "Capital": "ප්‍රාග්ධනය",
+  "Capital A/C": "ප්‍රාග්ධන ගිණුම (Capital A/C)",
+  "Other income": "වෙනත් ආදායම",
+  "Other Income A/C": "වෙනත් ආදායම් ගිණුම (Other Income A/C)",
+  "Add: Other Income A/C": "එකතු කරන්න: වෙනත් ආදායම් ගිණුම",
+  "Owner Drawings": "හිමිකරුගේ ගැනීම් (Drawings)",
+  "⏰ Overdue": "⏰ ප්‍රමාදයි",
 };

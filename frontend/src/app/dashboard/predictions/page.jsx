@@ -233,7 +233,7 @@ export default function PredictionsDashboard() {
           ) : (
             <div className="flex-1 space-y-2">
               {(demand.items || []).map((it, i) => {
-                const needsReorder = Number(it.quantity) < Number(it.reorder_level);
+                const needsReorder = Number(it.quantity) <= Number(it.reorder_level);
                 const noHistory = it.available === false; // no forecast
                 const hasWeeks = (it.history || []).some((w) => Number(w.units) > 0);
                 const canOpen = !noHistory || hasWeeks; // past sales can be shown without a forecast

@@ -271,6 +271,7 @@ function JournalTab({ days, totals }) {
 const CLASS_TONE = {
   Asset: "bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300",
   Liability: "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
+  Capital: "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300",
   Drawings: "bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300",
   Income: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
   Expense: "bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300",
@@ -505,6 +506,8 @@ function PnLTab({ pnl }) {
           {t("Profit & Loss Account")}
         </div>
         {row("Gross Profit b/d", pnl.gross_profit, { rowKey: "gpbd" })}
+        {Number(pnl.other_income) > 0 &&
+          row(t("Add: Other Income A/C"), pnl.other_income, { indent: true, rowKey: "other" })}
         {pnl.expenses.length === 0 ? (
           <div className="px-4 py-2.5 text-sm text-slate-400">{t("No expenses recorded.")}</div>
         ) : (

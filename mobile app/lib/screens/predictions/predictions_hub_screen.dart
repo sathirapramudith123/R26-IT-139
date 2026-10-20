@@ -392,7 +392,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
                 // past sales can be shown without a forecast
                 final canOpen = hasForecast || history.any((u) => u > 0);
                 final open = openItem == i && canOpen;
-                final needsReorder = ((it["quantity"] as num?) ?? 0) < ((it["reorder_level"] as num?) ?? 0);
+                final needsReorder = ((it["quantity"] as num?) ?? 0) <= ((it["reorder_level"] as num?) ?? 0);
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
                   decoration: BoxDecoration(

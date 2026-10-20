@@ -37,6 +37,7 @@ const Map<String, List<String>> _categoriesByType = {
     "Transport / Fuel",
     "Labor / Wages",
     "Loss / Wastage / Damage",
+    "Owner Drawings",
   ],
   "deposit": ["Agency Banking Cash-In", "Owner Capital Injection", "Other Income"],
   "transfer": ["Agency Wallet Top-up", "Supplier Payment", "Inter-Bank Transfer"],
