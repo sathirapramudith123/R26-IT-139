@@ -9,6 +9,7 @@ router.use(auth);
 router.get("/", ctrl.getInsights);
 router.get("/sales-summary", ctrl.getSalesSummary);
 router.get("/procurement-summary", ctrl.getProcurementSummary);
+router.get("/forecast", ctrl.forecastItem);
 router.post("/credit/what-if", validateBody(S.creditWhatIf), ctrl.creditWhatIf);
 router.get("/credit/actions", ctrl.creditActions);
 

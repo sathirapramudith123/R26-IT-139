@@ -15,9 +15,9 @@ import {
 import { SalesSummaryModal, ProcurementSummaryModal } from "@/components/predictions/SummaryModals";
 import WhatIfSimulator from "@/components/predictions/WhatIfSimulator";
 import ForecastChart from "@/components/predictions/ForecastChart";
+import ItemForecastPicker from "@/components/predictions/ItemForecastPicker";
 import { TrustLine } from "@/components/predictions/ModelTrust";
 
-import Link from "next/link";
 import { t } from "@/lib/i18n";
 
 export default function PredictionsDashboard() {
@@ -141,12 +141,6 @@ export default function PredictionsDashboard() {
               </h3>
             </div>
             <div className="flex items-center gap-3">
-              <Link
-                href="/dashboard/predictions/credit"
-                className="text-xs font-semibold text-slate-500 hover:text-brand-600 hover:underline dark:text-slate-400"
-              >
-                {t("Try it yourself")}
-              </Link>
               <span className="text-2xl">💳</span>
             </div>
           </div>
@@ -223,12 +217,6 @@ export default function PredictionsDashboard() {
               </h3>
             </div>
             <div className="flex items-center gap-3">
-              <Link
-                href="/dashboard/predictions/demand"
-                className="text-xs font-semibold text-slate-500 hover:text-brand-600 hover:underline dark:text-slate-400"
-              >
-                {t("Try it yourself")}
-              </Link>
               <button
                 onClick={() => setShowAllItems(true)}
                 className="text-xs font-semibold text-brand-600 hover:underline dark:text-brand-400"
@@ -237,6 +225,8 @@ export default function PredictionsDashboard() {
               </button>
             </div>
           </div>
+
+          <ItemForecastPicker />
 
           {!demand.available ? (
             <NoData reason={demand.reason} />
@@ -325,12 +315,6 @@ export default function PredictionsDashboard() {
               </h3>
             </div>
             <div className="flex items-center gap-3">
-              <Link
-                href="/dashboard/predictions/procurement"
-                className="text-xs font-semibold text-slate-500 hover:text-brand-600 hover:underline dark:text-slate-400"
-              >
-                {t("Try it yourself")}
-              </Link>
               <button
                 onClick={() => setShowAllProcurement(true)}
                 className="text-xs font-semibold text-brand-600 hover:underline dark:text-brand-400"
@@ -393,12 +377,6 @@ export default function PredictionsDashboard() {
             </h3>
           </div>
           <div className="flex items-center gap-3">
-            <Link
-              href="/dashboard/predictions/anomaly"
-              className="text-xs font-semibold text-slate-500 hover:text-brand-600 hover:underline dark:text-slate-400"
-            >
-              {t("Try it yourself")}
-            </Link>
             <span className="text-2xl">🛡️</span>
           </div>
         </div>

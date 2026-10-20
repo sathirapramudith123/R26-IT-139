@@ -1379,5 +1379,17 @@
   "as at": "දිනට",
   "available for deposits": "තැන්පතු සඳහා ඇත",
   "before": "පෙර",
-  "Past sales only — not enough sales in the last 4 weeks to forecast next week.": "පරණ විකුණුම් පමණි — ලබන සතිය පුරෝකථනය කිරීමට අන්තිම සති 4 තුළ ප්‍රමාණවත් විකුණුම් නැත."
+  "Past sales only — not enough sales in the last 4 weeks to forecast next week.": "පරණ විකුණුම් පමණි — ලබන සතිය පුරෝකථනය කිරීමට අන්තිම සති 4 තුළ ප්‍රමාණවත් විකුණුම් නැත.",
+  "Cash Flow": "මුදල් ප්‍රවාහය",
+  "The shop's Cash A/C and, kept separate, the agency-banking cash and float.": "කඩේ මුදල් ගිණුම සහ, වෙනම, නියෝජිත බැංකු මුදල් සහ Float.",
+  "Agency cash on hand (now)": "නියෝජිත අතැති මුදල් (දැන්)",
+  "Cash A/C statement": "මුදල් ගිණුම් ප්‍රකාශය",
+  "Agency banking cash (customers' money, separate from the shop)": "නියෝජිත බැංකු මුදල් (පාරිභෝගිකයින්ගේ මුදල්, කඩෙන් වෙනම)",
+  "Agency banking cash statement": "නියෝජිත බැංකු මුදල් ප්‍රකාශය",
+  "Available for deposits": "තැන්පතු සඳහා ඇති මුදල",
+  "Float": "Float",
+  "Cash (LKR)": "මුදල් (රු.)",
+  "Forecast any item": "ඕනෑම භාණ්ඩයක පුරෝකථනය",
+  "Choose an item…": "භාණ්ඩයක් තෝරන්න…",
+  "This item has no sales in the last 8 weeks.": "මෙම භාණ්ඩයට අන්තිම සති 8 තුළ විකුණුම් නැත."
 }
