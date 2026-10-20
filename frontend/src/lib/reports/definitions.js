@@ -587,7 +587,12 @@ export const REPORTS = {
         WITHDRAWAL_REVERSAL: "Withdrawal reversed",
         DEPOSIT_REVERSAL: "Deposit reversed",
       };
-      const HEALTH = { HEALTHY: "Healthy", LOW_ALERT: "Low", CRITICAL_ALERT: "Critical" };
+      const HEALTH = {
+        HEALTHY: "Healthy",
+        BELOW_FLOOR: "Below floor · top up",
+        LOW_ALERT: "Low",
+        CRITICAL_ALERT: "Critical",
+      };
       const lines = (obj, sign) =>
         Object.entries(obj || {}).map(([k, v]) => ({ line: tr(k), amount: sign * num(v) }));
       return {

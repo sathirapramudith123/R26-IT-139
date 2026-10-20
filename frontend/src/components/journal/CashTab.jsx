@@ -21,6 +21,10 @@ const EVENT = {
 };
 const HEALTH = {
   HEALTHY: ["Healthy", "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"],
+  BELOW_FLOOR: [
+    "Below floor · top up",
+    "bg-yellow-50 text-yellow-700 dark:bg-yellow-950/50 dark:text-yellow-300",
+  ],
   LOW_ALERT: ["Low", "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"],
   CRITICAL_ALERT: ["Critical", "bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300"],
 };

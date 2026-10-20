@@ -5,7 +5,7 @@ import { ChevronDown } from "lucide-react";
 import useAuthGuard from "@/hooks/useAuthGuard";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { insightsApi } from "@/services/api/insights";
-import { formatCurrency } from "@/lib/formatters";
+import { forecastWeekRange, formatCurrency } from "@/lib/formatters";
 import {
   LoanReadinessGauge,
   InfluenceChart,
@@ -233,7 +233,9 @@ export default function PredictionsDashboard() {
           ) : (
             <div className="flex-1 space-y-2">
               {(demand.items || []).map((it, i) => {
-                const needsReorder = Number(it.quantity) <= Number(it.reorder_level);
+                // forecast-based reorder point when there is a forecast (same as Buy or Wait)
+                const reorderAt = it.forecast_reorder_level ?? it.reorder_level;
+                const needsReorder = Number(it.quantity) <= Number(reorderAt);
                 const noHistory = it.available === false; // no forecast
                 const hasWeeks = (it.history || []).some((w) => Number(w.units) > 0);
                 const canOpen = !noHistory || hasWeeks; // past sales can be shown without a forecast
@@ -249,7 +251,8 @@ export default function PredictionsDashboard() {
                       <div>
                         <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{it.item}</p>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                          {t("Stock:")} {it.quantity} {t("· Reorder:")} {it.reorder_level}
+                          {t("Stock:")} {it.quantity} {t("· Reorder:")} {reorderAt}
+                          {it.forecast_reorder_level != null && ` ${t("(forecast)")}`}
                         </p>
                         <span
                           className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${
@@ -271,7 +274,9 @@ export default function PredictionsDashboard() {
                             <span className="font-display text-2xl font-bold text-brand-600 dark:text-brand-400">
                               ≈ {Number(it.forecast_units).toFixed(0)}
                             </span>
-                            <p className="text-[10px] text-slate-500">{t("units / next week")}</p>
+                            <p className="text-[10px] text-slate-500">
+                              {t("units · week of")} {forecastWeekRange()}
+                            </p>
                             {it.forecast_revenue != null && (
                               <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                                 {t("≈ Rs")} {Number(it.forecast_revenue).toLocaleString("en-LK")}

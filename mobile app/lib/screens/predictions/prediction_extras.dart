@@ -148,6 +148,16 @@ class ModelTrustPanel extends StatelessWidget {
 
 /* -------------------------------------------------------------------------- */
 /*  Forecast chart: 8 weeks sold + next week's forecast with a likely range    */
+
+/// The week the demand forecast is for: the model uses completed Monday–Sunday weeks, so it
+/// forecasts the week after the last completed one, i.e. the current week. "10/19–10/25"
+String forecastWeekRange([DateTime? now]) {
+  final n = now ?? DateTime.now();
+  final monday = DateTime(n.year, n.month, n.day - (n.weekday - 1));
+  final sunday = DateTime(monday.year, monday.month, monday.day + 6);
+  String md(DateTime d) => "${d.month.toString().padLeft(2, "0")}/${d.day.toString().padLeft(2, "0")}";
+  return "${md(monday)}–${md(sunday)}";
+}
 /* -------------------------------------------------------------------------- */
 
 class ForecastChart extends StatelessWidget {

@@ -70,6 +70,7 @@ export const inventory = Joi.object({
   reorder_level: optNum(Joi.number().min(0).max(1e7)),
   cost_price: optNum(money),
   unit_price: optNum(money),
+  selling_price: optNum(money), // 0 / empty = not set (a sale then suggests the last sold price)
   unit: oneOf("kg", "g", "l", "ml", "unit", "box", "carton").allow("", null),
   lead_time_days: optNum(Joi.number().integer().min(0).max(365)),
   category: optStr(100),

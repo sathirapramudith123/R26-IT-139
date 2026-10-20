@@ -20,7 +20,9 @@ const toDb = (b) => {
     reorder_level,
     unit: up(b.unit || "unit"),
     cost_price,
-    unit_price: cost_price, // no separate selling price: unit_price = cost
+    unit_price: cost_price, // unit_price = cost; the selling price is kept apart
+    // only when the form sends it, so an older client does not wipe it
+    ...(b.selling_price !== undefined && { selling_price: num(b.selling_price) }),
     lead_time_days: num(b.lead_time_days ?? 1),
     item_status: quantity <= 0 ? "OUT_OF_STOCK" : quantity <= reorder_level ? "RUNNING_OUT" : "AVAILABLE",
   };
@@ -146,6 +148,20 @@ export const create = async (req, res, next) => {
   }
 };
 
+// A selling price set on one batch also fills the item's other batches that have none yet
+// (a batch with its own price — e.g. a different MRP — keeps it)
+const fillSellingPrice = async (userId, row) => {
+  const sell = num(row?.selling_price);
+  if (!row || sell <= 0) return;
+  const { error } = await supabase
+    .from(TABLE)
+    .update({ selling_price: sell })
+    .eq("user_id", userId)
+    .eq("item_name", row.item_name)
+    .or("selling_price.is.null,selling_price.eq.0");
+  if (error) throw error;
+};
+
 export const update = async (req, res, next) => {
   try {
     const { data, error } = await supabase
@@ -157,6 +173,7 @@ export const update = async (req, res, next) => {
       .maybeSingle();
     if (error) throw error;
     if (!data) return res.status(404).json({ error: "Item not found" });
+    await fillSellingPrice(req.user.id, data);
     res.json(shape(data));
   } catch (e) {
     next(e);

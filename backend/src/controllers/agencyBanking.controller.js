@@ -229,7 +229,8 @@ export const create = async (req, res, next) => {
           : "Suspicious transaction",
       );
     if (floatWarn) alerts.push(floatWarn);
-    if (health && health !== "HEALTHY")
+    // BELOW_FLOOR is already covered by the floor warning above
+    if (health && health !== "HEALTHY" && !(health === "BELOW_FLOOR" && floatWarn))
       alerts.push(`Float ${health.replace("_", " ").toLowerCase()} — top-up recommended`);
 
     await notify(req.user.id, {

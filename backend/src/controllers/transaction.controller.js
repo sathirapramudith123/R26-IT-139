@@ -7,6 +7,7 @@ import {
   buildGoodsSummary,
   buildProfitAndLoss,
   buildLedger,
+  openingBalances,
 } from "../utils/doubleEntry.js";
 import { localDayStart, localDateStr, addDays } from "../utils/time.js";
 
@@ -135,6 +136,22 @@ export const journal = async (req, res, next) => {
     const { data, error } = await q;
     if (error) throw error;
 
+    // Ledger opening balances ("Balance b/d"): everything recorded before the period starts
+    const startDay =
+      from || date || (year && month ? `${Number(year)}-${String(Number(month)).padStart(2, "0")}-01` : null);
+    let openings = {};
+    let openingDate = null;
+    if (startDay) {
+      openingDate = localDayStart(startDay).toISOString();
+      const { data: before, error: bErr } = await supabase
+        .from(TABLE)
+        .select("transaction_type, payment_method, amount, category")
+        .eq("user_id", req.user.id)
+        .lt("created_at", openingDate);
+      if (bErr) throw bErr;
+      openings = openingBalances(before);
+    }
+
     // Full rows (with items[]) for goods summary + P&L; light rows for journal
     const fullTxns = data || [];
     const txns = fullTxns.map((t) => ({
@@ -199,7 +216,7 @@ export const journal = async (req, res, next) => {
       months, // available months (only when no filter)
       goods, // { items:[{item, sold_qty, bought_qty, net_qty, ...}], totals }
       profit_loss: profitLoss, // Trading + P&L with account names
-      ledger: buildLedger(rows), // per account: debits[], credits[], totals, balance
+      ledger: buildLedger(rows, openings, openingDate), // per account: Balance b/d, debits[], credits[], balance
     });
   } catch (e) {
     next(e);

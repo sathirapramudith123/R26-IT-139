@@ -23,7 +23,12 @@ const _event = {
   "WITHDRAWAL_REVERSAL": "Withdrawal reversed",
   "DEPOSIT_REVERSAL": "Deposit reversed",
 };
-const _health = {"HEALTHY": "Healthy", "LOW_ALERT": "Low", "CRITICAL_ALERT": "Critical"};
+const _health = {
+  "HEALTHY": "Healthy",
+  "BELOW_FLOOR": "Below floor · top up",
+  "LOW_ALERT": "Low",
+  "CRITICAL_ALERT": "Critical",
+};
 
 class _CashFlowViewState extends State<CashFlowView> {
   Map<String, dynamic>? data;

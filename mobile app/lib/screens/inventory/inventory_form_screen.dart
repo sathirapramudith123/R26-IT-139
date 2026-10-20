@@ -32,7 +32,8 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
   final nameCtrl = TextEditingController();
   final quantityCtrl = TextEditingController();
   final reorderCtrl = TextEditingController();
-  final costPriceCtrl = TextEditingController(); // Unit Cost (no separate selling price)
+  final costPriceCtrl = TextEditingController(); // Unit Cost
+  final sellingPriceCtrl = TextEditingController(); // the price a sale suggests (0 / empty = not set)
   final leadTimeCtrl = TextEditingController();
 
   String? category;
@@ -42,6 +43,11 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
   List<Map> suppliers = []; // full rows — items_supplied powers the item suggestions
   bool saving = false;
   bool loadingSuppliers = true;
+  // Edit: the list row adds up all batches, but Update writes one batch (the newest), so the
+  // form loads that batch itself (GET /inventory/:id) — same as the web edit page
+  bool batchLoaded = false;
+  int batchCount = 1;
+  num totalQty = 0;
   String? error;
 
   static const units = ["kg", "g", "l", "ml", "unit", "box", "carton"];
@@ -67,15 +73,49 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
     leadTimeCtrl.text = it?["lead_time_days"]?.toString() ?? "1";
     supplierName = it?["supplier_name"]?.toString();
     unit = (it?["unit"]?.toString().isNotEmpty ?? false) ? it!["unit"].toString() : "unit";
+    final sell = num.tryParse("${it?["selling_price"] ?? ""}") ?? 0;
+    sellingPriceCtrl.text = sell > 0 ? "$sell" : "";
+    batchCount = (it?["batch_count"] as num?)?.toInt() ?? 1;
+    totalQty = (it?["quantity"] as num?) ?? 0;
+    if (isEdit) _loadBatch();
 
     // listeners that keep Total Cost up to date
     costPriceCtrl.addListener(_recalc);
     quantityCtrl.addListener(_recalc);
+    sellingPriceCtrl.addListener(_recalc);
 
     _loadSuppliers();
   }
 
   void _recalc() => setState(() {});
+
+  Future<void> _loadBatch() async {
+    try {
+      final b = await Api.get("/inventory/${widget.item!["id"]}");
+      if (!mounted || b is! Map) return;
+      setState(() {
+        quantityCtrl.text = "${b["quantity"] ?? ""}";
+        reorderCtrl.text = "${b["reorder_level"] ?? ""}";
+        costPriceCtrl.text = "${b["cost_price"] ?? b["unit_price"] ?? ""}";
+        final sell = num.tryParse("${b["selling_price"] ?? ""}") ?? 0;
+        sellingPriceCtrl.text = sell > 0 ? "$sell" : "";
+        leadTimeCtrl.text = "${b["lead_time_days"] ?? 1}";
+        batchLoaded = true;
+      });
+    } catch (e) {
+      if (mounted) setState(() => error = e.toString().replaceFirst("Exception: ", ""));
+    }
+  }
+
+  // ⚠ hint under the selling price
+  String? get _sellWarning {
+    final c = double.tryParse(costPriceCtrl.text.trim()) ?? 0;
+    final s = double.tryParse(sellingPriceCtrl.text.trim()) ?? 0;
+    if (s <= 0 || c <= 0) return null;
+    if (s < c) return tr("⚠ Lower than the unit cost — this item would sell at a loss.");
+    if (s == c) return tr("⚠ Same as the unit cost — no profit on this item.");
+    return null;
+  }
 
   Future<void> _loadSuppliers() async {
     try {
@@ -125,6 +165,8 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
   void dispose() {
     costPriceCtrl.removeListener(_recalc);
     quantityCtrl.removeListener(_recalc);
+    sellingPriceCtrl.removeListener(_recalc);
+    sellingPriceCtrl.dispose();
     nameCtrl.dispose();
     quantityCtrl.dispose();
     reorderCtrl.dispose();
@@ -144,6 +186,10 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
       setState(() => error = tr("Please select a category (needed for AI forecasting)."));
       return;
     }
+    if (isEdit && !batchLoaded) {
+      setState(() => error = tr("Still loading this item — try again in a moment."));
+      return;
+    }
     final qty = num.tryParse(quantityCtrl.text.trim());
     if (quantityCtrl.text.trim().isEmpty || qty == null || qty < 0) {
       setState(() => error = tr("Please enter a valid Quantity."));
@@ -161,6 +207,7 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
       "unit": unit,
       "reorder_level": reorderCtrl.text.trim().isNotEmpty ? (num.tryParse(reorderCtrl.text.trim()) ?? 0) : 0,
       "cost_price": costPrice, // cost only (backend sets unit_price = cost)
+      "selling_price": num.tryParse(sellingPriceCtrl.text.trim()) ?? 0,
       "lead_time_days": num.tryParse(leadTimeCtrl.text.trim()) ?? 1, // safety-stock reorder point
     };
 
@@ -277,7 +324,13 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
               enabled: !saving,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-              decoration: const InputDecoration(hintText: "0"),
+              decoration: InputDecoration(
+                hintText: "0",
+                // several batches: this form edits the newest one only
+                helperText: isEdit && batchCount > 1
+                    ? "${tr("Newest batch")} · ${tr("total stock")} ${qtyOf(totalQty)} ($batchCount ${tr("batches")})"
+                    : null,
+              ),
             ),
             const SizedBox(height: 16),
 
@@ -323,6 +376,21 @@ class _InventoryFormScreenState extends State<InventoryFormScreen> {
               child: Text(
                 "${tr("Unit Cost × Quantity")}  =  ${(double.tryParse(costPriceCtrl.text.trim()) ?? 0).toStringAsFixed(2)} × ${qtyOf(double.tryParse(quantityCtrl.text.trim()) ?? 0)}",
                 style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            fieldLabel(tr("Selling Price per Unit (LKR)")),
+            TextField(
+              controller: sellingPriceCtrl,
+              enabled: !saving,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+              decoration: InputDecoration(
+                hintText: "0.00",
+                helperText: _sellWarning ?? tr("The price a sale suggests for this item"),
+                helperStyle: _sellWarning != null ? const TextStyle(color: KadeColors.terra) : null,
+                helperMaxLines: 2,
               ),
             ),
             const SizedBox(height: 16),

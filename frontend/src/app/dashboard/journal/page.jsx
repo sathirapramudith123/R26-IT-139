@@ -402,7 +402,9 @@ function LedgerSide({ title, entries, total, tone }) {
             <tr key={i} className="border-t border-slate-100 align-top dark:border-slate-800">
               <td className="whitespace-nowrap px-4 py-2 text-xs text-slate-500">{ymd(new Date(e.date))}</td>
               <td className="px-2 py-2">
-                <p className="font-medium text-slate-800 dark:text-slate-200">{e.particulars}</p>
+                <p className="font-medium text-slate-800 dark:text-slate-200">
+                  {e.opening ? t("Balance b/d") : e.particulars}
+                </p>
                 <p className="text-[11px] text-slate-500">
                   {e.code ? `${e.code} · ` : ""}
                   {e.transaction_type}

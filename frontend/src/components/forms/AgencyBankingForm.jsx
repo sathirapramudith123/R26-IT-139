@@ -76,6 +76,7 @@ const SOURCE_OF_FUNDS = [
 
 const HEALTH_COLORS = {
   HEALTHY: "text-emerald-600 dark:text-emerald-400",
+  BELOW_FLOOR: "text-yellow-600 dark:text-yellow-400",
   LOW_ALERT: "text-amber-600 dark:text-amber-400",
   CRITICAL_ALERT: "text-red-600 dark:text-red-400",
 };
@@ -471,7 +472,9 @@ export default function AgencyBankingForm({ initialData = {}, agencyId = null })
                 <span
                   className={`whitespace-nowrap font-semibold ${HEALTH_COLORS[selectedBank.float_health] || "text-slate-600 dark:text-slate-300"}`}
                 >
-                  {t((selectedBank.float_health || "—").replace("_", " "))}
+                  {selectedBank.float_health === "BELOW_FLOOR"
+                    ? t("Below floor · top up")
+                    : t((selectedBank.float_health || "—").replace("_", " "))}
                 </span>
               </div>
               {floatMsg && (

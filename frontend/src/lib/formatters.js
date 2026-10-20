@@ -38,3 +38,12 @@ export function scoreColor(score) {
   if (n >= 50) return "text-amber-600";
   return "text-red-500";
 }
+
+// The week the demand forecast is for: the model uses completed Monday–Sunday weeks, so it
+// forecasts the week after the last completed one, i.e. the current week. "10/19–10/25"
+export function forecastWeekRange(now = new Date()) {
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
+  const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
+  const md = (d) => `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+  return `${md(monday)}–${md(sunday)}`;
+}

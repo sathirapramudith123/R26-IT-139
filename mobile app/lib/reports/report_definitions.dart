@@ -636,7 +636,12 @@ final Map<String, ReportDef> reports = {
         "WITHDRAWAL_REVERSAL": "Withdrawal reversed",
         "DEPOSIT_REVERSAL": "Deposit reversed",
       };
-      const health = {"HEALTHY": "Healthy", "LOW_ALERT": "Low", "CRITICAL_ALERT": "Critical"};
+      const health = {
+        "HEALTHY": "Healthy",
+        "BELOW_FLOOR": "Below floor · top up",
+        "LOW_ALERT": "Low",
+        "CRITICAL_ALERT": "Critical",
+      };
       List<Map<String, dynamic>> lines(dynamic obj, double sign) => [
         for (final e in m(obj).entries) {"line": tr(e.key), "amount": sign * _n(e.value)},
       ];

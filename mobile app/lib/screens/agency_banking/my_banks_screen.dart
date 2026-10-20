@@ -55,6 +55,8 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
         return Colors.red;
       case "LOW_ALERT":
         return Colors.orange;
+      case "BELOW_FLOOR":
+        return Colors.amber.shade700;
       default:
         return Colors.green;
     }
@@ -228,7 +230,7 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     Text(
-                      "${b["risk_tier"]} risk tier",
+                      "${tr("${b["risk_tier"] ?? "—"}")} ${tr("risk tier")}",
                       style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
                     ),
                   ],
@@ -238,7 +240,11 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(color: hc.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
                 child: Text(
-                  health.isEmpty ? "—" : health.replaceAll("_", " "),
+                  health.isEmpty
+                      ? "—"
+                      : health == "BELOW_FLOOR"
+                      ? tr("Below floor · top up")
+                      : tr(health.replaceAll("_", " ")),
                   style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: hc),
                 ),
               ),
@@ -263,7 +269,7 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "Float is at ${util.toStringAsFixed(0)}% of floor",
+                "${tr("Float is at")} ${util.toStringAsFixed(0)}% ${tr("of floor")}",
                 style: TextStyle(fontSize: 11, color: Theme.of(context).textTheme.bodySmall?.color),
               ),
               Text(
@@ -283,10 +289,13 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
               value: barPct,
               minHeight: 8,
               backgroundColor: Colors.grey.withValues(alpha: 0.2),
+              // same colours as the health badge
               color: util <= 20
                   ? Colors.red
                   : util <= 40
                   ? Colors.orange
+                  : util < 100
+                  ? Colors.amber.shade700
                   : Colors.green,
             ),
           ),
@@ -294,8 +303,11 @@ class _MyBanksScreenState extends State<MyBanksScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("Floor: LKR ${_money(floor)} (100%)", style: const TextStyle(fontSize: 10, color: Colors.grey)),
-              Text("Ceiling: LKR ${_money(ceiling)}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
+              Text(
+                "${tr("Floor:")} LKR ${_money(floor)} (100%)",
+                style: const TextStyle(fontSize: 10, color: Colors.grey),
+              ),
+              Text("${tr("Ceiling:")} LKR ${_money(ceiling)}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
             ],
           ),
           const SizedBox(height: 12),

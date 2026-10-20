@@ -8,6 +8,7 @@ import { insightsApi } from "@/services/api/insights";
 import { inventoryApi } from "@/services/api/inventory";
 import ForecastChart from "@/components/predictions/ForecastChart";
 import { t } from "@/lib/i18n";
+import { forecastWeekRange } from "@/lib/formatters";
 
 export default function ItemForecastPicker() {
   const [names, setNames] = useState([]);
@@ -43,7 +44,9 @@ export default function ItemForecastPicker() {
     };
   }, [item]);
 
-  const needsReorder = result && Number(result.quantity) <= Number(result.reorder_level);
+  // forecast-based reorder point when there is a forecast (same as Buy or Wait)
+  const reorderAt = result?.forecast_reorder_level ?? result?.reorder_level;
+  const needsReorder = result && Number(result.quantity) <= Number(reorderAt);
 
   return (
     <div className="mb-3 rounded-2xl border border-dashed border-amber-300 p-3 dark:border-amber-800">
@@ -71,7 +74,8 @@ export default function ItemForecastPicker() {
             <div>
               <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{result.item}</p>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                {t("Stock:")} {result.quantity} {t("· Reorder:")} {result.reorder_level}
+                {t("Stock:")} {result.quantity} {t("· Reorder:")} {reorderAt}
+                {result.forecast_reorder_level != null && ` ${t("(forecast)")}`}
               </p>
               <span
                 className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${
@@ -88,7 +92,9 @@ export default function ItemForecastPicker() {
                 <span className="font-display text-2xl font-bold text-brand-600 dark:text-brand-400">
                   ≈ {Number(result.forecast_units).toFixed(0)}
                 </span>
-                <p className="text-[10px] text-slate-500">{t("units / next week")}</p>
+                <p className="text-[10px] text-slate-500">
+                  {t("units · week of")} {forecastWeekRange()}
+                </p>
                 {result.forecast_revenue != null && (
                   <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                     {t("≈ Rs")} {Number(result.forecast_revenue).toLocaleString("en-LK")}

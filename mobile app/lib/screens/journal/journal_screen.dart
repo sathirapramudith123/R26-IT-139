@@ -609,7 +609,7 @@ class _JournalScreenState extends State<JournalScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          "${e["particulars"]}",
+                          e["opening"] == true ? tr("Balance b/d") : "${e["particulars"]}",
                           style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
                       ),

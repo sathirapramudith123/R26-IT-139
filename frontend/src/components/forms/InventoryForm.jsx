@@ -37,6 +37,7 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
     reorder_level: initialData.reorder_level ?? "",
     unit: initialData.unit ?? "unit",
     cost_price: initialData.cost_price ?? initialData.unit_price ?? "",
+    selling_price: Number(initialData.selling_price) > 0 ? initialData.selling_price : "",
     lead_time_days: initialData.lead_time_days ?? "1", // used for the safety-stock reorder point
   });
 
@@ -84,6 +85,9 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
   const unitCost = Number(v.cost_price) || 0;
   const qty = Number(v.quantity) || 0;
   const totalCost = unitCost * qty;
+  const sellPrice = Number(v.selling_price) || 0;
+  const sellBelowCost = sellPrice > 0 && unitCost > 0 && sellPrice < unitCost;
+  const sellAtCost = sellPrice > 0 && unitCost > 0 && sellPrice === unitCost;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -92,6 +96,8 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
     if (!v.category) er.category = t("Please select a category for AI forecasting.");
     if (v.quantity === "" || Number(v.quantity) < 0) er.quantity = t("Enter a valid quantity (0 or more).");
     if (v.cost_price !== "" && Number(v.cost_price) < 0) er.cost_price = t("Cost price cannot be negative.");
+    if (v.selling_price !== "" && Number(v.selling_price) < 0)
+      er.selling_price = t("Selling price cannot be negative.");
 
     if (Object.keys(er).length) {
       setErrors(er);
@@ -106,6 +112,7 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
       quantity: Number(v.quantity),
       reorder_level: v.reorder_level === "" ? 0 : Number(v.reorder_level),
       cost_price: v.cost_price === "" ? 0 : Number(v.cost_price),
+      selling_price: v.selling_price === "" ? 0 : Number(v.selling_price),
       lead_time_days: v.lead_time_days === "" ? 1 : Number(v.lead_time_days),
     };
 
@@ -257,7 +264,29 @@ export default function InventoryForm({ initialData = {}, itemId = null }) {
           />
         </FormField>
 
-        {/* >>> Selling Price ain kala. Ee wenuwata Total Cost (read-only) */}
+        <FormField
+          label={t("Selling Price per Unit (LKR)")}
+          error={errors.selling_price}
+          hint={
+            sellBelowCost
+              ? t("⚠ Lower than the unit cost — this item would sell at a loss.")
+              : sellAtCost
+                ? t("⚠ Same as the unit cost — no profit on this item.")
+                : t("The price a sale suggests for this item")
+          }
+        >
+          <input
+            className={cls("selling_price")}
+            type="number"
+            min="0"
+            step="0.01"
+            value={v.selling_price}
+            onChange={(e) => set("selling_price", e.target.value)}
+            placeholder={t("e.g. 1350.00")}
+          />
+        </FormField>
+
+        {/* Total Cost (read-only) */}
         <FormField
           label={t("Total Cost (LKR)")}
           hint={`${t("Unit Cost × Quantity")}  =  ${unitCost.toFixed(2)} × ${qty}`}

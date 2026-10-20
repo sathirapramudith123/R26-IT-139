@@ -19,6 +19,8 @@ export function floatHealth(bank) {
   const ratio = num(bank.float_balance) / floor;
   if (ratio <= num(bank.alert_crit_pct) / 100) return "CRITICAL_ALERT";
   if (ratio <= num(bank.alert_low_pct) / 100) return "LOW_ALERT";
+  // under the floor but above the alert levels: not an alert yet, a top-up is recommended
+  if (ratio < 1) return "BELOW_FLOOR";
   return "HEALTHY";
 }
 

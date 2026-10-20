@@ -275,7 +275,7 @@ export function buildProfitAndLoss(transactions) {
 function accountClass(account) {
   if (/^(Cash|Bank|Trade Receivables) A\/C$/.test(account)) return "Asset";
   if (account === "Trade Payables A/C") return "Liability";
-  if (account === "Capital A/C") return "Capital";
+  if (account === "Capital A/C" || account === RETAINED) return "Capital";
   if (account === "Drawings A/C") return "Drawings";
   if (account === "Sales A/C" || account === "Other Income A/C") return "Income";
   if (account === "Purchases A/C" || / Expense A\/C$/.test(account)) return "Expense";
@@ -283,13 +283,55 @@ function accountClass(account) {
 }
 const CLASS_ORDER = { Asset: 0, Liability: 1, Capital: 2, Drawings: 3, Income: 4, Expense: 5, Other: 6 };
 
+// Accounts whose balance carries over from one period to the next (income and expense
+// accounts start every period at nil, their result goes to the P&L instead)
+const CARRIED = new Set(["Asset", "Liability", "Capital", "Drawings"]);
+// the profit (or loss) of the earlier periods, brought down so the ledger still balances
+const RETAINED = "Retained Profit A/C";
+
+/**
+ * Opening balance of each account before a period: debit − credit of the earlier transactions.
+ * @returns {Record<string, number>} account -> signed balance (+ = Dr, − = Cr)
+ */
+export function openingBalances(transactions) {
+  const out = {};
+  for (const t of transactions || []) {
+    const l = toJournalLines(t);
+    out[l.debit_account] = (out[l.debit_account] || 0) + l.amount;
+    out[l.credit_account] = (out[l.credit_account] || 0) - l.amount;
+  }
+  return out;
+}
+
 /**
  * Group journal rows (from buildJournal) by account. Each debit line names the account it
  * was credited from ("To ...") and each credit line the account debited ("By ..."), as in a
  * hand-written ledger. Balance = total debit − total credit (Dr when positive, Cr otherwise).
  */
-export function buildLedger(rows) {
+export function buildLedger(rows, openings = {}, openingDate = null) {
   const map = {};
+  // "Balance b/d": what an asset / liability / capital account held before the period. The
+  // earlier income and expense accounts are not carried — their net result is the retained profit.
+  const carried = {};
+  for (const [account, bal] of Object.entries(openings)) {
+    if (CARRIED.has(accountClass(account))) carried[account] = bal;
+    else carried[RETAINED] = (carried[RETAINED] || 0) + bal;
+  }
+  for (const [account, bal] of Object.entries(carried)) {
+    if (Math.abs(bal) < 0.005) continue;
+    const a = (map[account] = { account, class: accountClass(account), debits: [], credits: [] });
+    (bal > 0 ? a.debits : a.credits).push({
+      ref: null,
+      code: null,
+      date: openingDate,
+      particulars: "Balance b/d",
+      amount: +Math.abs(bal).toFixed(2),
+      note: "",
+      transaction_type: null,
+      payment_method: null,
+      opening: true,
+    });
+  }
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
     // rows come in DR/CR pairs that share a journal_ref
@@ -323,7 +365,7 @@ export function buildLedger(rows) {
         total_credit: +cr.toFixed(2),
         balance: +Math.abs(bal).toFixed(2),
         balance_side: Math.abs(bal) < 0.005 ? "Nil" : bal > 0 ? "Dr" : "Cr",
-        count: a.debits.length + a.credits.length,
+        count: [...a.debits, ...a.credits].filter((e) => !e.opening).length,
       };
     })
     .sort((x, y) => CLASS_ORDER[x.class] - CLASS_ORDER[y.class] || y.count - x.count);

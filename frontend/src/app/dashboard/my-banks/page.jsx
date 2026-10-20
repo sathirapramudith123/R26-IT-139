@@ -80,6 +80,14 @@ const HEALTH = {
       return t("Healthy");
     },
   },
+  BELOW_FLOOR: {
+    color: "text-yellow-400",
+    bg: "bg-yellow-500/10",
+    icon: ShieldAlert,
+    get label() {
+      return t("Below floor · top up");
+    },
+  },
   LOW_ALERT: {
     color: "text-amber-400",
     bg: "bg-amber-500/10",

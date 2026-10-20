@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/api.dart';
 import '../../core/theme.dart';
 import '../../core/i18n.dart';
-import 'prediction_extras.dart' show ForecastChart;
+import 'prediction_extras.dart' show ForecastChart, forecastWeekRange;
 
 /// "Forecast any item" on the Sales Forecast card (same as web): pick any inventory item — not only
 /// the six best sellers — and see its past 8 weeks and next week's forecast.
@@ -67,7 +67,9 @@ class _ItemForecastPickerState extends State<ItemForecastPicker> {
         .toList();
     final f = r?["forecast_units"];
     final hasForecast = r?["available"] == true && f is num;
-    final needsReorder = r != null && ((r["quantity"] as num?) ?? 0) <= ((r["reorder_level"] as num?) ?? 0);
+    // forecast-based reorder point when there is a forecast (same as Buy or Wait)
+    final reorderAt = (r?["forecast_reorder_level"] ?? r?["reorder_level"]) as num?;
+    final needsReorder = r != null && ((r["quantity"] as num?) ?? 0) <= (reorderAt ?? 0);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -124,7 +126,8 @@ class _ItemForecastPickerState extends State<ItemForecastPicker> {
                     children: [
                       Text("${r["item"]}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
                       Text(
-                        "${tr("Stock:")} ${r["quantity"]} ${tr("· Reorder:")} ${r["reorder_level"]}",
+                        "${tr("Stock:")} ${r["quantity"]} ${tr("· Reorder:")} $reorderAt"
+                        "${r["forecast_reorder_level"] != null ? " ${tr("(forecast)")}" : ""}",
                         style: TextStyle(fontSize: 11, color: sub),
                       ),
                       Text(
@@ -150,7 +153,7 @@ class _ItemForecastPickerState extends State<ItemForecastPicker> {
                           color: KadeColors.teal,
                         ),
                       ),
-                      Text(tr("units / next wk"), style: TextStyle(fontSize: 10, color: sub)),
+                      Text("${tr("units · week of")} ${forecastWeekRange()}", style: TextStyle(fontSize: 10, color: sub)),
                     ],
                   )
                 else

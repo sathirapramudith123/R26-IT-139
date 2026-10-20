@@ -121,55 +121,65 @@ export const getInsights = async (req, res) => {
       (a, b) => (totalSold[normName(b.item_name)] || 0) - (totalSold[normName(a.item_name)] || 0),
     );
 
-    const list = [];
-    for (const item of sortedBySales) {
-      if (list.length >= 6) break;
-      const {
-        hasSalesHistory,
-        features: demandFeatures,
-        history,
-        reason,
-      } = await buildDemandFeatures(userId, item, avgSalePrice[normName(item.item_name)]);
-      // past 8 completed weeks, oldest first — the chart's "actual" line
-      const weeks = (history || [])
-        .slice()
-        .reverse()
-        // local Monday of the week (toISOString would show the Sunday before in UTC+5:30)
-        .map((w) => ({ week: localDateStr(new Date(w.week)), units: w.units }));
-      if (hasSalesHistory) {
-        const r = await safePredict("demand", demandFeatures);
-        if (r.available) forecastByItem[normName(item.item_name)] = r.prediction;
-        // Revenue estimate = forecast units × the item's real average selling price, rounded to
-        // the nearest 100: the forecast is off by ~11 units on average (test MAE), so an exact
-        // rupee figure would be false precision.
-        const price =
-          avgSalePrice[normName(item.item_name)] || Number(item.cost_price) || Number(item.unit_price) || 0;
-        const forecastRevenue = r.available && price ? Math.round((r.prediction * price) / 100) * 100 : null;
-        list.push({
-          item: item.item_name,
-          quantity: Number(item.quantity),
-          reorder_level: Number(item.reorder_level),
-          forecast_units: r.available ? r.prediction : null,
-          forecast_revenue: forecastRevenue,
-          available: r.available,
-          history: weeks,
-        });
-      } else {
-        list.push({
-          item: item.item_name,
-          quantity: Number(item.quantity),
-          reorder_level: Number(item.reorder_level),
-          forecast_units: null,
-          forecast_revenue: null,
-          available: false,
-          reason: reason || "No sales in the last 8 weeks",
-          // no forecast, but the past weeks can still be shown (sold earlier, not in the last 4 weeks)
-          history: weeks,
-        });
-      }
-    }
-    out.demand = list.length
-      ? { available: true, items: list }
+    // look at the 20 best sellers, then show 6 — the ones with a forecast first (see below)
+    // each item reads its own sales history and asks the model, so run them in parallel
+    const list = await Promise.all(
+      sortedBySales.slice(0, 20).map(async (item) => {
+        const {
+          hasSalesHistory,
+          features: demandFeatures,
+          history,
+          reason,
+        } = await buildDemandFeatures(userId, item, avgSalePrice[normName(item.item_name)]);
+        // past 8 completed weeks, oldest first — the chart's "actual" line
+        const weeks = (history || [])
+          .slice()
+          .reverse()
+          // local Monday of the week (toISOString would show the Sunday before in UTC+5:30)
+          .map((w) => ({ week: localDateStr(new Date(w.week)), units: w.units }));
+        if (hasSalesHistory) {
+          const r = await safePredict("demand", demandFeatures);
+          if (r.available) forecastByItem[normName(item.item_name)] = r.prediction;
+          // Revenue estimate = forecast units × the item's real average selling price, rounded to
+          // the nearest 100: the forecast is off by ~11 units on average (test MAE), so an exact
+          // rupee figure would be false precision.
+          const price =
+            avgSalePrice[normName(item.item_name)] || Number(item.cost_price) || Number(item.unit_price) || 0;
+          const forecastRevenue =
+            r.available && price ? Math.round((r.prediction * price) / 100) * 100 : null;
+          return {
+            item: item.item_name,
+            quantity: Number(item.quantity),
+            reorder_level: Number(item.reorder_level),
+            // the same forecast-based reorder point as Buy or Wait, so both cards agree
+            forecast_reorder_level: r.available
+              ? forecastReorderLevel(r.prediction, item.lead_time_days).reorder_level
+              : null,
+            forecast_units: r.available ? r.prediction : null,
+            forecast_revenue: forecastRevenue,
+            available: r.available,
+            history: weeks,
+          };
+        } else {
+          return {
+            item: item.item_name,
+            quantity: Number(item.quantity),
+            reorder_level: Number(item.reorder_level),
+            forecast_reorder_level: null,
+            forecast_units: null,
+            forecast_revenue: null,
+            available: false,
+            reason: reason || "No sales in the last 8 weeks",
+            // no forecast, but the past weeks can still be shown (sold earlier, not in the last 4 weeks)
+            history: weeks,
+          };
+        }
+      }),
+    );
+    // items with a forecast first (best sellers first within each group), then up to 6
+    const shown = [...list.filter((d) => d.available), ...list.filter((d) => !d.available)].slice(0, 6);
+    out.demand = shown.length
+      ? { available: true, items: shown }
       : { available: false, reason: "Add inventory items to see forecasts." };
   }
 
@@ -551,6 +561,7 @@ export const forecastItem = async (req, res, next) => {
       ...out,
       available: true,
       forecast_units: r.prediction,
+      forecast_reorder_level: forecastReorderLevel(r.prediction, item.lead_time_days).reorder_level,
       // nearest 100: the forecast is off by ~11 units on average (test MAE)
       forecast_revenue: price ? Math.round((r.prediction * price) / 100) * 100 : null,
       explanation: r.explanation,

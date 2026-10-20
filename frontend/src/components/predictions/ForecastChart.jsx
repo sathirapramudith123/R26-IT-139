@@ -12,6 +12,13 @@ import {
 import { DEMAND_MAE } from "@/lib/modelTrust";
 import { t } from "@/lib/i18n";
 
+// MM-DD of the Monday after the last real week (same style as the other week labels)
+const nextWeekLabel = (week) => {
+  const [y, m, d] = String(week).split("-").map(Number);
+  const next = new Date(y, m - 1, d + 7);
+  return `${String(next.getMonth() + 1).padStart(2, "0")}-${String(next.getDate()).padStart(2, "0")}`;
+};
+
 // Past 8 weeks of real sales, then next week's forecast with a band for the model's usual error.
 // Without a forecast (no sales in the last 4 weeks) only the past weeks are drawn.
 export default function ForecastChart({ history = [], forecast }) {
@@ -28,7 +35,13 @@ export default function ForecastChart({ history = [], forecast }) {
         : {}),
     })),
     ...(hasForecast
-      ? [{ label: t("Next week"), forecast: f, band: [Math.max(0, f - DEMAND_MAE), f + DEMAND_MAE] }]
+      ? [
+          {
+            label: nextWeekLabel(history.at(-1).week),
+            forecast: f,
+            band: [Math.max(0, f - DEMAND_MAE), f + DEMAND_MAE],
+          },
+        ]
       : []),
   ];
 

@@ -392,7 +392,9 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
                 // past sales can be shown without a forecast
                 final canOpen = hasForecast || history.any((u) => u > 0);
                 final open = openItem == i && canOpen;
-                final needsReorder = ((it["quantity"] as num?) ?? 0) <= ((it["reorder_level"] as num?) ?? 0);
+                // forecast-based reorder point when there is a forecast (same as Buy or Wait)
+                final reorderAt = (it["forecast_reorder_level"] ?? it["reorder_level"]) as num?;
+                final needsReorder = ((it["quantity"] as num?) ?? 0) <= (reorderAt ?? 0);
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
                   decoration: BoxDecoration(
@@ -417,7 +419,8 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
                                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
                                     ),
                                     Text(
-                                      "${tr("Stock:")} ${it["quantity"]} ${tr("· Reorder:")} ${it["reorder_level"]}",
+                                      "${tr("Stock:")} ${it["quantity"]} ${tr("· Reorder:")} $reorderAt"
+                                      "${it["forecast_reorder_level"] != null ? " ${tr("(forecast)")}" : ""}",
                                       style: TextStyle(fontSize: 11, color: sub),
                                     ),
                                     const SizedBox(height: 4),
@@ -445,7 +448,7 @@ class _PredictionsHubScreenState extends State<PredictionsHubScreen> {
                                           ),
                                         ),
                                         Text(
-                                          tr("units / next wk"),
+                                          "${tr("units · week of")} ${forecastWeekRange()}",
                                           style: TextStyle(fontSize: 10, color: sub),
                                         ),
                                         // forecast × the item's real average selling price (same as web)

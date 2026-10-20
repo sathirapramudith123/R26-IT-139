@@ -578,6 +578,9 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
       case "LOW_ALERT":
         healthColor = Colors.orange;
         break;
+      case "BELOW_FLOOR":
+        healthColor = Colors.amber.shade700;
+        break;
       default:
         healthColor = Colors.green;
     }
@@ -642,7 +645,15 @@ class _AgencyBankingFormScreenState extends State<AgencyBankingFormScreen> {
               color: cashAfter < 0 ? Colors.red : Colors.green,
             ),
           const Divider(height: 14),
-          row(tr("Health"), health.isEmpty ? "—" : health.replaceAll("_", " "), color: healthColor),
+          row(
+            tr("Health"),
+            health.isEmpty
+                ? "—"
+                : health == "BELOW_FLOOR"
+                ? tr("Below floor · top up")
+                : tr(health.replaceAll("_", " ")),
+            color: healthColor,
+          ),
           if (warn != null)
             Padding(
               padding: const EdgeInsets.only(top: 6),
