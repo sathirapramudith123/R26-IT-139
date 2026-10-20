@@ -60,7 +60,7 @@ export const REPORT_GROUPS = [
     get label() {
       return t("Money in & out");
     },
-    ids: ["payments", "transactions", "agency"],
+    ids: ["payments", "cashflow", "transactions", "agency"],
   },
 ];
 
@@ -552,6 +552,126 @@ export const REPORTS = {
               { method: tr("Credit (not received yet)"), amount: num(credit.sales), share: "—" },
             ],
             totals: { method: tr("Total"), amount: sales + num(credit.sales) },
+          },
+        ],
+      };
+    },
+  },
+
+  cashflow: {
+    icon: "🪙",
+    usesRange: true,
+    name: "Cash Flow",
+    get title() {
+      return t(this.name);
+    },
+    get description() {
+      return t("The shop's Cash A/C and, kept separate, the agency-banking cash and float.");
+    },
+    async load(range, tr = t) {
+      const d = (await transactionApi.cashFlow(range)) || {};
+      const shop = d.shop || {};
+      const ag = d.agency || {};
+      const p = ag.period || {};
+      const today = ag.today || {};
+      const EVENT = {
+        DEPOSIT: "Customer deposit",
+        WITHDRAWAL: "Customer withdrawal",
+        TOPUP: "Float top-up",
+        WITHDRAWAL_REVERSAL: "Withdrawal reversed",
+        DEPOSIT_REVERSAL: "Deposit reversed",
+      };
+      const HEALTH = { HEALTHY: "Healthy", LOW_ALERT: "Low", CRITICAL_ALERT: "Critical" };
+      const lines = (obj, sign) =>
+        Object.entries(obj || {}).map(([k, v]) => ({ line: tr(k), amount: sign * num(v) }));
+      return {
+        kpis: [
+          { label: tr("Opening balance"), value: num(shop.opening), type: "money" },
+          { label: tr("Cash in"), value: num(shop.total_in), type: "money", tone: "good" },
+          { label: tr("Cash out"), value: num(shop.total_out), type: "money", tone: "bad" },
+          {
+            label: tr("Cash A/C balance"),
+            value: num(shop.closing),
+            type: "money",
+            tone: num(shop.closing) >= 0 ? "good" : "bad",
+          },
+          { label: tr("Agency cash on hand (now)"), value: num(today.cash_on_hand), type: "money" },
+          { label: tr("Total float (all banks)"), value: num(ag.total_float), type: "money" },
+        ],
+        sections: [
+          {
+            heading: tr("Shop cash — Cash A/C"),
+            columns: [text("line", tr("Description")), money("amount", tr("Amount (LKR)"))],
+            rows: [
+              { line: tr("Opening balance"), amount: num(shop.opening), _bold: true },
+              ...lines(shop.cash_in, 1),
+              ...lines(shop.cash_out, -1),
+              { line: tr("Cash A/C balance"), amount: num(shop.closing), _bold: true },
+            ],
+          },
+          {
+            heading: tr("Cash A/C statement"),
+            columns: [
+              date("date", tr("Date")),
+              text("kind", tr("Type")),
+              text("note", tr("Details")),
+              money("amount", tr("Amount (LKR)")),
+              money("balance", tr("Balance")),
+            ],
+            rows: list(shop.entries).map((e) => ({ ...e, kind: tr(e.kind), note: e.note || "—" })),
+          },
+          {
+            heading: tr("Agency banking cash (customers' money, separate from the shop)"),
+            columns: [text("line", tr("Description")), money("amount", tr("Amount (LKR)"))],
+            rows: [
+              { line: tr("Customer deposits received"), amount: num(p.deposits) },
+              { line: tr("Customer withdrawals paid out"), amount: -num(p.withdrawals) || 0 },
+              { line: tr("Cash used for float top-ups"), amount: -num(p.float_topups) || 0 },
+              { line: tr("Withdrawals reversed"), amount: num(p.reversals_in) },
+              { line: tr("Deposits reversed"), amount: -num(p.reversals_out) || 0 },
+              { line: tr("Net cash change"), amount: num(p.net), _bold: true },
+              { line: tr("Cash on hand (now)"), amount: num(today.cash_on_hand), _bold: true },
+              { line: tr("Available for withdrawals"), amount: num(today.available_for_withdrawals) },
+              { line: tr("Available for float top-up"), amount: num(today.available_for_topup) },
+            ],
+          },
+          {
+            heading: tr("Float per partner bank"),
+            columns: [
+              text("bank", tr("Bank")),
+              money("float", tr("Float")),
+              money("available", tr("Available for deposits")),
+              money("floor", tr("Floor")),
+              money("ceiling", tr("Ceiling")),
+              text("status", tr("Status")),
+            ],
+            rows: list(ag.banks).map((b) => ({
+              bank: b.bank_name,
+              float: num(b.float_balance),
+              available: num(b.available_for_deposits),
+              floor: num(b.float_floor),
+              ceiling: num(b.float_ceiling),
+              status: tr(HEALTH[b.health] || b.health),
+              _tone: b.health === "HEALTHY" ? undefined : "bad",
+            })),
+            totals: { bank: tr("Total"), float: num(ag.total_float) },
+          },
+          {
+            heading: tr("Agency banking cash statement"),
+            columns: [
+              date("date", tr("Date")),
+              text("event", tr("Type")),
+              text("customer", tr("Customer")),
+              text("bank", tr("Bank")),
+              money("amount", tr("Cash (LKR)")),
+            ],
+            rows: list(p.entries).map((e) => ({
+              date: e.date,
+              event: tr(EVENT[e.event] || e.event),
+              customer: e.customer || "—",
+              bank: e.bank || "—",
+              amount: num(e.amount),
+            })),
           },
         ],
       };

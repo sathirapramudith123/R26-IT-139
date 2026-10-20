@@ -125,7 +125,7 @@ class ReportGroup {
 const reportGroups = [
   ReportGroup("Accounting", ["income", "pnl", "journal", "trial"]),
   ReportGroup("Stock & purchasing", ["goods", "stock", "procurement", "suppliers"]),
-  ReportGroup("Money in & out", ["payments", "transactions", "agency"]),
+  ReportGroup("Money in & out", ["payments", "cashflow", "transactions", "agency"]),
 ];
 
 ReportColumn _money(String k, String l) => ReportColumn(k, l, ColType.money);
@@ -602,6 +602,139 @@ final Map<String, ReportDef> reports = {
               {"method": tr("Credit (not received yet)"), "amount": _n(credit["sales"]), "share": "—"},
             ],
             {"method": tr("Total"), "amount": sales + _n(credit["sales"])},
+          ),
+        ],
+      );
+    },
+  ),
+
+  // the shop's Cash A/C and, separately, the agency-banking cash and float (GET /reports/cash-flow),
+  // same as the web report and the Journal → Cash tab
+  "cashflow": ReportDef(
+    "cashflow",
+    "🪙",
+    "Cash Flow",
+    "The shop's Cash A/C and, kept separate, the agency-banking cash and float.",
+    true,
+    (r, tr) async {
+      final raw = await Api.get("/reports/cash-flow?from=${ymd(r.from)}&to=${ymd(r.to)}");
+      final d = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+      Map<String, dynamic> m(dynamic v) => v is Map ? Map<String, dynamic>.from(v) : <String, dynamic>{};
+      final shop = m(d["shop"]);
+      final ag = m(d["agency"]);
+      final p = m(ag["period"]);
+      final today = m(ag["today"]);
+      const event = {
+        "DEPOSIT": "Customer deposit",
+        "WITHDRAWAL": "Customer withdrawal",
+        "TOPUP": "Float top-up",
+        "WITHDRAWAL_REVERSAL": "Withdrawal reversed",
+        "DEPOSIT_REVERSAL": "Deposit reversed",
+      };
+      const health = {"HEALTHY": "Healthy", "LOW_ALERT": "Low", "CRITICAL_ALERT": "Critical"};
+      List<Map<String, dynamic>> lines(dynamic obj, double sign) => [
+        for (final e in m(obj).entries) {"line": tr(e.key), "amount": sign * _n(e.value)},
+      ];
+      final closing = _n(shop["closing"]);
+
+      return ReportModel(
+        [
+          Kpi(tr("Opening balance"), _n(shop["opening"]), type: ColType.money),
+          Kpi(tr("Cash in"), _n(shop["total_in"]), type: ColType.money, tone: "good"),
+          Kpi(tr("Cash out"), _n(shop["total_out"]), type: ColType.money, tone: "bad"),
+          Kpi(tr("Cash A/C balance"), closing, type: ColType.money, tone: closing >= 0 ? "good" : "bad"),
+          Kpi(tr("Agency cash on hand (now)"), _n(today["cash_on_hand"]), type: ColType.money),
+          Kpi(tr("Total float (all banks)"), _n(ag["total_float"]), type: ColType.money),
+        ],
+        [
+          ReportSection(
+            tr("Shop cash — Cash A/C"),
+            [_text("line", tr("Description")), _money("amount", tr("Amount (LKR)"))],
+            [
+              {"line": tr("Opening balance"), "amount": _n(shop["opening"]), "_bold": true},
+              ...lines(shop["cash_in"], 1),
+              ...lines(shop["cash_out"], -1),
+              {"line": tr("Cash A/C balance"), "amount": closing, "_bold": true},
+            ],
+          ),
+          ReportSection(
+            tr("Cash A/C statement"),
+            [
+              _date("date", tr("Date")),
+              _text("kind", tr("Type")),
+              _text("note", tr("Details")),
+              _money("amount", tr("Amount (LKR)")),
+              _money("balance", tr("Balance")),
+            ],
+            [
+              for (final e in _list(shop["entries"]))
+                {
+                  "date": e["date"],
+                  "kind": tr("${e["kind"] ?? ""}"),
+                  "note": "${e["note"] ?? ""}".isEmpty ? "—" : e["note"],
+                  "amount": _n(e["amount"]),
+                  "balance": _n(e["balance"]),
+                },
+            ],
+          ),
+          ReportSection(
+            tr("Agency banking cash (customers' money, separate from the shop)"),
+            [_text("line", tr("Description")), _money("amount", tr("Amount (LKR)"))],
+            [
+              {"line": tr("Customer deposits received"), "amount": _n(p["deposits"])},
+              {"line": tr("Customer withdrawals paid out"), "amount": -_n(p["withdrawals"])},
+              {"line": tr("Cash used for float top-ups"), "amount": -_n(p["float_topups"])},
+              {"line": tr("Withdrawals reversed"), "amount": _n(p["reversals_in"])},
+              {"line": tr("Deposits reversed"), "amount": -_n(p["reversals_out"])},
+              {"line": tr("Net cash change"), "amount": _n(p["net"]), "_bold": true},
+              {"line": tr("Cash on hand (now)"), "amount": _n(today["cash_on_hand"]), "_bold": true},
+              {"line": tr("Available for withdrawals"), "amount": _n(today["available_for_withdrawals"])},
+              {"line": tr("Available for float top-up"), "amount": _n(today["available_for_topup"])},
+            ],
+          ),
+          ReportSection(
+            tr("Float per partner bank"),
+            [
+              _text("bank", tr("Bank")),
+              _money("float", tr("Float")),
+              _money("available", tr("Available for deposits")),
+              _money("floor", tr("Floor")),
+              _money("ceiling", tr("Ceiling")),
+              _text("status", tr("Status")),
+            ],
+            [
+              for (final b in _list(ag["banks"]))
+                {
+                  "bank": b["bank_name"],
+                  "float": _n(b["float_balance"]),
+                  "available": _n(b["available_for_deposits"]),
+                  "floor": _n(b["float_floor"]),
+                  "ceiling": _n(b["float_ceiling"]),
+                  "status": tr(health["${b["health"]}"] ?? "${b["health"]}"),
+                  if (b["health"] != "HEALTHY") "_bad": true,
+                },
+            ],
+            {"bank": tr("Total"), "float": _n(ag["total_float"])},
+          ),
+          ReportSection(
+            tr("Agency banking cash statement"),
+            [
+              _date("date", tr("Date")),
+              _text("event", tr("Type")),
+              _text("customer", tr("Customer")),
+              _text("bank", tr("Bank")),
+              _money("amount", tr("Cash (LKR)")),
+            ],
+            [
+              for (final e in _list(p["entries"]))
+                {
+                  "date": e["date"],
+                  "event": tr(event["${e["event"]}"] ?? "${e["event"]}"),
+                  "customer": "${e["customer"] ?? ""}".isEmpty ? "—" : e["customer"],
+                  "bank": "${e["bank"] ?? ""}".isEmpty ? "—" : e["bank"],
+                  "amount": _n(e["amount"]),
+                },
+            ],
           ),
         ],
       );

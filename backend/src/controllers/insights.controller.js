@@ -493,3 +493,69 @@ export const creditActions = async (req, res, next) => {
     next(err);
   }
 };
+
+// GET /insights/forecast?item=Name — the weekly demand forecast for ONE item (any item, not only
+// the six best sellers on the Predictions page). Same rules as getInsights: the item's batches are
+// added together, the model needs sales in the last 4 completed weeks, and the past 8 weeks are
+// returned for the chart either way.
+export const forecastItem = async (req, res, next) => {
+  try {
+    const name = String(req.query.item || "").trim();
+    if (!name) return res.status(400).json({ error: "Choose an item" });
+    const key = name.toLowerCase().replace(/\s+/g, " ");
+
+    const { data: rows, error } = await supabase.from("inventory").select("*").eq("user_id", req.user.id);
+    if (error) throw error;
+    const batches = (rows || []).filter(
+      (r) =>
+        String(r.item_name || "")
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, " ") === key,
+    );
+    if (!batches.length) return res.status(404).json({ error: "Item not found in inventory" });
+
+    // one product = all its batches (same as the Predictions page)
+    const item = {
+      ...batches[0],
+      quantity: batches.reduce((a, b) => a + (Number(b.quantity) || 0), 0),
+      reorder_level: Math.max(...batches.map((b) => Number(b.reorder_level) || 0)),
+      cost_price: batches.map((b) => Number(b.cost_price)).find((c) => c > 0) || 0,
+    };
+    const avgSalePrice = await getAvgSalePriceByItem(req.user.id);
+    const { hasSalesHistory, features, history, reason } = await buildDemandFeatures(
+      req.user.id,
+      item,
+      avgSalePrice[key],
+    );
+    const weeks = (history || [])
+      .slice()
+      .reverse()
+      .map((w) => ({ week: localDateStr(new Date(w.week)), units: w.units }));
+
+    const out = {
+      item: item.item_name,
+      quantity: item.quantity,
+      reorder_level: item.reorder_level,
+      forecast_units: null,
+      forecast_revenue: null,
+      available: false,
+      history: weeks,
+    };
+    if (!hasSalesHistory) return res.json({ ...out, reason: reason || "No sales in the last 8 weeks" });
+
+    const r = await safePredict("demand", features);
+    if (!r.available) return res.json({ ...out, reason: r.reason });
+    const price = avgSalePrice[key] || Number(item.cost_price) || Number(item.unit_price) || 0;
+    res.json({
+      ...out,
+      available: true,
+      forecast_units: r.prediction,
+      // nearest 100: the forecast is off by ~11 units on average (test MAE)
+      forecast_revenue: price ? Math.round((r.prediction * price) / 100) * 100 : null,
+      explanation: r.explanation,
+    });
+  } catch (e) {
+    next(e);
+  }
+};

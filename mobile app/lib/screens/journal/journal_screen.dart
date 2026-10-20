@@ -5,8 +5,8 @@ import '../../core/i18n.dart';
 import '../common/record_details.dart' show money, qtyOf, numOf;
 import 'cash_flow_view.dart';
 
-/// General Journal & Reports — same as the web page: a date range, then three tabs
-/// (double-entry Journal, Goods Movement, Profit & Loss).
+/// General Journal & Reports — same as the web page: a date range, then five tabs
+/// (double-entry Journal, Ledger, Goods Movement, Profit & Loss, Cash).
 class JournalScreen extends StatefulWidget {
   const JournalScreen({super.key});
   @override
