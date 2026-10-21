@@ -53,16 +53,16 @@ website link -> https://lanka-link-reasearch.netlify.app/
 
 | Module | What it does |
 |---|---|
-| **Dashboard** | Income (from sales), expenses, profit, low stock and recent activity at a glance |
-| **Transactions** | Record every sale, purchase, expense, deposit and transfer. Sales suggest the price (oldest batch's selling price / MRP, else the last sold price), warn when the cost went up, and split a sale over batches with different prices |
+| **Dashboard** | Income (from sales), expenses (owner's drawings left out, as in the P&L), profit, low stock and recent activity at a glance |
+| **Transactions** | Record every sale, purchase, expense, deposit and transfer. Sales suggest the price (oldest batch's selling price / MRP, else the last sold price), warn when the cost went up, and split a sale over batches with different prices. Deposits include **Owner Capital Injection** and **Other Income**; expenses include **Owner Drawings** |
 | **Supplier payments** | Pick the supplier, see how much is still owed, and record who was paid and when |
-| **Journal & Reports** | Double-entry ledger (debit / credit), trial balance, goods movement, profit & loss, **Cash, Bank & Digital** (money in / out per payment method) — on screen, as PDF or Excel |
-| **Inventory** | Stock in FIFO batches with cost and selling price per batch, low-stock and out-of-stock alerts, delivery lead time per item |
-| **Suppliers** | Suppliers, the items they carry, their location on a map, and the balance owed to each |
-| **Procurement** | Purchase orders — the app ranks suppliers by items covered, price and distance |
-| **Agency Banking** | Deposits / withdrawals / transfers for customers, with CBSL daily limits |
-| **My Banks** | Float account per partner bank and the shared cash pool |
-| **Predictions** | All 4 AI insights in one place, each with its reasons, plus a **"Try it yourself"** page per model to enter your own values and see how the answer changes |
+| **Journal & Reports** | Double-entry journal, ledger with **Balance b/d** opening lines (and the earlier periods' result as Retained Profit, so the ledger always balances), trial balance, goods movement, profit & loss (with other income), **Cash** tab (shop Cash A/C with opening balance, plus agency-banking cash and float kept apart), **Cash, Bank & Digital** (money in / out per payment method) — on screen, as PDF or Excel |
+| **Inventory** | Stock in FIFO batches with cost and **selling price** per batch (warns when the selling price is at or below cost), low-stock and out-of-stock alerts, delivery lead time per item. Editing an item with several batches edits the newest batch only, on web and mobile |
+| **Suppliers** | Suppliers, the items they carry, their location on a map, and the balance owed to each. Names, phone, email and location are trimmed on save |
+| **Procurement** | Purchase orders — the app ranks suppliers by items covered, price and distance. An order past its expected arrival date that is not received or cancelled shows **⏰ Overdue** |
+| **Agency Banking** | Deposits / withdrawals / transfers for customers, with CBSL daily limits and an OTP (shown on a simulated phone, also e-mailed) for withdrawals |
+| **My Banks** | Float account per partner bank and the shared cash pool. Float health: Healthy → **Below floor · top up** → Low (≤ 40 % of floor) → Critical (≤ 20 %) |
+| **Predictions** | All 4 AI insights in one place, each with its reasons. Sales Forecast shows the forecast week's dates, items with a forecast first, a "forecast any item" picker, and how many units sold so far this week (for information) |
 | **Account** | Email + password or **Sign in with Google**, forgot-password email, profile, sign out of all devices |
 
 ---
@@ -87,6 +87,10 @@ Accounting rules worth knowing:
 - **Income = sales only.** A deposit moves cash into the bank (Dr Bank / Cr Cash); it is not income.
 - **Supplier payment** settles what the shop owes: Dr Trade Payables / Cr Bank (or Cash).
 - **Drawings** (money the owner takes for personal use) go to Drawings A/C and are not an expense in the P&L.
+- **Owner Capital Injection** (deposit): Dr Cash (or Bank) / Cr Capital A/C — new money from the owner, not income.
+- **Other Income** (deposit): Dr Cash (or Bank) / Cr Other Income A/C — added below the gross profit in the P&L.
+- **Ledger for a period** starts each asset, liability and capital account with its **Balance b/d**;
+  income and expense accounts start at nil and their earlier result is brought down as **Retained Profit A/C**.
 - **No sales in the last 4 weeks → no demand forecast**, instead of a made-up number.
 
 ---
@@ -111,8 +115,12 @@ What the app does with them:
 - **Credit:** score 0–100 → approved (≥ 70), conditional (50–69, loan capped at LKR 250,000) or rejected;
   hard blocks for debt-to-income above 85 % or under 3 months in business. Loan limit = **3.5 × monthly net
   cash flow**.
-- **Demand:** next week's units per item; the **reorder point** = forecast × lead time + safety stock
-  (1.65 × forecast error × √lead time) decides Buy / Wait.
+- **Demand:** units per item for the week after the last completed Monday–Sunday week (the current,
+  unfinished week is never used as an input). The forecast is **capped at 2 × the best of the last 4
+  weeks**, because the model was trained on items that sell every week and over-forecasts slow sellers;
+  the model's own figure is still shown. The **reorder point** = forecast × lead time + safety stock
+  (1.65 × forecast error × √lead time) decides Buy / Wait, and the Sales Forecast card uses the same
+  reorder point, so both cards agree.
 - **Procurement:** adds price context to Buy / Wait ("Good price right now" / "Prices may improve soon").
 - **Anomaly:** flags a transaction for the agent to verify. CBSL limits are **enforced** (over-limit
   transactions are refused), and the model detects what the limits cannot.

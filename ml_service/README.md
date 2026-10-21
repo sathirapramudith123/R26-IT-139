@@ -28,7 +28,8 @@ Each file is a copy of the model saved by its notebook. Model cards: `ML model/<
 - **credit** — score 0–100, status (prime ≥ 70, conditional 50–69, otherwise rejected; hard blocks for
   debt-to-income > 85 % or under 3 months), loan limit = 3.5 × monthly net cash flow.
 - **procurement** — buy confidence, the price in 4 weeks, recommended action.
-- **demand** — units expected next week.
+- **demand** — units expected in the week after the last completed week (the model's raw figure; the
+  backend caps it at 2 × the best of the last 4 weeks before the app shows it).
 - **anomaly** — probability and flag at `ANOMALY_THRESHOLD` (default 0.87, set by the notebook).
 
 Every response includes `explanation`: the inputs that pushed the prediction up or down.

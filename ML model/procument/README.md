@@ -49,8 +49,12 @@ compared with the 3-month average, days to Avurudu, festival season.
 ## How the app uses it
 
 The **Buy / Wait** decision comes from stock versus a reorder point set by the weekly demand forecast
-(C3). This model adds the **price context** ("Good price right now" / "Prices may improve soon") from its
+(C3): **stock ≤ reorder point → Buy**, otherwise Wait; items without a forecast use the shop's own reorder
+level (`backend/src/controllers/insights.controller.js`, C3). The card lists the 6 items with the lowest
+stock ÷ reorder level. This model adds the **price context** ("Good price right now" / "Prices may improve soon") from its
 buy probability (≥ 75 % bulk buy, 50–74 % moderate buy, otherwise wait), with the factors behind it.
+The price context is advice only: it never turns a Buy into a Wait, so an item about to run out is
+always Buy. "Today's price" is the latest price the shop paid (purchases / received orders).
 
 ## Limitations
 

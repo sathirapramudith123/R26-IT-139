@@ -46,13 +46,29 @@ last week, units sold 4 weeks ago, mean of the past 4 weeks. All sales inputs us
 
 ## How the app uses it
 
-The Sales Forecast card shows next week's units per item. The forecast also sets the **reorder point**
-used for Buy / Wait:
+The Sales Forecast card shows the units per item for the week after the last **completed** Monday–Sunday
+week, with that week's dates ("week of 10/19–10/25"). Inputs come from completed weeks only (the backend
+builds them in `backend/src/utils/features.js`, `buildDemandFeatures`):
+
+- **No sales in the last 4 completed weeks → no forecast** ("No sales in the last 4 weeks"); the past
+  8 weeks are still drawn.
+- **Cap:** the forecast is limited to **2 × the best of the last 4 completed weeks**
+  (`predictDemand` in `backend/src/controllers/insights.controller.js`). The training items sell every
+  week, so for a slow seller the model keeps a high base (e.g. ≈25 a week for an item that sold 2 in 8
+  weeks). When the cap applies, the card also shows the model's own figure ("model said ≈25").
+- Units sold so far in the current, unfinished week are shown for information only; they count once the
+  week ends.
+
+The forecast also sets the **reorder point** used for Buy / Wait and for the Sales Forecast card's
+"Reorder now" badge, so both cards agree:
 `reorder point = forecast × lead time (weeks) + 1.65 × 24.79 × √(lead time in weeks)`
-(safety stock for about a 95 % chance of not running out before delivery).
+(safety stock for about a 95 % chance of not running out before delivery). Items without a forecast use
+the shop's own reorder level.
 
 ## Limitations
 
 - The test period contains one Avurudu (3 festival weeks, 2 after), so festival results are indicative.
 - The weekly series is not one real shop's sales.
+- The model over-forecasts items that sell only a few units a week (outside its training data); the cap
+  above is a business rule, not part of the model.
 - One error figure is used for all items, so safety stock is relatively large for slow-selling items.
